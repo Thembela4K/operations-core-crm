@@ -19,8 +19,18 @@
             @endforeach
         </select>
     </label>
-    <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
-        <input class="rounded border-zinc-300" type="checkbox" name="is_active" value="1" @checked(old('is_active', $user->is_active))>
-        Active
-    </label>
+    <div class="grid gap-3 md:grid-cols-3">
+        <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
+            <input class="rounded border-zinc-300" type="checkbox" name="is_active" value="1" @checked(old('is_active', $user->is_active))>
+            Active
+        </label>
+        <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
+            <input class="rounded border-zinc-300" type="checkbox" name="receives_submissions" value="1" @checked(old('receives_submissions', $user->receives_submissions))>
+            Reviewer
+        </label>
+        <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
+            <input class="rounded border-zinc-300" type="checkbox" name="can_access_sppra" value="1" @checked(old('can_access_sppra', $user->can_access_sppra))>
+            SPPRA
+        </label>
+    </div>
 </div>

@@ -14,6 +14,6 @@ Artisan::command('reminders:send-due', function (): int {
     $this->info("{$sent} due reminder emails sent.");
 
     return self::SUCCESS;
-})->purpose('Send due project and quotation reminders');
+})->purpose('Send due tender proposal and quotation reminders');
 
 Schedule::command('reminders:send-due')->dailyAt('08:00');

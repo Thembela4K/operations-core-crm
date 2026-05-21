@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Project;
+use App\Models\TenderProposal;
 use App\Services\ReminderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -16,9 +16,9 @@ class ReminderServiceTest extends TestCase
     {
         Mail::fake();
 
-        Project::query()->create([
-            'project_code' => 'PRJ-900',
-            'name' => 'Due Project',
+        TenderProposal::query()->create([
+            'tender_reference' => 'TDR-900',
+            'title' => 'Due Tender',
             'owner' => 'Owner',
             'owner_email' => 'owner@example.com',
             'status' => 'In Progress',
@@ -27,8 +27,8 @@ class ReminderServiceTest extends TestCase
             'risk' => 'Medium',
             'progress_percent' => 80,
             'budget' => 10000,
-            'start_date' => now()->subDays(5)->toDateString(),
-            'deadline' => now()->addDays(3)->toDateString(),
+            'received_date' => now()->subDays(5)->toDateString(),
+            'closing_date' => now()->addDays(3)->toDateString(),
         ]);
 
         $service = app(ReminderService::class);

@@ -1,6 +1,6 @@
-# Project & Quotation Assignment Tracker
+# Tender Proposal & Quotation Assignment Tracker
 
-A Laravel + MySQL/MariaDB web app for tracking project and quotation assignments, ratings, deadlines, reminders, documents, CSV imports/exports, and email notifications.
+A Laravel + MySQL/MariaDB web app for tracking tender proposal and quotation assignments, due dates, reminders, documents, department submissions, and email notifications.
 
 ## Stack
 
@@ -13,15 +13,16 @@ A Laravel + MySQL/MariaDB web app for tracking project and quotation assignments
 ## Features
 
 - Login-only access with no public registration.
-- Roles: `super_admin`, `manager`, and `department_user`.
-- Department-scoped visibility for department users.
-- Project and quotation dashboards.
-- Project and quotation CRUD.
-- Assignment center with optional SMTP email notices.
-- Document upload/download per project or quotation.
-- CSV import/export for projects and quotations.
+- Roles: `super_admin`, `manager`, `director`, `reception`, and `department_user`.
+- Department-scoped visibility for assigned department users.
+- Tender proposal and quotation dashboards.
+- Tender due dates with optional site visit and clarification window dates.
+- Assignment center with due dates, instructions, and optional SMTP email notices.
+- Department submissions with draft/finished status and technical/financial/supporting documents.
+- Reviewer inbox for configured submission recipients.
+- Document upload/download per tender proposal, quotation, or submission.
 - Manual and scheduled due reminder emails.
-- Admin screens for users and departments.
+- Admin screens for users, departments, and private app settings.
 
 ## Security Note
 
@@ -122,4 +123,4 @@ If SSH is unavailable, run equivalent commands locally where possible and upload
 php artisan test
 ```
 
-The test suite covers login, role-scoped visibility, project creation, scoring formulas, and duplicate-safe reminder logging.
+The test suite covers login, role-scoped visibility, tender proposal creation, submissions, and duplicate-safe reminder logging.

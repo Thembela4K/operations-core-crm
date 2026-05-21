@@ -12,7 +12,16 @@ class Quotation extends Model
 {
     use HasFactory;
 
-    public const STATUSES = ['Draft', 'Sent', 'Under Review', 'Accepted', 'Rejected', 'Expired'];
+    public const STATUSES = [
+        'Draft',
+        'Sent',
+        'Under Review',
+        'Draft Submitted',
+        'Finished Submitted',
+        'Accepted',
+        'Rejected',
+        'Expired',
+    ];
 
     public const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
@@ -74,9 +83,14 @@ class Quotation extends Model
         return $this->morphMany(ReminderLog::class, 'remindable');
     }
 
+    public function submissions(): MorphMany
+    {
+        return $this->morphMany(Submission::class, 'submittable');
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->canManage()) {
+        if ($user->canViewPortfolio()) {
             return $query;
         }
 

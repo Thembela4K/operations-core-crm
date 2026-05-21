@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\TenderProposal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -21,45 +21,55 @@ class ReminderService
     {
         $items = collect();
 
-        Project::query()
-            ->where('status', '!=', 'Completed')
-            ->whereDate('deadline', '<=', now()->addDays(self::DAYS_BEFORE)->toDateString())
+        TenderProposal::query()
+            ->whereNotIn('status', ['Closed', 'Cancelled'])
             ->with('latestAssignment.department')
             ->get()
-            ->each(function (Project $project) use ($items): void {
+            ->each(function (TenderProposal $tenderProposal) use ($items): void {
+                $assignment = $tenderProposal->latestAssignment;
+                $dueOn = $assignment?->due_date ?: $tenderProposal->closing_date;
+                if ($dueOn->greaterThan(now()->addDays(self::DAYS_BEFORE))) {
+                    return;
+                }
+
                 $items->push([
-                    'type' => 'Project',
-                    'model' => $project,
-                    'reference' => $project->project_code,
-                    'title' => $project->name,
-                    'owner' => $project->owner,
-                    'owner_email' => $project->owner_email,
-                    'status' => $project->status,
-                    'priority' => $project->priority,
-                    'due_label' => 'Deadline',
-                    'due_on' => $project->deadline,
-                    'days_left' => (int) now()->startOfDay()->diffInDays($project->deadline, false),
+                    'type' => 'Tender Proposal',
+                    'model' => $tenderProposal,
+                    'reference' => $tenderProposal->tender_reference,
+                    'title' => $tenderProposal->title,
+                    'owner' => $assignment?->assignee_name ?: $tenderProposal->owner,
+                    'owner_email' => $assignment?->assignee_email ?: $tenderProposal->owner_email,
+                    'status' => $tenderProposal->status,
+                    'priority' => $tenderProposal->priority,
+                    'due_label' => $assignment?->due_date ? 'Assignment Due Date' : 'Closing Date',
+                    'due_on' => $dueOn,
+                    'days_left' => (int) now()->startOfDay()->diffInDays($dueOn, false),
                 ]);
             });
 
         Quotation::query()
             ->whereNotIn('status', ['Accepted', 'Rejected', 'Expired'])
-            ->whereDate('valid_until', '<=', now()->addDays(self::DAYS_BEFORE)->toDateString())
             ->with('latestAssignment.department')
             ->get()
             ->each(function (Quotation $quotation) use ($items): void {
+                $assignment = $quotation->latestAssignment;
+                $dueOn = $assignment?->due_date ?: $quotation->valid_until;
+                if ($dueOn->greaterThan(now()->addDays(self::DAYS_BEFORE))) {
+                    return;
+                }
+
                 $items->push([
                     'type' => 'Quotation',
                     'model' => $quotation,
                     'reference' => $quotation->quotation_code,
                     'title' => $quotation->opportunity,
-                    'owner' => $quotation->owner,
-                    'owner_email' => $quotation->owner_email,
+                    'owner' => $assignment?->assignee_name ?: $quotation->owner,
+                    'owner_email' => $assignment?->assignee_email ?: $quotation->owner_email,
                     'status' => $quotation->status,
                     'priority' => $quotation->priority,
-                    'due_label' => 'Valid Until',
-                    'due_on' => $quotation->valid_until,
-                    'days_left' => (int) now()->startOfDay()->diffInDays($quotation->valid_until, false),
+                    'due_label' => $assignment?->due_date ? 'Assignment Due Date' : 'Valid Until',
+                    'due_on' => $dueOn,
+                    'days_left' => (int) now()->startOfDay()->diffInDays($dueOn, false),
                 ]);
             });
 
@@ -97,7 +107,7 @@ class ReminderService
             '',
             "Reference: {$item['reference']}",
             "Title: {$item['title']}",
-            "Owner: {$item['owner']}",
+            "Recipient: {$item['owner']}",
             "Status: {$item['status']}",
             "Priority: {$item['priority']}",
             "{$item['due_label']}: {$item['due_on']->toDateString()}",

@@ -3,13 +3,13 @@
 @section('content')
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="page-title">{{ $quotation->quotation_code }} - {{ $quotation->opportunity }}</h1>
-            <p class="page-subtitle">{{ $quotation->status }} | due {{ $quotation->valid_until->toDateString() }}</p>
+            <h1 class="page-title">{{ $tenderProposal->tender_reference }} - {{ $tenderProposal->title }}</h1>
+            <p class="page-subtitle">{{ $tenderProposal->status }} | due {{ $tenderProposal->closing_date->toDateString() }}</p>
         </div>
         <div class="flex gap-2">
             @if(auth()->user()->canManage())
-                <a class="btn-secondary" href="{{ route('quotations.edit', $quotation) }}">Edit</a>
-                <form method="POST" action="{{ route('quotations.destroy', $quotation) }}" onsubmit="return confirm('Delete this quotation?')">
+                <a class="btn-secondary" href="{{ route('tender-proposals.edit', $tenderProposal) }}">Edit</a>
+                <form method="POST" action="{{ route('tender-proposals.destroy', $tenderProposal) }}" onsubmit="return confirm('Delete this tender proposal?')">
                     @csrf
                     @method('DELETE')
                     <button class="btn-danger" type="submit">Delete</button>
@@ -20,36 +20,46 @@
 
     <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel xl:col-span-2">
-            <h2 class="section-title">Quotation Details</h2>
+            <h2 class="section-title">Tender Brief</h2>
             <dl class="mt-4 grid gap-4 md:grid-cols-3">
-                <div><dt class="label">Client</dt><dd>{{ $quotation->client }}</dd></div>
-                <div><dt class="label">Priority</dt><dd>{{ $quotation->priority }}</dd></div>
-                <div><dt class="label">Status</dt><dd>{{ $quotation->status }}</dd></div>
-                <div><dt class="label">Issue Date</dt><dd>{{ $quotation->issue_date->toDateString() }}</dd></div>
-                <div><dt class="label">Due / Valid Until</dt><dd>{{ $quotation->valid_until->toDateString() }}</dd></div>
-                <div><dt class="label">Documents</dt><dd>{{ $quotation->documents->count() }}</dd></div>
-                <div class="md:col-span-3"><dt class="label">Notes</dt><dd class="whitespace-pre-line">{{ $quotation->notes ?: 'No notes.' }}</dd></div>
+                <div><dt class="label">Tender Due Date</dt><dd>{{ $tenderProposal->closing_date->toDateString() }}</dd></div>
+                <div><dt class="label">Status</dt><dd>{{ $tenderProposal->status }}</dd></div>
+                <div><dt class="label">Documents</dt><dd>{{ $tenderProposal->documents->count() }}</dd></div>
+                <div class="md:col-span-3"><dt class="label">Brief Description</dt><dd class="whitespace-pre-line">{{ $tenderProposal->brief ?: 'No brief recorded.' }}</dd></div>
             </dl>
         </section>
 
+        <section class="panel">
+            <h2 class="section-title">Optional Dates</h2>
+            <div class="mt-4 space-y-3">
+                @forelse($tenderProposal->importantDates as $date)
+                    <div class="rounded-md border border-zinc-200 p-3 text-sm">
+                        <div class="font-medium">{{ $date->label }}</div>
+                        <div class="text-zinc-500">{{ $date->due_date->toDateString() }}</div>
+                        @if($date->notes)<div class="mt-1 text-zinc-600">{{ $date->notes }}</div>@endif
+                    </div>
+                @empty
+                    <p class="empty">No optional dates.</p>
+                @endforelse
+            </div>
+        </section>
+    </div>
+
+    <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel">
             <h2 class="section-title">Documents</h2>
             @if(auth()->user()->canManage())
                 <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
                     @csrf
-                    <input type="hidden" name="module" value="quotation">
-                    <input type="hidden" name="record_id" value="{{ $quotation->id }}">
-                    <select class="input" name="category">
-                        <option value="{{ \App\Models\Document::CATEGORY_QUOTATION_REQUEST }}">Quotation Request</option>
-                        <option value="{{ \App\Models\Document::CATEGORY_QUOTATION_IMAGE }}">Quotation Image</option>
-                        <option value="{{ \App\Models\Document::CATEGORY_OTHER }}">Other</option>
-                    </select>
+                    <input type="hidden" name="module" value="tender_proposal">
+                    <input type="hidden" name="record_id" value="{{ $tenderProposal->id }}">
+                    <input type="hidden" name="category" value="{{ \App\Models\Document::CATEGORY_ORIGINAL_TENDER }}">
                     <input class="input" type="file" name="document" required>
-                    <button class="btn-secondary w-full" type="submit">Upload</button>
+                    <button class="btn-secondary w-full" type="submit">Upload Tender Document</button>
                 </form>
             @endif
             <div class="mt-4 space-y-2">
-                @forelse($quotation->documents as $document)
+                @forelse($tenderProposal->documents as $document)
                     <div class="rounded-md border border-zinc-200 p-2 text-sm">
                         <div class="text-xs font-semibold uppercase text-zinc-500">{{ \App\Models\Document::CATEGORIES[$document->category] ?? 'Document' }}</div>
                         <div class="mt-1 flex items-center justify-between gap-2">
@@ -68,13 +78,11 @@
                 @endforelse
             </div>
         </section>
-    </div>
 
-    <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel">
             <h2 class="section-title">Assignments</h2>
             <div class="mt-4 space-y-3">
-                @forelse($quotation->assignments as $assignment)
+                @forelse($tenderProposal->assignments as $assignment)
                     <div class="rounded-md border border-zinc-200 p-3 text-sm">
                         <div class="font-medium">{{ $assignment->department->name }} | {{ $assignment->assignee_name }}</div>
                         <div class="text-zinc-500">{{ $assignment->workflow_status }} | due {{ $assignment->due_date?->toDateString() ?? 'not set' }}</div>
@@ -91,8 +99,8 @@
             @if($assignmentForUser)
                 <form method="POST" action="{{ route('submissions.store') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
                     @csrf
-                    <input type="hidden" name="module" value="quotation">
-                    <input type="hidden" name="record_id" value="{{ $quotation->id }}">
+                    <input type="hidden" name="module" value="tender_proposal">
+                    <input type="hidden" name="record_id" value="{{ $tenderProposal->id }}">
                     <input type="hidden" name="assignment_id" value="{{ $assignmentForUser->id }}">
                     <select class="input" name="status" required>
                         @foreach(\App\Models\Submission::STATUSES as $status)
@@ -102,34 +110,19 @@
                     <textarea class="input min-h-24" name="notes" placeholder="Submission notes"></textarea>
                     <label><span class="label">Technical Proposal</span><input class="input" type="file" name="technical_document"></label>
                     <label><span class="label">Financial Proposal</span><input class="input" type="file" name="financial_document"></label>
-                    <label><span class="label">Supporting Documents / Images</span><input class="input" type="file" name="supporting_documents[]" multiple></label>
+                    <label><span class="label">Supporting Documents</span><input class="input" type="file" name="supporting_documents[]" multiple></label>
                     <button class="btn-primary w-full" type="submit">Submit Response</button>
                 </form>
             @else
                 <p class="empty">Only the assigned department can submit a response.</p>
             @endif
         </section>
-
-        <section class="panel">
-            <h2 class="section-title">Email Log</h2>
-            <div class="mt-4 space-y-3">
-                @forelse($quotation->emailLogs->sortByDesc('created_at')->take(8) as $log)
-                    <div class="rounded-md border border-zinc-200 p-3 text-sm">
-                        <div class="font-medium">{{ ucfirst($log->category) }} | {{ $log->status }}</div>
-                        <div class="text-zinc-500">{{ $log->recipient }} | {{ $log->created_at->toDayDateTimeString() }}</div>
-                        @if($log->message)<div class="mt-1 text-rose-700">{{ $log->message }}</div>@endif
-                    </div>
-                @empty
-                    <p class="empty">No email activity.</p>
-                @endforelse
-            </div>
-        </section>
     </div>
 
     <section class="panel mt-6">
         <h2 class="section-title">Submissions</h2>
         <div class="mt-4 space-y-3">
-            @forelse($quotation->submissions->sortByDesc('submitted_at') as $submission)
+            @forelse($tenderProposal->submissions->sortByDesc('submitted_at') as $submission)
                 <div class="rounded-md border border-zinc-200 p-3 text-sm">
                     <div class="font-medium">{{ $submission->department->name }} | {{ $submission->status }}</div>
                     <div class="text-zinc-500">Submitted by {{ $submission->submitter?->name ?? 'Unknown' }} | {{ $submission->submitted_at?->toDayDateTimeString() }}</div>

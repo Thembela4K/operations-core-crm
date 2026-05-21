@@ -19,11 +19,17 @@ class User extends Authenticatable
 
     public const ROLE_MANAGER = 'manager';
 
+    public const ROLE_DIRECTOR = 'director';
+
+    public const ROLE_RECEPTION = 'reception';
+
     public const ROLE_DEPARTMENT_USER = 'department_user';
 
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
         self::ROLE_MANAGER => 'Manager',
+        self::ROLE_DIRECTOR => 'Director',
+        self::ROLE_RECEPTION => 'Reception',
         self::ROLE_DEPARTMENT_USER => 'Department User',
     ];
 
@@ -34,6 +40,8 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'receives_submissions',
+        'can_access_sppra',
     ];
 
     /**
@@ -47,6 +55,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'receives_submissions' => 'boolean',
+            'can_access_sppra' => 'boolean',
         ];
     }
 
@@ -63,6 +73,23 @@ class User extends Authenticatable
     public function canManage(): bool
     {
         return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_MANAGER);
+    }
+
+    public function canReviewSubmissions(): bool
+    {
+        return $this->receives_submissions
+            || $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+    }
+
+    public function canAccessSppra(): bool
+    {
+        return $this->can_access_sppra
+            || $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+    }
+
+    public function canViewPortfolio(): bool
+    {
+        return $this->canManage() || $this->canReviewSubmissions();
     }
 
     public function isSuperAdmin(): bool

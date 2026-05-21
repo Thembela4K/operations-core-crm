@@ -5,10 +5,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\ImportExportController;
-use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SubmissionController;
+use App\Http\Controllers\TenderProposalController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -24,9 +25,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
 
     Route::middleware('role:'.User::ROLE_SUPER_ADMIN.','.User::ROLE_MANAGER)->group(function (): void {
-        Route::get('projects/create', [ProjectController::class, 'create'])->name('projects.create');
-        Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
-        Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+        Route::get('tender-proposals/create', [TenderProposalController::class, 'create'])->name('tender-proposals.create');
+        Route::post('tender-proposals', [TenderProposalController::class, 'store'])->name('tender-proposals.store');
+        Route::delete('tender-proposals/{tender_proposal}', [TenderProposalController::class, 'destroy'])->name('tender-proposals.destroy');
 
         Route::get('quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
         Route::post('quotations', [QuotationController::class, 'store'])->name('quotations.store');
@@ -35,25 +36,25 @@ Route::middleware('auth')->group(function (): void {
         Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
         Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
 
-        Route::post('projects/import', [ImportExportController::class, 'importProjects'])->name('projects.import');
-        Route::post('quotations/import', [ImportExportController::class, 'importQuotations'])->name('quotations.import');
         Route::post('reminders/send-due', [ReminderController::class, 'sendDue'])->name('reminders.send-due');
     });
 
-    Route::get('projects/export/csv', [ImportExportController::class, 'exportProjects'])->name('projects.export');
-    Route::get('quotations/export/csv', [ImportExportController::class, 'exportQuotations'])->name('quotations.export');
-
-    Route::resource('projects', ProjectController::class)->except(['create', 'store', 'destroy']);
+    Route::resource('tender-proposals', TenderProposalController::class)->except(['create', 'store', 'destroy']);
     Route::resource('quotations', QuotationController::class)->except(['create', 'store', 'destroy']);
 
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
     Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
+    Route::get('submissions', [SubmissionController::class, 'index'])->name('submissions.index');
+    Route::post('submissions', [SubmissionController::class, 'store'])->name('submissions.store');
+
     Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
 
     Route::middleware('role:'.User::ROLE_SUPER_ADMIN)->group(function (): void {
         Route::resource('departments', DepartmentController::class);
         Route::resource('users', UserController::class);
+        Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
     });
 });

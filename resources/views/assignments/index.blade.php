@@ -3,7 +3,7 @@
 @section('content')
     <div>
         <h1 class="page-title">Assignment Center</h1>
-        <p class="page-subtitle">Route projects and quotations to departments and notify assigned people by email.</p>
+        <p class="page-subtitle">Route tender proposals and quotations to departments with due dates, instructions, and portal email notices.</p>
     </div>
 
     <section class="panel mt-6">
@@ -13,10 +13,10 @@
             <label class="lg:col-span-2">
                 <span class="label">Record</span>
                 <select class="input" name="target" required>
-                    <optgroup label="Projects">
-                        @foreach($projects as $project)
-                            <option value="project:{{ $project->id }}">
-                                {{ $project->project_code }} - {{ $project->name }} ({{ $project->latestAssignment?->department?->name ?? 'Unassigned' }})
+                    <optgroup label="Tender Proposals">
+                        @foreach($tenderProposals as $tenderProposal)
+                            <option value="tender_proposal:{{ $tenderProposal->id }}">
+                                {{ $tenderProposal->tender_reference }} - {{ $tenderProposal->title }} ({{ $tenderProposal->latestAssignment?->department?->name ?? 'Unassigned' }})
                             </option>
                         @endforeach
                     </optgroup>
@@ -33,16 +33,16 @@
                 <span class="label">Department</span>
                 <select class="input" name="department_id" required>
                     @foreach($departments as $department)
-                        <option value="{{ $department->id }}">{{ $department->name }}</option>
+                        <option value="{{ $department->id }}">{{ $department->name }}{{ $department->email ? " - {$department->email}" : '' }}</option>
                     @endforeach
                 </select>
             </label>
             <label>
                 <span class="label">Existing User</span>
                 <select class="input" name="assigned_user_id">
-                    <option value="">Manual assignee</option>
+                    <option value="">Use department email or manual assignee</option>
                     @foreach($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} · {{ $user->email }}{{ $user->department ? " · {$user->department->name}" : '' }}</option>
+                        <option value="{{ $user->id }}">{{ $user->name }} - {{ $user->email }}{{ $user->department ? " - {$user->department->name}" : '' }}</option>
                     @endforeach
                 </select>
             </label>
@@ -54,7 +54,15 @@
                 <span class="label">Assignee Email</span>
                 <input class="input" type="email" name="assignee_email" value="{{ old('assignee_email') }}">
             </label>
-            <label class="flex items-center gap-2 text-sm text-zinc-700">
+            <label>
+                <span class="label">Assignment Due Date</span>
+                <input class="input" type="date" name="due_date" value="{{ old('due_date') }}">
+            </label>
+            <label class="lg:col-span-2">
+                <span class="label">Instructions</span>
+                <textarea class="input min-h-24" name="instructions">{{ old('instructions') }}</textarea>
+            </label>
+            <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
                 <input class="rounded border-zinc-300" type="checkbox" name="send_email" value="1" checked>
                 Send assignment email
             </label>
@@ -67,19 +75,21 @@
     <section class="panel mt-6 overflow-x-auto">
         <h2 class="section-title">Recent Assignments</h2>
         <table class="data-table mt-4">
-            <thead><tr><th>Record</th><th>Department</th><th>Assignee</th><th>Status</th><th>Assigned</th></tr></thead>
+            <thead><tr><th>Record</th><th>Department</th><th>Assignee</th><th>Workflow</th><th>Due</th><th>Email</th><th>Assigned</th></tr></thead>
             <tbody>
                 @forelse($assignments as $assignment)
                     @php($record = $assignment->assignable)
                     <tr>
-                        <td>{{ $record->project_code ?? $record->quotation_code }} - {{ $record->name ?? $record->opportunity }}</td>
+                        <td>{{ $record->tender_reference ?? $record->quotation_code }} - {{ $record->title ?? $record->opportunity }}</td>
                         <td>{{ $assignment->department->name }}</td>
                         <td>{{ $assignment->assignee_name }}<div class="text-xs text-zinc-500">{{ $assignment->assignee_email }}</div></td>
+                        <td>{{ $assignment->workflow_status }}</td>
+                        <td>{{ $assignment->due_date?->toDateString() ?? '-' }}</td>
                         <td>{{ $assignment->status }}</td>
                         <td>{{ $assignment->assigned_at?->toDayDateTimeString() }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="empty">No assignments yet.</td></tr>
+                    <tr><td colspan="7" class="empty">No assignments yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -91,8 +101,8 @@
         <div class="mt-4 space-y-3">
             @forelse($emailLogs as $log)
                 <div class="rounded-md border border-zinc-200 p-3 text-sm">
-                    <div class="font-medium">{{ $log->subject }} · {{ $log->status }}</div>
-                    <div class="text-zinc-500">{{ $log->recipient }} · {{ $log->created_at->toDayDateTimeString() }}</div>
+                    <div class="font-medium">{{ $log->subject }} | {{ $log->status }}</div>
+                    <div class="text-zinc-500">{{ $log->recipient }} | {{ $log->created_at->toDayDateTimeString() }}</div>
                     @if($log->message)<div class="mt-1 text-rose-700">{{ $log->message }}</div>@endif
                 </div>
             @empty

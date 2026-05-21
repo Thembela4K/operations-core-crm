@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
-    "name": "project-quotation-assignment-tracker",
+    "name": "tender-proposal-quotation-assignment-tracker",
     "type": "module",
     "scripts": {
         "build": "vite build",

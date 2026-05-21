@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Department;
-use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\TenderProposal;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -48,21 +48,21 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        Project::query()->firstOrCreate(
-            ['project_code' => 'PRJ-001'],
+        TenderProposal::query()->firstOrCreate(
+            ['tender_reference' => 'TDR-001'],
             [
-                'name' => 'Sample Project',
-                'owner' => 'Project Owner',
+                'title' => 'Sample Tender Proposal',
+                'owner' => 'Tender Owner',
                 'owner_email' => null,
                 'status' => 'In Progress',
                 'priority' => 'High',
-                'rating' => 4.2,
+                'rating' => 0,
                 'risk' => 'Medium',
-                'progress_percent' => 62,
-                'budget' => 35000,
-                'start_date' => now()->subDays(45)->toDateString(),
-                'deadline' => now()->addDays(28)->toDateString(),
-                'notes' => 'Replace this sample project with your organization data.',
+                'progress_percent' => 0,
+                'budget' => 0,
+                'received_date' => now()->subDays(45)->toDateString(),
+                'closing_date' => now()->addDays(28)->toDateString(),
+                'brief' => 'Replace this sample tender proposal with your organization data.',
             ],
         );
 
@@ -75,7 +75,7 @@ class DatabaseSeeder extends Seeder
                 'owner_email' => null,
                 'status' => 'Sent',
                 'priority' => 'High',
-                'rating' => 4.1,
+                'rating' => 0,
                 'risk' => 'Medium',
                 'win_probability_percent' => 68,
                 'quoted_amount' => 28500,

@@ -14,7 +14,10 @@ class UserController extends Controller
     public function index(): View
     {
         return view('admin.users.index', [
-            'users' => User::query()->with('department')->orderBy('name')->get(),
+            'users' => User::query()
+                ->with('department')
+                ->orderBy('name')
+                ->paginate(15),
         ]);
     }
 
@@ -81,6 +84,12 @@ class UserController extends Controller
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'department_id' => ['nullable', 'exists:departments,id'],
             'is_active' => ['nullable', 'boolean'],
-        ]) + ['is_active' => $request->boolean('is_active')];
+            'receives_submissions' => ['nullable', 'boolean'],
+            'can_access_sppra' => ['nullable', 'boolean'],
+        ]) + [
+            'is_active' => $request->boolean('is_active'),
+            'receives_submissions' => $request->boolean('receives_submissions'),
+            'can_access_sppra' => $request->boolean('can_access_sppra'),
+        ];
     }
 }

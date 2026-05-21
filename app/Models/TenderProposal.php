@@ -5,22 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-class Project extends Model
+class TenderProposal extends Model
 {
     use HasFactory;
 
-    public const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'On Hold', 'Completed'];
+    public const STATUSES = [
+        'Draft',
+        'Assigned',
+        'In Progress',
+        'Draft Submitted',
+        'Finished Submitted',
+        'On Hold',
+        'Closed',
+        'Cancelled',
+    ];
 
     public const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
     public const RISKS = ['Low', 'Medium', 'High'];
 
     protected $fillable = [
-        'project_code',
-        'name',
+        'tender_reference',
+        'title',
         'owner',
         'owner_email',
         'status',
@@ -29,9 +39,9 @@ class Project extends Model
         'risk',
         'progress_percent',
         'budget',
-        'start_date',
-        'deadline',
-        'notes',
+        'received_date',
+        'closing_date',
+        'brief',
         'created_by',
     ];
 
@@ -41,8 +51,8 @@ class Project extends Model
             'rating' => 'decimal:1',
             'budget' => 'decimal:2',
             'progress_percent' => 'integer',
-            'start_date' => 'date',
-            'deadline' => 'date',
+            'received_date' => 'date',
+            'closing_date' => 'date',
         ];
     }
 
@@ -71,9 +81,19 @@ class Project extends Model
         return $this->morphMany(ReminderLog::class, 'remindable');
     }
 
+    public function importantDates(): HasMany
+    {
+        return $this->hasMany(ImportantDate::class)->orderBy('due_date');
+    }
+
+    public function submissions(): MorphMany
+    {
+        return $this->morphMany(Submission::class, 'submittable');
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->canManage()) {
+        if ($user->canViewPortfolio()) {
             return $query;
         }
 

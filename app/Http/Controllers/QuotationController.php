@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quotation;
-use App\Services\ScoringService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,36 +10,31 @@ use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
-    public function index(Request $request, ScoringService $scoring): View
+    public function index(Request $request): View
     {
         $quotations = Quotation::query()
             ->visibleTo($request->user())
             ->with(['latestAssignment.department'])
-            ->withCount('documents')
+            ->withCount(['documents', 'submissions'])
             ->when($request->filled('search'), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
                 $query->where(function ($inner) use ($search): void {
                     $inner->where('quotation_code', 'like', "%{$search}%")
                         ->orWhere('client', 'like', "%{$search}%")
                         ->orWhere('opportunity', 'like', "%{$search}%")
-                        ->orWhere('owner', 'like', "%{$search}%")
-                        ->orWhere('owner_email', 'like', "%{$search}%")
                         ->orWhere('notes', 'like', "%{$search}%");
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->string('priority')))
-            ->when($request->filled('risk'), fn ($query) => $query->where('risk', $request->string('risk')))
             ->latest('valid_until')
             ->paginate(12)
             ->withQueryString();
 
         return view('quotations.index', [
             'quotations' => $quotations,
-            'scoring' => $scoring,
             'statuses' => Quotation::STATUSES,
             'priorities' => Quotation::PRIORITIES,
-            'risks' => Quotation::RISKS,
         ]);
     }
 
@@ -51,9 +45,6 @@ class QuotationController extends Controller
                 'quotation_code' => $this->nextQuotationCode(),
                 'status' => 'Draft',
                 'priority' => 'Medium',
-                'rating' => 0,
-                'risk' => 'Medium',
-                'win_probability_percent' => 0,
                 'quoted_amount' => 0,
                 'expected_cost' => 0,
                 'issue_date' => now()->toDateString(),
@@ -61,13 +52,13 @@ class QuotationController extends Controller
             ]),
             'statuses' => Quotation::STATUSES,
             'priorities' => Quotation::PRIORITIES,
-            'risks' => Quotation::RISKS,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validateQuotation($request);
+        $data += $this->defaultQuotationValues($request);
         $data['created_by'] = $request->user()->id;
 
         $quotation = Quotation::query()->create($data);
@@ -75,39 +66,45 @@ class QuotationController extends Controller
         return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation created.');
     }
 
-    public function show(Request $request, Quotation $quotation, ScoringService $scoring): View
+    public function show(Request $request, Quotation $quotation): View
     {
         $this->authorizeQuotationAccess($request, $quotation);
 
         return view('quotations.show', [
-            'quotation' => $quotation->load(['latestAssignment.department', 'assignments.department', 'documents.uploader', 'emailLogs']),
-            'score' => $scoring->quotationScore($quotation),
+            'quotation' => $quotation->load([
+                'latestAssignment.department',
+                'assignments.department',
+                'assignments.submissions',
+                'documents.uploader',
+                'emailLogs',
+                'submissions.department',
+                'submissions.submitter',
+                'submissions.documents.uploader',
+            ]),
+            'assignmentForUser' => $this->assignmentForUser($request, $quotation),
         ]);
     }
 
     public function edit(Request $request, Quotation $quotation): View
     {
-        $this->authorizeQuotationAccess($request, $quotation);
+        $this->authorizeQuotationEditAccess($request, $quotation);
 
         return view('quotations.edit', [
             'quotation' => $quotation,
             'statuses' => Quotation::STATUSES,
             'priorities' => Quotation::PRIORITIES,
-            'risks' => Quotation::RISKS,
         ]);
     }
 
     public function update(Request $request, Quotation $quotation): RedirectResponse
     {
-        $this->authorizeQuotationAccess($request, $quotation);
+        $this->authorizeQuotationEditAccess($request, $quotation);
 
-        $data = $request->user()->canManage()
-            ? $this->validateQuotation($request, $quotation)
-            : $request->validate([
-                'status' => ['required', Rule::in(Quotation::STATUSES)],
-                'win_probability_percent' => ['required', 'integer', 'min:0', 'max:100'],
-                'notes' => ['nullable', 'string'],
-            ]);
+        if (! $request->user()->canManage()) {
+            abort(403);
+        }
+
+        $data = $this->validateQuotation($request, $quotation);
 
         $quotation->update($data);
 
@@ -131,30 +128,67 @@ class QuotationController extends Controller
             'quotation_code' => ['required', 'string', 'max:30', Rule::unique('quotations', 'quotation_code')->ignore($quotation)],
             'client' => ['required', 'string', 'max:255'],
             'opportunity' => ['required', 'string', 'max:255'],
-            'owner' => ['required', 'string', 'max:255'],
-            'owner_email' => ['nullable', 'email', 'max:255'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],
             'priority' => ['required', Rule::in(Quotation::PRIORITIES)],
-            'rating' => ['required', 'numeric', 'min:0', 'max:5'],
-            'risk' => ['required', Rule::in(Quotation::RISKS)],
-            'win_probability_percent' => ['required', 'integer', 'min:0', 'max:100'],
-            'quoted_amount' => ['required', 'numeric', 'min:0'],
-            'expected_cost' => ['required', 'numeric', 'min:0'],
             'issue_date' => ['required', 'date'],
             'valid_until' => ['required', 'date', 'after_or_equal:issue_date'],
             'notes' => ['nullable', 'string'],
         ]);
     }
 
+    private function defaultQuotationValues(Request $request): array
+    {
+        return [
+            'owner' => $request->user()->name,
+            'owner_email' => $request->user()->email,
+            'rating' => 0,
+            'risk' => 'Medium',
+            'win_probability_percent' => 0,
+            'quoted_amount' => 0,
+            'expected_cost' => 0,
+        ];
+    }
+
     private function authorizeQuotationAccess(Request $request, Quotation $quotation): void
     {
-        if ($request->user()->canManage()) {
+        if ($request->user()->canViewPortfolio()) {
             return;
         }
 
         if (! $quotation->assignments()->where('department_id', $request->user()->department_id)->exists()) {
             abort(403);
         }
+    }
+
+    private function authorizeQuotationEditAccess(Request $request, Quotation $quotation): void
+    {
+        if ($request->user()->canManage()) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function assignmentForUser(Request $request, Quotation $quotation)
+    {
+        if ($request->user()->canViewPortfolio()) {
+            return null;
+        }
+
+        $assignment = $quotation->assignments()
+            ->where('department_id', $request->user()->department_id)
+            ->latest()
+            ->first();
+
+        if ($assignment) {
+            $assignment->update([
+                'read_at' => $assignment->read_at ?? now(),
+                'viewed_at' => now(),
+                'workflow_status' => $assignment->workflow_status === 'Assigned' ? 'In Progress' : $assignment->workflow_status,
+            ]);
+        }
+
+        return $assignment;
     }
 
     private function nextQuotationCode(): string

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
-use App\Models\Project;
+use App\Models\TenderProposal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -31,7 +31,7 @@ class AuthAndAccessTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_department_user_only_sees_assigned_projects(): void
+    public function test_department_user_only_sees_assigned_tender_proposals(): void
     {
         $it = $this->department('IT');
         $gis = $this->department('GIS');
@@ -44,8 +44,8 @@ class AuthAndAccessTest extends TestCase
             'is_active' => true,
         ]);
 
-        $visible = $this->project('PRJ-100', 'Visible Project');
-        $hidden = $this->project('PRJ-200', 'Hidden Project');
+        $visible = $this->tenderProposal('TDR-100', 'Visible Tender');
+        $hidden = $this->tenderProposal('TDR-200', 'Hidden Tender');
         $visible->assignments()->create([
             'department_id' => $it->id,
             'assignee_name' => 'IT User',
@@ -61,11 +61,11 @@ class AuthAndAccessTest extends TestCase
             'assigned_at' => now(),
         ]);
 
-        $response = $this->actingAs($user)->get(route('projects.index'));
+        $response = $this->actingAs($user)->get(route('tender-proposals.index'));
 
         $response->assertOk()
-            ->assertSee('Visible Project')
-            ->assertDontSee('Hidden Project');
+            ->assertSee('Visible Tender')
+            ->assertDontSee('Hidden Tender');
     }
 
     private function department(string $name): Department
@@ -77,11 +77,11 @@ class AuthAndAccessTest extends TestCase
         ]);
     }
 
-    private function project(string $code, string $name): Project
+    private function tenderProposal(string $code, string $title): TenderProposal
     {
-        return Project::query()->create([
-            'project_code' => $code,
-            'name' => $name,
+        return TenderProposal::query()->create([
+            'tender_reference' => $code,
+            'title' => $title,
             'owner' => 'Owner',
             'owner_email' => 'owner@example.com',
             'status' => 'In Progress',
@@ -90,8 +90,8 @@ class AuthAndAccessTest extends TestCase
             'risk' => 'Low',
             'progress_percent' => 50,
             'budget' => 1000,
-            'start_date' => now()->subDay()->toDateString(),
-            'deadline' => now()->addWeek()->toDateString(),
+            'received_date' => now()->subDay()->toDateString(),
+            'closing_date' => now()->addWeek()->toDateString(),
         ]);
     }
 }

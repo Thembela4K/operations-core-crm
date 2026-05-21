@@ -14,7 +14,10 @@ class DepartmentController extends Controller
     public function index(): View
     {
         return view('admin.departments.index', [
-            'departments' => Department::query()->withCount(['users', 'assignments'])->orderBy('name')->get(),
+            'departments' => Department::query()
+                ->withCount(['users', 'assignments'])
+                ->orderBy('name')
+                ->paginate(15),
         ]);
     }
 

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Assignment;
-use App\Models\Project;
+use App\Models\TenderProposal;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -13,27 +13,37 @@ class AssignmentEmailService
     {
         $assignment->loadMissing(['assignable', 'department']);
         $assignable = $assignment->assignable;
-        $reference = $assignable->project_code ?? $assignable->quotation_code;
-        $title = $assignable->name ?? $assignable->opportunity;
-        $dueLabel = $assignable instanceof Project ? 'Deadline' : 'Valid Until';
-        $dueDate = $assignable instanceof Project ? $assignable->deadline : $assignable->valid_until;
+        $reference = $assignable->tender_reference ?? $assignable->quotation_code;
+        $title = $assignable->title ?? $assignable->opportunity;
+        $dueLabel = $assignment->due_date ? 'Assignment Due Date' : ($assignable instanceof TenderProposal ? 'Closing Date' : 'Valid Until');
+        $dueDate = $assignment->due_date ?: ($assignable instanceof TenderProposal ? $assignable->closing_date : $assignable->valid_until);
+        $portalUrl = $assignable instanceof TenderProposal
+            ? route('tender-proposals.show', $assignable)
+            : route('quotations.show', $assignable);
+        $importantDates = $assignable instanceof TenderProposal
+            ? $assignable->importantDates()->get()->map(fn ($date): string => "{$date->label}: {$date->due_date->toDateString()}")->implode(PHP_EOL)
+            : '';
         $subject = "Assignment: {$reference} routed to {$assignment->department->name}";
 
-        $body = implode(PHP_EOL, [
+        $bodyLines = [
             'Work assignment',
             '',
             "Reference: {$reference}",
             "Title: {$title}",
             "Assigned department: {$assignment->department->name}",
             "Assigned to: {$assignment->assignee_name}",
-            "Tracking owner: {$assignable->owner}",
             "Status: {$assignable->status}",
             "Priority: {$assignable->priority}",
             "{$dueLabel}: {$dueDate->toDateString()}",
-            "Attached documents in app: {$assignable->documents()->count()}",
+            $assignment->instructions ? "Instructions: {$assignment->instructions}" : null,
+            $importantDates ? 'Important dates:'.PHP_EOL.$importantDates : null,
+            "Documents available in portal: {$assignable->documents()->count()}",
+            "Portal link: {$portalUrl}",
             '',
-            'Please review and action this assignment.',
-        ]);
+            'Please review and action this assignment in the portal.',
+        ];
+
+        $body = implode(PHP_EOL, array_filter($bodyLines, fn ($line): bool => $line !== null));
 
         try {
             Mail::raw($body, function ($message) use ($assignment, $subject): void {

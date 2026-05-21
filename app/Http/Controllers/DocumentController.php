@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
-use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\Submission;
+use App\Models\TenderProposal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
@@ -15,18 +17,20 @@ class DocumentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'module' => ['required', 'in:project,quotation'],
+            'module' => ['required', 'in:tender_proposal,quotation,submission'],
             'record_id' => ['required', 'integer'],
+            'category' => ['nullable', Rule::in(array_keys(Document::CATEGORIES))],
             'document' => ['required', 'file', 'max:10240'],
         ]);
 
         $record = $this->resolveRecord($data['module'], (int) $data['record_id']);
-        $this->authorizeRecordAccess($request, $record);
+        $this->authorizeRecordMutation($request, $record);
 
         $file = $request->file('document');
         $path = $file->store("documents/{$data['module']}/{$record->id}");
 
         $record->documents()->create([
+            'category' => $data['category'] ?? Document::CATEGORY_OTHER,
             'original_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
             'path' => $path,
@@ -49,7 +53,7 @@ class DocumentController extends Controller
     public function destroy(Request $request, Document $document): RedirectResponse
     {
         $document->load('documentable');
-        $this->authorizeRecordAccess($request, $document->documentable);
+        $this->authorizeRecordMutation($request, $document->documentable);
 
         Storage::delete($document->path);
         $document->delete();
@@ -57,15 +61,53 @@ class DocumentController extends Controller
         return back()->with('success', 'Document deleted.');
     }
 
-    private function resolveRecord(string $module, int $id): Project|Quotation
+    private function resolveRecord(string $module, int $id): TenderProposal|Quotation|Submission
     {
-        return $module === 'project'
-            ? Project::query()->findOrFail($id)
-            : Quotation::query()->findOrFail($id);
+        return match ($module) {
+            'tender_proposal' => TenderProposal::query()->findOrFail($id),
+            'submission' => Submission::query()->findOrFail($id),
+            default => Quotation::query()->findOrFail($id),
+        };
     }
 
-    private function authorizeRecordAccess(Request $request, Project|Quotation $record): void
+    private function authorizeRecordAccess(Request $request, TenderProposal|Quotation|Submission $record): void
     {
+        if ($record instanceof Submission) {
+            $this->authorizeSubmissionAccess($request, $record);
+
+            return;
+        }
+
+        if ($request->user()->canViewPortfolio()) {
+            return;
+        }
+
+        if (! $record->assignments()->where('department_id', $request->user()->department_id)->exists()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeSubmissionAccess(Request $request, Submission $submission): void
+    {
+        if ($request->user()->canReviewSubmissions() || $request->user()->canManage()) {
+            return;
+        }
+
+        if ($submission->department_id !== $request->user()->department_id) {
+            abort(403);
+        }
+    }
+
+    private function authorizeRecordMutation(Request $request, TenderProposal|Quotation|Submission $record): void
+    {
+        if ($record instanceof Submission) {
+            if ($request->user()->canManage() || $record->department_id === $request->user()->department_id) {
+                return;
+            }
+
+            abort(403);
+        }
+
         if ($request->user()->canManage()) {
             return;
         }

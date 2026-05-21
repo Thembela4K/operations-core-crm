@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Assignment;
 use App\Models\Department;
 use App\Models\EmailLog;
-use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\TenderProposal;
 use App\Models\User;
 use App\Services\AssignmentEmailService;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +18,7 @@ class AssignmentController extends Controller
     public function index(): View
     {
         return view('assignments.index', [
-            'projects' => Project::query()->with('latestAssignment.department')->orderBy('name')->get(),
+            'tenderProposals' => TenderProposal::query()->with('latestAssignment.department')->orderBy('title')->get(),
             'quotations' => Quotation::query()->with('latestAssignment.department')->orderBy('opportunity')->get(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->with('department')->orderBy('name')->get(),
@@ -42,22 +42,25 @@ class AssignmentController extends Controller
             'assigned_user_id' => ['nullable', 'exists:users,id'],
             'assignee_name' => ['nullable', 'string', 'max:255'],
             'assignee_email' => ['nullable', 'email', 'max:255'],
+            'due_date' => ['nullable', 'date'],
+            'instructions' => ['nullable', 'string'],
             'send_email' => ['nullable', 'boolean'],
         ]);
 
         [$module, $recordId] = array_pad(explode(':', $data['target'], 2), 2, null);
-        abort_unless(in_array($module, ['project', 'quotation'], true) && is_numeric($recordId), 422);
+        abort_unless(in_array($module, ['tender_proposal', 'quotation'], true) && is_numeric($recordId), 422);
 
-        $record = $module === 'project'
-            ? Project::query()->findOrFail((int) $recordId)
+        $record = $module === 'tender_proposal'
+            ? TenderProposal::query()->findOrFail((int) $recordId)
             : Quotation::query()->findOrFail((int) $recordId);
+        $department = Department::query()->findOrFail($data['department_id']);
         $assignedUser = isset($data['assigned_user_id']) ? User::query()->find($data['assigned_user_id']) : null;
-        $assigneeName = $data['assignee_name'] ?: $assignedUser?->name;
-        $assigneeEmail = $data['assignee_email'] ?: $assignedUser?->email;
+        $assigneeName = $data['assignee_name'] ?: $assignedUser?->name ?: $department->name;
+        $assigneeEmail = $data['assignee_email'] ?: $assignedUser?->email ?: $department->email;
 
         if (! $assigneeName || ! $assigneeEmail) {
             return back()
-                ->withErrors(['assignee_name' => 'Choose an active user or enter assignee name and email.'])
+                ->withErrors(['assignee_name' => 'Choose an active user, enter assignee details, or set an email for the selected department.'])
                 ->withInput();
         }
 
@@ -67,9 +70,16 @@ class AssignmentController extends Controller
             'assignee_name' => $assigneeName,
             'assignee_email' => $assigneeEmail,
             'status' => 'Assigned',
+            'workflow_status' => 'Assigned',
             'assigned_at' => now(),
+            'due_date' => $data['due_date'] ?? null,
+            'instructions' => $data['instructions'] ?? null,
             'created_by' => $request->user()->id,
         ]);
+
+        if ($record instanceof TenderProposal && $record->status === 'Draft') {
+            $record->update(['status' => 'Assigned']);
+        }
 
         if ($request->boolean('send_email')) {
             $status = $emailService->send($assignment);
