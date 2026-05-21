@@ -1,11 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mx-auto mt-16 max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+    <div class="mx-auto mt-20 max-w-md rounded-md border border-neutral-300 bg-white p-8 shadow-sm">
         @if(file_exists(public_path('images/app-logo.png')))
             <img class="mx-auto mb-5 h-16 w-auto" src="{{ asset('images/app-logo.png') }}" alt="App logo">
         @endif
         <h1 class="text-xl font-semibold">Sign in</h1>
+        <p class="mt-1 text-sm text-neutral-600">Access your project and quotation workspace.</p>
         <form method="POST" action="{{ route('login.store') }}" class="mt-6 space-y-4">
             @csrf
             <label class="block">

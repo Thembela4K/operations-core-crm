@@ -7,31 +7,31 @@
     <title>{{ config('app.name', 'Project & Quotation Assignment Tracker') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-zinc-100 text-zinc-950 antialiased">
+<body class="app-shell antialiased">
     @auth
-        <header class="border-b border-zinc-200 bg-white">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 text-base font-semibold tracking-tight">
+        <header class="app-header">
+            <div class="app-container flex flex-wrap items-center justify-between gap-4 py-4">
+                <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3 text-base font-semibold tracking-tight">
                     @if(file_exists(public_path('images/app-logo.png')))
                         <img class="h-9 w-auto" src="{{ asset('images/app-logo.png') }}" alt="App logo">
                     @endif
-                    <span>Project & Quotation Assignment Tracker</span>
+                    <span class="truncate">Project & Quotation Assignment Tracker</span>
                 </a>
-                <nav class="flex flex-wrap items-center gap-2 text-sm">
-                    <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-                    <a class="nav-link" href="{{ route('projects.index') }}">Projects</a>
-                    <a class="nav-link" href="{{ route('quotations.index') }}">Quotations</a>
+                <nav class="flex flex-wrap items-center gap-1 text-sm">
+                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
+                    <a class="nav-link {{ request()->routeIs('projects.*') ? 'nav-link-active' : '' }}" href="{{ route('projects.index') }}">Projects</a>
+                    <a class="nav-link {{ request()->routeIs('quotations.*') ? 'nav-link-active' : '' }}" href="{{ route('quotations.index') }}">Quotations</a>
                     @if(auth()->user()->canManage())
-                        <a class="nav-link" href="{{ route('assignments.index') }}">Assignments</a>
+                        <a class="nav-link {{ request()->routeIs('assignments.*') ? 'nav-link-active' : '' }}" href="{{ route('assignments.index') }}">Assignments</a>
                     @endif
-                    <a class="nav-link" href="{{ route('reminders.index') }}">Reminders</a>
+                    <a class="nav-link {{ request()->routeIs('reminders.*') ? 'nav-link-active' : '' }}" href="{{ route('reminders.index') }}">Reminders</a>
                     @if(auth()->user()->isSuperAdmin())
-                        <a class="nav-link" href="{{ route('users.index') }}">Users</a>
-                        <a class="nav-link" href="{{ route('departments.index') }}">Departments</a>
+                        <a class="nav-link {{ request()->routeIs('users.*') ? 'nav-link-active' : '' }}" href="{{ route('users.index') }}">Users</a>
+                        <a class="nav-link {{ request()->routeIs('departments.*') ? 'nav-link-active' : '' }}" href="{{ route('departments.index') }}">Departments</a>
                     @endif
                 </nav>
                 <div class="flex items-center gap-3 text-sm">
-                    <span class="text-zinc-500">{{ auth()->user()->name }}</span>
+                    <span class="hidden text-neutral-500 md:inline">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button class="btn-secondary" type="submit">Log out</button>
@@ -41,8 +41,8 @@
         </header>
     @endauth
 
-    <main class="mx-auto max-w-7xl px-4 py-6">
-        @foreach (['success' => 'border-emerald-200 bg-emerald-50 text-emerald-800', 'warning' => 'border-amber-200 bg-amber-50 text-amber-800'] as $key => $classes)
+    <main class="app-container py-8">
+        @foreach (['success' => 'border-sky-200 bg-sky-50 text-sky-900', 'warning' => 'border-amber-200 bg-amber-50 text-amber-800'] as $key => $classes)
             @if(session($key))
                 <div class="mb-4 rounded-md border px-4 py-3 text-sm {{ $classes }}">{{ session($key) }}</div>
             @endif
