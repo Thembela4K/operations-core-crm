@@ -107,6 +107,14 @@
         @apply rounded-md border border-neutral-300 bg-white p-5 shadow-sm;
     }
 
+    .flash-message {
+        @apply transition duration-500 ease-out;
+    }
+
+    .flash-message.is-dismissing {
+        @apply -translate-y-2 opacity-0;
+    }
+
     .metric {
         @apply rounded-md border border-neutral-300 bg-white p-5 shadow-sm;
     }
@@ -145,6 +153,10 @@
 
     .nav-link-active {
         @apply border-[#087aa5] bg-[#087aa5] text-white shadow-sm hover:border-[#075f82] hover:bg-[#075f82] hover:text-white;
+    }
+
+    .nav-badge {
+        @apply ml-2 inline-grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1.5 text-xs font-semibold leading-none text-white shadow-sm;
     }
 
     .link {
@@ -221,6 +233,50 @@
 
     .panel-heading span {
         @apply text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .deadline-banner {
+        @apply flex flex-wrap items-center justify-between gap-4 rounded-md border border-neutral-300 bg-white p-5 shadow-sm;
+    }
+
+    .deadline-banner > div:first-child {
+        @apply min-w-0;
+    }
+
+    .deadline-kicker {
+        @apply block text-xs font-semibold uppercase tracking-wide text-[#087aa5];
+    }
+
+    .deadline-banner > div:first-child strong {
+        @apply mt-1 block text-xl font-semibold text-neutral-950;
+    }
+
+    .deadline-banner > div:first-child small {
+        @apply mt-1 block text-sm text-neutral-500;
+    }
+
+    .deadline-countdown {
+        @apply min-w-[320px] rounded-md border border-neutral-200 bg-neutral-50 p-4 text-right;
+    }
+
+    .deadline-countdown > span {
+        @apply block text-lg font-semibold text-[#087aa5];
+    }
+
+    .deadline-banner.is-overdue .deadline-countdown > span {
+        @apply text-rose-700;
+    }
+
+    .deadline-countdown-grid {
+        @apply mt-3 grid grid-cols-4 gap-2;
+    }
+
+    .deadline-countdown-grid em {
+        @apply rounded-sm border border-neutral-200 bg-white px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-neutral-500 not-italic;
+    }
+
+    .deadline-countdown-grid strong {
+        @apply block text-base font-semibold text-neutral-950;
     }
 
     .chart-label {
@@ -379,6 +435,62 @@
 
     .list-row em {
         @apply shrink-0 not-italic text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .modal-open {
+        @apply overflow-hidden;
+    }
+
+    .document-list {
+        @apply space-y-2;
+    }
+
+    .document-list-row {
+        @apply rounded-md border border-neutral-200 bg-white p-3 text-sm;
+    }
+
+    .document-list-meta {
+        @apply min-w-0;
+    }
+
+    .document-list-meta span {
+        @apply block text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .document-list-meta strong {
+        @apply mt-1 block truncate font-semibold text-neutral-900;
+    }
+
+    .document-list-actions {
+        @apply mt-3 flex flex-wrap items-center gap-2;
+    }
+
+    .document-preview-note {
+        @apply inline-flex items-center rounded-md border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500;
+    }
+
+    .document-preview-modal {
+        @apply fixed inset-0 z-50;
+    }
+
+    .document-preview-backdrop {
+        @apply absolute inset-0 bg-neutral-950/60;
+    }
+
+    .document-preview-dialog {
+        @apply absolute left-1/2 top-1/2 flex h-[88vh] w-[min(1180px,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-md border border-neutral-200 bg-white shadow-2xl;
+    }
+
+    .document-preview-header {
+        @apply flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3;
+    }
+
+    .document-preview-header span {
+        @apply min-w-0 truncate text-sm font-semibold text-neutral-900;
+    }
+
+    .document-preview-frame {
+        @apply min-h-0 flex-1 bg-white;
     }
 
     .login-shell {

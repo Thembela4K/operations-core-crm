@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Mail;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class TestNotificationMail extends Mailable
+{
+    use Queueable, SerializesModels;
+
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: 'Datamatics notification email test',
+        );
+    }
+
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.test-notification',
+            text: 'emails.text.test-notification',
+        );
+    }
+}

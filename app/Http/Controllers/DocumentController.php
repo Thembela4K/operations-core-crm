@@ -50,6 +50,21 @@ class DocumentController extends Controller
         return Storage::download($document->path, $document->original_name);
     }
 
+    public function preview(Request $request, Document $document): StreamedResponse
+    {
+        $document->load('documentable');
+        $this->authorizeRecordAccess($request, $document->documentable);
+
+        abort_unless($document->isPreviewable(), 415);
+
+        return Storage::response(
+            $document->path,
+            $document->original_name,
+            ['Content-Type' => $document->mime_type],
+            'inline',
+        );
+    }
+
     public function destroy(Request $request, Document $document): RedirectResponse
     {
         $document->load('documentable');

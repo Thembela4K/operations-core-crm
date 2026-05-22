@@ -12,17 +12,20 @@
             @csrf
             <label class="lg:col-span-2">
                 <span class="label">Record</span>
+                @php($currentTarget = old('target', $selectedTarget ?? ''))
                 <select class="input" name="target" required>
                     <optgroup label="Tender Proposals">
                         @foreach($tenderProposals as $tenderProposal)
-                            <option value="tender_proposal:{{ $tenderProposal->id }}">
+                            @php($targetValue = "tender_proposal:{$tenderProposal->id}")
+                            <option value="{{ $targetValue }}" @selected($currentTarget === $targetValue)>
                                 {{ $tenderProposal->tender_reference }} - {{ $tenderProposal->title }} ({{ $tenderProposal->latestAssignment?->department?->name ?? 'Unassigned' }})
                             </option>
                         @endforeach
                     </optgroup>
                     <optgroup label="Quotations">
                         @foreach($quotations as $quotation)
-                            <option value="quotation:{{ $quotation->id }}">
+                            @php($targetValue = "quotation:{$quotation->id}")
+                            <option value="{{ $targetValue }}" @selected($currentTarget === $targetValue)>
                                 {{ $quotation->quotation_code }} - {{ $quotation->opportunity }} ({{ $quotation->latestAssignment?->department?->name ?? 'Unassigned' }})
                             </option>
                         @endforeach
@@ -31,28 +34,34 @@
             </label>
             <label>
                 <span class="label">Department</span>
-                <select class="input" name="department_id" required>
+                <select class="input" name="department_id" required data-department-select>
                     @foreach($departments as $department)
-                        <option value="{{ $department->id }}">{{ $department->name }}{{ $department->email ? " - {$department->email}" : '' }}</option>
+                        <option value="{{ $department->id }}" data-email="{{ $department->email }}">{{ $department->name }}{{ $department->email ? " - {$department->email}" : '' }}</option>
                     @endforeach
                 </select>
             </label>
             <label>
-                <span class="label">Existing User</span>
-                <select class="input" name="assigned_user_id">
-                    <option value="">Use department email or manual assignee</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} - {{ $user->email }}{{ $user->department ? " - {$user->department->name}" : '' }}</option>
+                <span class="label">Staff Member</span>
+                <select class="input" name="staff_member_id" data-assignee-select>
+                    <option value="" data-department-id="" data-notification-email="">Use department mailbox</option>
+                    @foreach($staffMembers as $staffMember)
+                        <option
+                            value="{{ $staffMember->id }}"
+                            data-department-id="{{ $staffMember->department_id }}"
+                            data-notification-email="{{ $staffMember->email ?: $staffMember->department?->email }}"
+                        >
+                            {{ $staffMember->name }}
+                        </option>
                     @endforeach
                 </select>
             </label>
             <label>
                 <span class="label">Assignee Name</span>
-                <input class="input" name="assignee_name" value="{{ old('assignee_name') }}">
+                <input class="input" name="assignee_name" value="{{ old('assignee_name', auth()->user()->name) }}">
             </label>
             <label>
-                <span class="label">Assignee Email</span>
-                <input class="input" type="email" name="assignee_email" value="{{ old('assignee_email') }}">
+                <span class="label">Notification Email</span>
+                <input class="input" type="email" name="assignee_email" value="{{ old('assignee_email') }}" readonly data-assignee-email>
             </label>
             <label>
                 <span class="label">Assignment Due Date</span>

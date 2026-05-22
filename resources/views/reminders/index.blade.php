@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="page-title">Timeline & Reminders</h1>
-            <p class="page-subtitle">Tender proposal and quotation due dates within {{ $daysBefore }} days.</p>
+            <p class="page-subtitle">Tender reminders send {{ $tenderReminderDays }} days before due date. Quotation reminders send {{ $quotationReminderHours }} hours before due date.</p>
         </div>
         @if(auth()->user()->canManage())
             <form method="POST" action="{{ route('reminders.send-due') }}">
@@ -17,7 +17,7 @@
     <section class="panel mt-6 overflow-x-auto">
         <h2 class="section-title">Upcoming and Overdue Deadlines</h2>
         <table class="data-table mt-4">
-            <thead><tr><th>Type</th><th>Reference</th><th>Title</th><th>Status</th><th>Priority</th><th>Due</th><th>Days</th><th>Recipient</th></tr></thead>
+            <thead><tr><th>Type</th><th>Reference</th><th>Title</th><th>Status</th><th>Priority</th><th>Due</th><th>Days</th><th>Department</th><th>Recipient</th></tr></thead>
             <tbody>
                 @forelse($upcomingItems as $item)
                     <tr>
@@ -28,10 +28,11 @@
                         <td>{{ $item['priority'] }}</td>
                         <td>{{ $item['due_on']->toDateString() }}</td>
                         <td>{{ $item['days_left'] }}</td>
+                        <td>{{ $item['department'] }}</td>
                         <td>{{ $item['owner'] }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="empty">No urgent reminders.</td></tr>
+                    <tr><td colspan="9" class="empty">No urgent reminders.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -45,7 +46,7 @@
                 @forelse($reminderLogs as $log)
                     <div class="rounded-md border border-zinc-200 p-3 text-sm">
                         <div class="font-medium">{{ class_basename($log->remindable_type) }} | {{ $log->status }}</div>
-                        <div class="text-zinc-500">{{ $log->recipient }} | due {{ $log->due_on->toDateString() }} | {{ $log->created_at->toDayDateTimeString() }}</div>
+                        <div class="text-zinc-500">{{ $log->assignment?->department?->name ?? 'Department' }} | {{ $log->recipient }} | due {{ $log->due_on->toDateString() }} | {{ $log->created_at->toDayDateTimeString() }}</div>
                         @if($log->message)<div class="mt-1 text-rose-700">{{ $log->message }}</div>@endif
                     </div>
                 @empty

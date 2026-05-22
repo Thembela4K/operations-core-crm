@@ -12,12 +12,15 @@ class Quotation extends Model
 {
     use HasFactory;
 
+    public const STATUS_OVERDUE = 'Overdue';
+
     public const STATUSES = [
         'Draft',
         'Sent',
         'Under Review',
         'Draft Submitted',
         'Finished Submitted',
+        self::STATUS_OVERDUE,
         'Accepted',
         'Rejected',
         'Expired',

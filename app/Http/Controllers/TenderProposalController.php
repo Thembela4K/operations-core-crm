@@ -65,8 +65,9 @@ class TenderProposalController extends Controller
         $this->syncImportantDates($request, $tenderProposal);
         $this->storeTenderDocument($request, $tenderProposal);
 
-        return redirect()->route('tender-proposals.show', $tenderProposal)
-            ->with('success', 'Tender proposal created.');
+        return redirect()->route('assignments.index', [
+            'target' => "tender_proposal:{$tenderProposal->id}",
+        ])->with('success', 'Tender proposal created. Assign it to the responsible department.');
     }
 
     public function show(Request $request, TenderProposal $tenderProposal): View

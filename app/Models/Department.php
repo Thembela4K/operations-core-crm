@@ -33,4 +33,9 @@ class Department extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+
+    public function staffMembers(): HasMany
+    {
+        return $this->hasMany(StaffMember::class)->orderBy('name');
+    }
 }

@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function (): void {
     Route::resource('quotations', QuotationController::class)->except(['create', 'store', 'destroy']);
 
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
+    Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
     Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 

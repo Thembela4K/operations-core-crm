@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $countdownDueDate = $assignmentForUser?->due_date ?? $tenderProposal->latestAssignment?->due_date ?? $tenderProposal->closing_date;
+        $countdownLabel = ($assignmentForUser?->due_date || $tenderProposal->latestAssignment?->due_date) ? 'Assignment Due Date' : 'Tender Due Date';
+        $countdownTarget = $countdownDueDate?->copy()->endOfDay()->toIso8601String();
+    @endphp
+
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="page-title">{{ $tenderProposal->tender_reference }} - {{ $tenderProposal->title }}</h1>
@@ -17,6 +23,25 @@
             @endif
         </div>
     </div>
+
+    @if($countdownTarget)
+        <section class="deadline-banner mt-6" data-countdown-target="{{ $countdownTarget }}">
+            <div>
+                <span class="deadline-kicker">{{ $countdownLabel }}</span>
+                <strong>{{ $countdownDueDate->toFormattedDateString() }}</strong>
+                <small>{{ $tenderProposal->status }} | {{ $tenderProposal->documents->count() }} documents</small>
+            </div>
+            <div class="deadline-countdown" aria-live="polite">
+                <span data-countdown-value>Calculating...</span>
+                <div class="deadline-countdown-grid">
+                    <em><strong data-countdown-days>--</strong>Days</em>
+                    <em><strong data-countdown-hours>--</strong>Hours</em>
+                    <em><strong data-countdown-minutes>--</strong>Minutes</em>
+                    <em><strong data-countdown-seconds>--</strong>Seconds</em>
+                </div>
+            </div>
+        </section>
+    @endif
 
     <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel xl:col-span-2">
@@ -58,24 +83,8 @@
                     <button class="btn-secondary w-full" type="submit">Upload Tender Document</button>
                 </form>
             @endif
-            <div class="mt-4 space-y-2">
-                @forelse($tenderProposal->documents as $document)
-                    <div class="rounded-md border border-zinc-200 p-2 text-sm">
-                        <div class="text-xs font-semibold uppercase text-zinc-500">{{ \App\Models\Document::CATEGORIES[$document->category] ?? 'Document' }}</div>
-                        <div class="mt-1 flex items-center justify-between gap-2">
-                            <a class="link truncate" href="{{ route('documents.download', $document) }}">{{ $document->original_name }}</a>
-                            @if(auth()->user()->canManage())
-                                <form method="POST" action="{{ route('documents.destroy', $document) }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="text-rose-700" type="submit">Remove</button>
-                                </form>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <p class="empty">No documents.</p>
-                @endforelse
+            <div class="mt-4">
+                @include('documents.preview-card', ['documents' => $tenderProposal->documents])
             </div>
         </section>
 

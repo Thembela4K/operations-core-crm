@@ -15,7 +15,7 @@
             ? "conic-gradient(#087aa5 0deg {$tenderMixDegrees}deg, #0f766e {$tenderMixDegrees}deg {$quotationMixEnd}deg)"
             : 'conic-gradient(#e5e7eb 0deg 360deg)';
         $statusColors = ['#087aa5', '#0f766e', '#525252', '#b45309', '#be123c', '#334155'];
-        $deadlineColors = ['Overdue' => 'bg-rose-700', 'Today' => 'bg-amber-600', 'Next 3 Days' => 'bg-[#087aa5]'];
+        $deadlineColors = ['Overdue' => 'bg-rose-700', 'Today' => 'bg-amber-600', 'Next 5 Days' => 'bg-[#087aa5]'];
         $deadlineMax = max(1, $deadlineBands->max() ?? 0);
         $assignmentTotal = max(1, $assignmentStatusCounts->sum());
     @endphp
@@ -188,7 +188,7 @@
     </div>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-2">
-        <section class="panel compact-list">
+        <section class="panel compact-list" id="unread-assignments">
             <div class="panel-heading">
                 <h2 class="section-title">Unread Assignments</h2>
                 <span>{{ $unreadAssignments }}</span>

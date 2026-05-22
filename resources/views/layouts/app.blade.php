@@ -27,6 +27,10 @@
                     </a>
 
                     <div class="user-cluster">
+                        @php
+                            $unreadTenderCount = $layoutUnreadTenderAssignments ?? 0;
+                            $unreadQuotationCount = $layoutUnreadQuotationAssignments ?? 0;
+                        @endphp
                         <div class="user-panel">
                             <span class="user-name">{{ auth()->user()->name }}</span>
                             <span class="user-meta">
@@ -45,8 +49,18 @@
 
                 <nav class="primary-nav" aria-label="Primary navigation">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
-                    <a class="nav-link {{ request()->routeIs('tender-proposals.*') ? 'nav-link-active' : '' }}" href="{{ route('tender-proposals.index') }}">Tender Proposals</a>
-                    <a class="nav-link {{ request()->routeIs('quotations.*') ? 'nav-link-active' : '' }}" href="{{ route('quotations.index') }}">Quotations</a>
+                    <a class="nav-link {{ request()->routeIs('tender-proposals.*') ? 'nav-link-active' : '' }}" href="{{ $layoutNextUnreadTenderUrl ?? route('tender-proposals.index') }}">
+                        Tender Proposals
+                        @if($unreadTenderCount > 0)
+                            <span class="nav-badge" aria-label="{{ $unreadTenderCount }} unread tender proposals">{{ $unreadTenderCount }}</span>
+                        @endif
+                    </a>
+                    <a class="nav-link {{ request()->routeIs('quotations.*') ? 'nav-link-active' : '' }}" href="{{ $layoutNextUnreadQuotationUrl ?? route('quotations.index') }}">
+                        Quotations
+                        @if($unreadQuotationCount > 0)
+                            <span class="nav-badge" aria-label="{{ $unreadQuotationCount }} unread quotations">{{ $unreadQuotationCount }}</span>
+                        @endif
+                    </a>
                     @if(auth()->user()->canManage())
                         <a class="nav-link {{ request()->routeIs('assignments.*') ? 'nav-link-active' : '' }}" href="{{ route('assignments.index') }}">Assignments</a>
                     @endif
@@ -65,12 +79,12 @@
     <main class="app-container py-8">
         @foreach (['success' => 'border-sky-200 bg-sky-50 text-sky-900', 'warning' => 'border-amber-200 bg-amber-50 text-amber-800'] as $key => $classes)
             @if(session($key))
-                <div class="mb-4 rounded-md border px-4 py-3 text-sm {{ $classes }}">{{ session($key) }}</div>
+                <div class="flash-message mb-4 rounded-md border px-4 py-3 text-sm {{ $classes }}" data-auto-dismiss>{{ session($key) }}</div>
             @endif
         @endforeach
 
         @if($errors->any())
-            <div class="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div class="flash-message mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-auto-dismiss>
                 {{ $errors->first() }}
             </div>
         @endif

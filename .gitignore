@@ -25,6 +25,8 @@ __pycache__/
 /storage/*.key
 /storage/pail
 /vendor
+/release
+*.zip
 _ide_helper.php
 Homestead.json
 Homestead.yaml

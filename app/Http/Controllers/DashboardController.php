@@ -25,7 +25,7 @@ class DashboardController extends Controller
             ->get();
         $visibleTenderIds = $tenderProposals->pluck('id');
         $visibleQuotationIds = $quotations->pluck('id');
-        $upcomingItems = $reminders->upcomingItems()
+        $upcomingItems = $reminders->upcomingItems(ReminderService::DASHBOARD_WINDOW_DAYS)
             ->filter(function (array $item) use ($visibleTenderIds, $visibleQuotationIds): bool {
                 if ($item['model'] instanceof TenderProposal) {
                     return $visibleTenderIds->contains($item['model']->id);
@@ -46,7 +46,7 @@ class DashboardController extends Controller
         $deadlineBands = collect([
             'Overdue' => $upcomingItems->where('days_left', '<', 0)->count(),
             'Today' => $upcomingItems->where('days_left', 0)->count(),
-            'Next 3 Days' => $upcomingItems->filter(fn (array $item): bool => $item['days_left'] > 0)->count(),
+            'Next 5 Days' => $upcomingItems->filter(fn (array $item): bool => $item['days_left'] > 0)->count(),
         ]);
 
         $departmentWorkload = $assignments

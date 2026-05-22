@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Mail\AssignmentNotificationMail;
 use App\Models\Assignment;
+use App\Models\Document;
 use App\Models\TenderProposal;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -21,35 +23,34 @@ class AssignmentEmailService
             ? route('tender-proposals.show', $assignable)
             : route('quotations.show', $assignable);
         $importantDates = $assignable instanceof TenderProposal
-            ? $assignable->importantDates()->get()->map(fn ($date): string => "{$date->label}: {$date->due_date->toDateString()}")->implode(PHP_EOL)
-            : '';
+            ? $assignable->importantDates()->get()->map(fn ($date): string => "{$date->label}: {$date->due_date->toDateString()}")->all()
+            : [];
+        $documents = $assignable->documents()
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Document $document): array => [
+                'name' => $document->original_name,
+                'category' => Document::CATEGORIES[$document->category] ?? 'Document',
+                'download_url' => route('documents.download', $document),
+            ])
+            ->all();
         $subject = "Assignment: {$reference} routed to {$assignment->department->name}";
 
-        $bodyLines = [
-            'Work assignment',
-            '',
-            "Reference: {$reference}",
-            "Title: {$title}",
-            "Assigned department: {$assignment->department->name}",
-            "Assigned to: {$assignment->assignee_name}",
-            "Status: {$assignable->status}",
-            "Priority: {$assignable->priority}",
-            "{$dueLabel}: {$dueDate->toDateString()}",
-            $assignment->instructions ? "Instructions: {$assignment->instructions}" : null,
-            $importantDates ? 'Important dates:'.PHP_EOL.$importantDates : null,
-            "Documents available in portal: {$assignable->documents()->count()}",
-            "Portal link: {$portalUrl}",
-            '',
-            'Please review and action this assignment in the portal.',
-        ];
-
-        $body = implode(PHP_EOL, array_filter($bodyLines, fn ($line): bool => $line !== null));
-
         try {
-            Mail::raw($body, function ($message) use ($assignment, $subject): void {
-                $message->to($assignment->assignee_email)
-                    ->subject($subject);
-            });
+            Mail::to($assignment->assignee_email)->send(new AssignmentNotificationMail(
+                assignment: $assignment,
+                recordType: $assignable instanceof TenderProposal ? 'Tender Proposal' : 'Quotation',
+                reference: $reference,
+                title: $title,
+                status: $assignable->status,
+                priority: $assignable->priority,
+                dueLabel: $dueLabel,
+                dueDate: $dueDate->toDateString(),
+                portalUrl: $portalUrl,
+                importantDates: $importantDates,
+                documentCount: $assignable->documents()->count(),
+                documents: $documents,
+            ));
 
             $status = 'Assignment Email Sent';
             $message = '';

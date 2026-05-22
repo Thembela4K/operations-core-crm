@@ -35,6 +35,18 @@ class Document extends Model
         self::CATEGORY_OTHER => 'Other',
     ];
 
+    public const PREVIEWABLE_MIME_TYPES = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'image/svg+xml',
+        'text/plain',
+        'text/csv',
+    ];
+
     protected $fillable = [
         'category',
         'original_name',
@@ -53,5 +65,10 @@ class Document extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function isPreviewable(): bool
+    {
+        return in_array($this->mime_type, self::PREVIEWABLE_MIME_TYPES, true);
     }
 }

@@ -84,6 +84,39 @@ MAIL_FROM_NAME="${APP_NAME}"
 
 Assignment and reminder emails are logged in the database whether they succeed or fail.
 
+For a Gmail or Google Workspace sender, use one dedicated outgoing mailbox and a Google app password:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-sender@example.com
+MAIL_PASSWORD=your-private-app-password
+MAIL_FROM_ADDRESS=your-sender@example.com
+MAIL_FROM_NAME="Datamatics Eswatini Notifications"
+```
+
+The email signature is controlled through private `.env` values so real contact details are not committed:
+
+```env
+MAIL_SIGNATURE_COMPANY=
+MAIL_SIGNATURE_PHONE=
+MAIL_SIGNATURE_LANDLINE=
+MAIL_SIGNATURE_EMAIL=
+MAIL_SIGNATURE_WEBSITE=
+MAIL_SIGNATURE_ADDRESS=
+MAIL_SIGNATURE_IMAGE_PATH=
+```
+
+Set `MAIL_SIGNATURE_IMAGE_PATH=images/email-signature.png` if you prefer one full signature image stored privately in `public/images`. Leave it blank to use the built-in HTML signature block.
+
+Send a development test email with:
+
+```powershell
+php artisan mail:test
+```
+
 ## Reminders
 
 Manual reminder sending is available from the Reminders page.

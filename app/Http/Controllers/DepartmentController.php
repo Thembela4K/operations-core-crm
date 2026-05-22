@@ -15,7 +15,7 @@ class DepartmentController extends Controller
     {
         return view('admin.departments.index', [
             'departments' => Department::query()
-                ->withCount(['users', 'assignments'])
+                ->withCount(['users', 'assignments', 'staffMembers'])
                 ->orderBy('name')
                 ->paginate(15),
         ]);
@@ -28,7 +28,8 @@ class DepartmentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Department::query()->create($this->validated($request));
+        $department = Department::query()->create($this->validated($request));
+        $this->syncStaffMembers($request, $department);
 
         return redirect()->route('departments.index')->with('success', 'Department created.');
     }
@@ -40,12 +41,13 @@ class DepartmentController extends Controller
 
     public function edit(Department $department): View
     {
-        return view('admin.departments.edit', ['department' => $department]);
+        return view('admin.departments.edit', ['department' => $department->load('staffMembers')]);
     }
 
     public function update(Request $request, Department $department): RedirectResponse
     {
         $department->update($this->validated($request, $department));
+        $this->syncStaffMembers($request, $department);
 
         return redirect()->route('departments.index')->with('success', 'Department updated.');
     }
@@ -71,6 +73,10 @@ class DepartmentController extends Controller
             'slug' => [Rule::unique('departments', 'slug')->ignore($department)],
             'email' => ['nullable', 'email', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
+            'staff_members' => ['nullable', 'array'],
+            'staff_members.*.name' => ['nullable', 'string', 'max:255'],
+            'staff_members.*.email' => ['nullable', 'email', 'max:255'],
+            'staff_members.*.is_active' => ['nullable', 'boolean'],
         ]);
 
         return [
@@ -79,5 +85,22 @@ class DepartmentController extends Controller
             'email' => $data['email'] ?? null,
             'is_active' => $request->boolean('is_active'),
         ];
+    }
+
+    private function syncStaffMembers(Request $request, Department $department): void
+    {
+        $department->staffMembers()->delete();
+
+        foreach ($request->input('staff_members', []) as $row) {
+            if (blank($row['name'] ?? null)) {
+                continue;
+            }
+
+            $department->staffMembers()->create([
+                'name' => trim((string) $row['name']),
+                'email' => filled($row['email'] ?? null) ? trim((string) $row['email']) : null,
+                'is_active' => (bool) ($row['is_active'] ?? false),
+            ]);
+        }
     }
 }

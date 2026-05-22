@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\Department;
 use App\Models\EmailLog;
 use App\Models\Quotation;
+use App\Models\StaffMember;
 use App\Models\TenderProposal;
 use App\Models\User;
 use App\Services\AssignmentEmailService;
@@ -15,13 +16,17 @@ use Illuminate\View\View;
 
 class AssignmentController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         return view('assignments.index', [
             'tenderProposals' => TenderProposal::query()->with('latestAssignment.department')->orderBy('title')->get(),
             'quotations' => Quotation::query()->with('latestAssignment.department')->orderBy('opportunity')->get(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'users' => User::query()->where('is_active', true)->with('department')->orderBy('name')->get(),
+            'staffMembers' => StaffMember::query()
+                ->where('is_active', true)
+                ->with('department')
+                ->orderBy('name')
+                ->get(),
             'assignments' => Assignment::query()
                 ->with(['assignable', 'department', 'assignedUser'])
                 ->latest()
@@ -31,6 +36,7 @@ class AssignmentController extends Controller
                 ->latest()
                 ->take(20)
                 ->get(),
+            'selectedTarget' => $request->string('target')->toString(),
         ]);
     }
 
@@ -39,6 +45,7 @@ class AssignmentController extends Controller
         $data = $request->validate([
             'target' => ['required', 'string'],
             'department_id' => ['required', 'exists:departments,id'],
+            'staff_member_id' => ['nullable', 'exists:staff_members,id'],
             'assigned_user_id' => ['nullable', 'exists:users,id'],
             'assignee_name' => ['nullable', 'string', 'max:255'],
             'assignee_email' => ['nullable', 'email', 'max:255'],
@@ -54,13 +61,31 @@ class AssignmentController extends Controller
             ? TenderProposal::query()->findOrFail((int) $recordId)
             : Quotation::query()->findOrFail((int) $recordId);
         $department = Department::query()->findOrFail($data['department_id']);
-        $assignedUser = isset($data['assigned_user_id']) ? User::query()->find($data['assigned_user_id']) : null;
-        $assigneeName = $data['assignee_name'] ?: $assignedUser?->name ?: $department->name;
-        $assigneeEmail = $data['assignee_email'] ?: $assignedUser?->email ?: $department->email;
+        $staffMember = isset($data['staff_member_id'])
+            ? StaffMember::query()->where('is_active', true)->find($data['staff_member_id'])
+            : null;
+        $assignedUser = isset($data['assigned_user_id'])
+            ? User::query()->where('is_active', true)->find($data['assigned_user_id'])
+            : null;
+
+        if ($staffMember && (int) $staffMember->department_id !== (int) $department->id) {
+            return back()
+                ->withErrors(['staff_member_id' => 'Choose a staff member from the selected department.'])
+                ->withInput();
+        }
+
+        if ($assignedUser && (int) $assignedUser->department_id !== (int) $department->id) {
+            return back()
+                ->withErrors(['assigned_user_id' => 'Choose a staff member from the selected department.'])
+                ->withInput();
+        }
+
+        $assigneeName = $staffMember?->name ?: ($assignedUser?->name ?: ($data['assignee_name'] ?: $department->name));
+        $assigneeEmail = $staffMember?->email ?: ($department->email ?: ($assignedUser?->email ?: ($data['assignee_email'] ?? null)));
 
         if (! $assigneeName || ! $assigneeEmail) {
             return back()
-                ->withErrors(['assignee_name' => 'Choose an active user, enter assignee details, or set an email for the selected department.'])
+                ->withErrors(['assignee_name' => 'Choose a department staff member or set an email for the selected department.'])
                 ->withInput();
         }
 

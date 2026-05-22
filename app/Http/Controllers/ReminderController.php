@@ -18,12 +18,13 @@ class ReminderController extends Controller
         return view('reminders.index', [
             'upcomingItems' => $this->paginateCollection($reminderService->upcomingItems(), 'deadlines_page'),
             'reminderLogs' => ReminderLog::query()
-                ->with('remindable')
+                ->with(['remindable', 'assignment.department'])
                 ->latest()
                 ->paginate(15, ['*'], 'logs_page')
                 ->withQueryString(),
             'emailLogs' => EmailLog::query()->where('category', 'reminder')->latest()->take(20)->get(),
-            'daysBefore' => ReminderService::DAYS_BEFORE,
+            'tenderReminderDays' => ReminderService::TENDER_REMINDER_DAYS_BEFORE,
+            'quotationReminderHours' => ReminderService::QUOTATION_REMINDER_HOURS_BEFORE,
         ]);
     }
 
@@ -33,9 +34,10 @@ class ReminderController extends Controller
             abort(403);
         }
 
-        $sent = $reminderService->sendDueReminders();
+        $overdue = $reminderService->markOverdueQuotations();
+        $sent = $reminderService->sendDueReminders(markOverdue: false);
 
-        return back()->with('success', "{$sent} due reminder emails sent.");
+        return back()->with('success', "{$sent} due reminder emails sent. {$overdue} overdue quotation(s) marked.");
     }
 
     private function paginateCollection(Collection $items, string $pageName): LengthAwarePaginator
