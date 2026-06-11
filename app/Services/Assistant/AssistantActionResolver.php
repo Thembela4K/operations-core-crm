@@ -4,7 +4,6 @@ namespace App\Services\Assistant;
 
 use App\Models\CrmNotification;
 use App\Models\CrmTask;
-use App\Models\Department;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Quotation;
@@ -17,30 +16,11 @@ use Carbon\CarbonInterface;
 
 class AssistantActionResolver
 {
-    private const MODULES = [
-        'dashboard',
-        'clients',
-        'client_activities',
-        'documents',
-        'tender_proposals',
-        'quotation_requests',
-        'requisitions',
-        'tasks',
-        'sales_quotations',
-        'invoices',
-        'expenses',
-        'approvals',
-        'attendance',
-        'suppliers',
-        'reports',
-        'notifications',
-    ];
-
     public function __construct(private readonly AssistantAccessService $access)
     {
     }
 
-    public function resolve(User $user, string $message, ?array $aiIntent = null): array
+    public function resolve(User $user, string $message): array
     {
         $local = $this->localInterpret($user, $message);
 
@@ -48,11 +28,10 @@ class AssistantActionResolver
             return $this->directReply($user, $local['intent']);
         }
 
-        $ai = $this->sanitizeAiIntent($user, $aiIntent);
-        $module = $local['module'] ?? $ai['module'] ?? 'dashboard';
-        $filters = array_filter(array_merge($ai['filters'] ?? [], $local['filters'] ?? []), fn ($value): bool => $value !== null && $value !== '');
+        $module = $local['module'] ?? 'dashboard';
+        $filters = array_filter($local['filters'] ?? [], fn ($value): bool => $value !== null && $value !== '');
 
-        if (($local['intent'] ?? null) === 'help' || ($ai['intent'] ?? null) === 'help') {
+        if (($local['intent'] ?? null) === 'help') {
             return [
                 'intent' => 'help',
                 'reply' => $this->helpReply($module),
@@ -70,7 +49,7 @@ class AssistantActionResolver
             : "I found {$count} {$label}. Opening the filtered view.";
 
         return [
-            'intent' => $local['intent'] ?? $ai['intent'] ?? 'navigate',
+            'intent' => $local['intent'] ?? 'navigate',
             'reply' => $reply,
             'action' => [
                 'type' => 'navigate',
@@ -286,78 +265,6 @@ class AssistantActionResolver
         }
 
         return null;
-    }
-
-    private function sanitizeAiIntent(User $user, ?array $aiIntent): array
-    {
-        if (! $aiIntent) {
-            return ['intent' => null, 'module' => null, 'filters' => []];
-        }
-
-        $module = $this->normalizeModule((string) ($aiIntent['module'] ?? ''));
-        $filters = [];
-
-        foreach ((array) ($aiIntent['filters'] ?? []) as $key => $value) {
-            if (! is_scalar($value) || blank($value)) {
-                continue;
-            }
-
-            $filters[$key] = trim((string) $value);
-        }
-
-        if (isset($filters['department_name']) && $user->canViewPortfolio()) {
-            $department = Department::query()
-                ->where('name', 'like', '%'.$filters['department_name'].'%')
-                ->first();
-
-            if ($department) {
-                $filters['department_id'] = $department->id;
-            }
-        }
-
-        unset($filters['department_name']);
-
-        if (($filters['assigned_to_me'] ?? null) === 'true') {
-            $filters['assigned_to'] = $user->id;
-        }
-
-        unset($filters['assigned_to_me']);
-
-        return [
-            'intent' => in_array(($aiIntent['intent'] ?? null), ['navigate', 'summary', 'help', 'unknown'], true) ? $aiIntent['intent'] : null,
-            'module' => $module,
-            'filters' => $this->allowedFilters($filters),
-        ];
-    }
-
-    private function normalizeModule(string $module): ?string
-    {
-        $module = str_replace('-', '_', mb_strtolower($module));
-        $aliases = [
-            'tenders' => 'tender_proposals',
-            'tender' => 'tender_proposals',
-            'quotation' => 'quotation_requests',
-            'quotations' => 'quotation_requests',
-            'quotes' => 'sales_quotations',
-            'sales_quotes' => 'sales_quotations',
-            'files' => 'documents',
-            'approvals_center' => 'approvals',
-        ];
-
-        $module = $aliases[$module] ?? $module;
-
-        return in_array($module, self::MODULES, true) ? $module : null;
-    }
-
-    private function allowedFilters(array $filters): array
-    {
-        $allowed = ['search', 'status', 'priority', 'department_id', 'deadline_window', 'workflow_status', 'assignment_state', 'date_from', 'date_to', 'category', 'module', 'linked_type', 'payment_state', 'assigned_to', 'state'];
-
-        return collect($filters)
-            ->only($allowed)
-            ->map(fn ($value) => is_numeric($value) ? $value : trim((string) $value))
-            ->filter(fn ($value): bool => $value !== '')
-            ->all();
     }
 
     private function urlFor(?string $module, array $filters): string

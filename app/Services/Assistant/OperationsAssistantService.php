@@ -10,8 +10,6 @@ use Illuminate\Support\Str;
 class OperationsAssistantService
 {
     public function __construct(
-        private readonly AssistantContextBuilder $contextBuilder,
-        private readonly GeminiAssistantClient $gemini,
         private readonly AssistantActionResolver $resolver,
     ) {
     }
@@ -24,9 +22,7 @@ class OperationsAssistantService
             'content' => $message,
         ]);
 
-        $context = $this->contextBuilder->build($user, $message);
-        $aiIntent = $this->gemini->interpret($message, $context);
-        $result = $this->resolver->resolve($user, $message, $aiIntent);
+        $result = $this->resolver->resolve($user, $message);
 
         $conversation->messages()->create([
             'role' => 'assistant',
@@ -34,7 +30,7 @@ class OperationsAssistantService
             'metadata' => [
                 'action' => $result['action'],
                 'filters' => $result['filters'] ?? [],
-                'gemini_used' => $aiIntent !== null,
+                'assistant_mode' => 'local',
             ],
         ]);
 
@@ -44,7 +40,7 @@ class OperationsAssistantService
             'intent' => $result['intent'] ?? null,
             'action_type' => $result['action']['type'] ?? 'reply',
             'status' => 'completed',
-            'input' => ['message' => $message, 'ai_intent' => $aiIntent],
+            'input' => ['message' => $message],
             'output' => $result,
             'route' => $result['action']['url'] ?? null,
         ]);
@@ -78,8 +74,7 @@ class OperationsAssistantService
             'user_id' => $user->id,
             'title' => Str::limit($message, 90),
             'metadata' => [
-                'provider' => config('services.ai.provider', 'local'),
-                'model' => config('services.ai.gemini_model'),
+                'provider' => 'local',
             ],
         ]);
     }

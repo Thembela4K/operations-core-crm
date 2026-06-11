@@ -39,11 +39,4 @@ return [
         'url' => 'https://esppra.co.sz/sppra/tender.php',
     ],
 
-    'ai' => [
-        'provider' => env('AI_PROVIDER', 'local'),
-        'gemini_key' => env('GEMINI_API_KEY'),
-        'gemini_model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
-        'send_record_content' => env('AI_SEND_RECORD_CONTENT', false),
-    ],
-
 ];
