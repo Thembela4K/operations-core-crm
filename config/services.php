@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'sppra' => [
+        'url' => 'https://esppra.co.sz/sppra/tender.php',
+    ],
+
 ];

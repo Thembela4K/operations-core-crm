@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AppSetting;
 use App\Models\Assignment;
 use App\Models\AttendanceRecord;
 use App\Models\Client;
@@ -120,7 +119,7 @@ class DashboardController extends Controller
             'maxDepartmentWorkload' => $maxDepartmentWorkload,
             'deadlineBands' => $deadlineBands,
             'upcomingItems' => $upcomingItems->take(6),
-            'sppraUrl' => $user->canAccessSppra() ? AppSetting::valueFor('sppra_url') : null,
+            'sppraUrl' => $user->canAccessSppra() ? config('services.sppra.url') : null,
         ]);
     }
 }
