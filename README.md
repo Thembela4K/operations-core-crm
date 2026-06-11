@@ -114,6 +114,23 @@ Send a development test email with:
 php artisan mail:test
 ```
 
+## MIS AI Assistant
+
+MIS uses an OpenAI-compatible NVIDIA API endpoint as the primary assistant engine. The model receives CRM context from Laravel, answers from the available records, and may return vetted navigation actions that Laravel validates before the UI opens a page.
+
+Set the AI values privately in `.env`; never commit the real key:
+
+```env
+AI_PROVIDER=nvidia
+AI_REMOTE_ENABLED=true
+NVIDIA_API_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_API_KEY=
+NVIDIA_AI_MODEL=deepseek-ai/deepseek-v4-pro
+AI_CONTEXT_RECORD_LIMIT=500
+```
+
+If the API key is missing, the API is unavailable, or quota is exceeded, MIS shows a clear retry-later message instead of falling back to hard-coded answers.
+
 ## Reminders
 
 Manual reminder sending is available from the Reminders page.

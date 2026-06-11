@@ -3,14 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
-use App\Models\Document;
-use App\Models\DocumentText;
-use App\Models\Submission;
 use App\Models\Supplier;
-use App\Models\TenderProposal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -32,7 +29,7 @@ class OperationsAssistantTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_assistant_greeting_is_scoped_to_crm_help(): void
+    public function test_assistant_returns_clear_message_when_ai_is_not_configured(): void
     {
         $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
 
@@ -41,25 +38,29 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('Hi Thembela', $response->json('reply'));
-        $this->assertStringContainsString('tenders', $response->json('reply'));
+        $this->assertStringContainsString('MIS AI service is unavailable', $response->json('reply'));
     }
 
-    public function test_assistant_answers_today_date_directly(): void
+    public function test_assistant_returns_quota_message_when_provider_rate_limits(): void
     {
-        Carbon::setTestNow('2026-06-11 10:15:00');
+        $this->configureAi(null, 429);
         $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => "what is today's date?",
+            'message' => 'hi',
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('Thursday, June 11, 2026', $response->json('reply'));
+        $this->assertStringContainsString('quota has been exceeded', $response->json('reply'));
     }
 
-    public function test_assistant_handles_general_chat_without_navigation(): void
+    public function test_assistant_uses_remote_ai_for_conversation(): void
     {
+        $this->configureAi([
+            'reply' => 'Yes, I know of ChatGPT. I am MIS, focused on helping with this portal.',
+            'action' => null,
+        ]);
+
         $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
@@ -67,88 +68,19 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('ChatGPT', $response->json('reply'));
-        $this->assertStringContainsString('portal', $response->json('reply'));
+        $this->assertSame('Yes, I know of ChatGPT. I am MIS, focused on helping with this portal.', $response->json('reply'));
+
+        Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer testing-key')
+            && $request['model'] === 'deepseek-ai/deepseek-v4-pro'
+            && $request['stream'] === false);
     }
 
-    public function test_assistant_steers_off_topic_questions_back_to_portal(): void
+    public function test_assistant_answers_count_questions_from_ai_context_without_navigation(): void
     {
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
-
-        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'what is the weather?',
-        ])->assertOk();
-
-        $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('portal', $response->json('reply'));
-        $this->assertStringContainsString('not a general internet assistant', $response->json('reply'));
-    }
-
-    public function test_assistant_history_returns_latest_conversation_messages(): void
-    {
-        $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
-
-        $conversationId = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'hi',
-        ])->assertOk()->json('conversation_id');
-
-        $response = $this->actingAs($user)->getJson(route('assistant.history'))->assertOk();
-
-        $response->assertJsonPath('conversation_id', $conversationId);
-        $this->assertCount(2, $response->json('messages'));
-        $this->assertSame('user', $response->json('messages.0.role'));
-        $this->assertSame('assistant', $response->json('messages.1.role'));
-    }
-
-    public function test_assistant_opens_last_month_submitted_tender_documents(): void
-    {
-        Carbon::setTestNow('2026-06-11 10:00:00');
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
-        $department = $this->department('MIS Department');
-        $tender = $this->tender();
-        $submission = $this->submission($tender, $department);
-        $document = $this->document($submission, 'Technical Proposal May.pdf', '2026-05-12 09:00:00');
-
-        DocumentText::query()->create([
-            'document_id' => $document->id,
-            'status' => DocumentText::STATUS_INDEXED,
-            'content' => 'Submitted tender technical proposal for May.',
-            'char_count' => 45,
-            'extracted_at' => now(),
+        $this->configureAi([
+            'reply' => 'We have 2 suppliers in the CRM.',
+            'action' => null,
         ]);
-
-        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'show me last month submitted tender documents',
-        ])->assertOk();
-
-        $url = $response->json('action.url');
-        $this->assertStringContainsString('/documents?', $url);
-        $this->assertStringContainsString('module=submission', $url);
-        $this->assertStringContainsString('linked_type=tender_proposal', $url);
-        $this->assertStringContainsString('date_from=2026-05-01', $url);
-        $this->assertStringContainsString('date_to=2026-05-31', $url);
-        $this->assertStringContainsString('I found 1 document', $response->json('reply'));
-    }
-
-    public function test_assistant_document_count_respects_department_access(): void
-    {
-        Carbon::setTestNow('2026-06-11 10:00:00');
-        $mis = $this->department('MIS Department');
-        $gis = $this->department('GIS Department');
-        $user = $this->user('MIS User', User::ROLE_DEPARTMENT_USER, $mis);
-
-        $this->document($this->submission($this->tender('TDR-001'), $mis), 'MIS Proposal.pdf', '2026-05-10 08:00:00');
-        $this->document($this->submission($this->tender('TDR-002'), $gis), 'GIS Proposal.pdf', '2026-05-11 08:00:00');
-
-        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'show last month submitted tender documents',
-        ])->assertOk();
-
-        $this->assertStringContainsString('I found 1 document', $response->json('reply'));
-    }
-
-    public function test_assistant_answers_count_questions_without_navigation(): void
-    {
         $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
 
         Supplier::query()->create([
@@ -167,7 +99,55 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('2 suppliers', $response->json('reply'));
+        $this->assertSame('We have 2 suppliers in the CRM.', $response->json('reply'));
+
+        Http::assertSent(fn ($request): bool => str_contains($request->body(), 'Alpha Supplies')
+            && str_contains($request->body(), '\\"suppliers\\":2'));
+    }
+
+    public function test_assistant_validates_ai_navigation_action(): void
+    {
+        $this->configureAi([
+            'reply' => 'Opening unpaid invoices.',
+            'action' => [
+                'type' => 'navigate',
+                'module' => 'invoices',
+                'filters' => [
+                    'payment_state' => 'unpaid',
+                ],
+                'auto' => true,
+            ],
+        ]);
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'open unpaid invoices',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Opening unpaid invoices.');
+        $response->assertJsonPath('action.type', 'navigate');
+        $this->assertStringContainsString('/invoices?', $response->json('action.url'));
+        $this->assertStringContainsString('payment_state=unpaid', $response->json('action.url'));
+    }
+
+    public function test_assistant_history_returns_latest_conversation_messages(): void
+    {
+        $this->configureAi([
+            'reply' => 'Hi Thembela, how can I assist you today?',
+            'action' => null,
+        ]);
+        $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
+
+        $conversationId = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'hi',
+        ])->assertOk()->json('conversation_id');
+
+        $response = $this->actingAs($user)->getJson(route('assistant.history'))->assertOk();
+
+        $response->assertJsonPath('conversation_id', $conversationId);
+        $this->assertCount(2, $response->json('messages'));
+        $this->assertSame('user', $response->json('messages.0.role'));
+        $this->assertSame('assistant', $response->json('messages.1.role'));
     }
 
     private function department(string $name): Department
@@ -192,48 +172,21 @@ class OperationsAssistantTest extends TestCase
         ]);
     }
 
-    private function tender(string $reference = 'TDR-TEST'): TenderProposal
+    private function configureAi(?array $payload, int $status = 200): void
     {
-        return TenderProposal::query()->create([
-            'tender_reference' => $reference,
-            'title' => 'Tender Test',
-            'owner' => 'Admin',
-            'status' => 'Draft',
-            'priority' => 'Medium',
-            'rating' => 0,
-            'risk' => 'Medium',
-            'progress_percent' => 0,
-            'budget' => 0,
-            'received_date' => now()->toDateString(),
-            'closing_date' => now()->addDays(20)->toDateString(),
+        config()->set('services.assistant_ai.provider', 'nvidia');
+        config()->set('services.assistant_ai.remote_enabled', true);
+        config()->set('services.assistant_ai.nvidia.api_key', 'testing-key');
+        config()->set('services.assistant_ai.nvidia.base_url', 'https://integrate.api.nvidia.com/v1');
+        config()->set('services.assistant_ai.nvidia.model', 'deepseek-ai/deepseek-v4-pro');
+
+        Http::fake([
+            'https://integrate.api.nvidia.com/v1/chat/completions' => Http::response(
+                $status === 200
+                    ? ['choices' => [['message' => ['content' => json_encode($payload)]]]]
+                    : ['error' => ['message' => 'quota exceeded']],
+                $status,
+            ),
         ]);
-    }
-
-    private function submission(TenderProposal $tender, Department $department): Submission
-    {
-        return $tender->submissions()->create([
-            'department_id' => $department->id,
-            'status' => Submission::STATUS_FINISHED,
-            'submitted_at' => now(),
-        ]);
-    }
-
-    private function document(Submission $submission, string $name, string $createdAt): Document
-    {
-        $document = $submission->documents()->create([
-            'category' => Document::CATEGORY_TECHNICAL_PROPOSAL,
-            'original_name' => $name,
-            'stored_name' => $name,
-            'path' => 'documents/testing/'.$name,
-            'mime_type' => 'application/pdf',
-            'size' => 100,
-        ]);
-
-        $document->forceFill([
-            'created_at' => Carbon::parse($createdAt),
-            'updated_at' => Carbon::parse($createdAt),
-        ])->save();
-
-        return $document;
     }
 }

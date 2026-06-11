@@ -10,8 +10,9 @@ use Illuminate\Support\Str;
 class OperationsAssistantService
 {
     public function __construct(
-        private readonly ConversationResponder $conversationResponder,
-        private readonly AssistantActionResolver $resolver,
+        private readonly RemoteAssistantProvider $remoteAssistantProvider,
+        private readonly AssistantCrmContextService $crmContext,
+        private readonly AssistantActionExecutor $actionExecutor,
     ) {
     }
 
@@ -23,8 +24,13 @@ class OperationsAssistantService
             'content' => $message,
         ]);
 
-        $result = $this->conversationResponder->respond($user, $message)
-            ?? $this->resolver->resolve($user, $message);
+        $completion = $this->remoteAssistantProvider->complete(
+            $user,
+            $this->conversationContext($conversation),
+            $this->crmContext->build($user),
+        );
+
+        $result = $this->assistantResult($completion);
 
         $conversation->messages()->create([
             'role' => 'assistant',
@@ -32,7 +38,7 @@ class OperationsAssistantService
             'metadata' => [
                 'action' => $result['action'],
                 'filters' => $result['filters'] ?? [],
-                'assistant_mode' => 'local',
+                'assistant_mode' => $result['assistant_mode'] ?? 'local',
             ],
         ]);
         $conversation->touch();
@@ -154,5 +160,46 @@ class OperationsAssistantService
                 'provider' => 'local',
             ],
         ]);
+    }
+
+    /**
+     * @return array<int, array{role: string, content: string}>
+     */
+    private function conversationContext(AiConversation $conversation): array
+    {
+        return $conversation->messages()
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn ($message): array => [
+                'role' => $message->role,
+                'content' => $message->content,
+            ])
+            ->all();
+    }
+
+    private function assistantResult(array $completion): array
+    {
+        if (! ($completion['ok'] ?? false)) {
+            return [
+                'intent' => 'ai_unavailable',
+                'reply' => $completion['reply'],
+                'action' => null,
+                'filters' => [],
+                'assistant_mode' => 'remote_unavailable',
+            ];
+        }
+
+        $action = $this->actionExecutor->execute($completion['action'] ?? null);
+
+        return [
+            'intent' => $action ? 'ai_action' : 'ai_answer',
+            'reply' => $completion['reply'],
+            'action' => $action,
+            'filters' => is_array($completion['action']['filters'] ?? null) ? $completion['action']['filters'] : [],
+            'assistant_mode' => 'remote_ai',
+        ];
     }
 }
