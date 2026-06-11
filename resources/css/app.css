@@ -27,7 +27,6 @@
     html::-webkit-scrollbar,
     body::-webkit-scrollbar,
     .primary-nav::-webkit-scrollbar,
-    .module-nav::-webkit-scrollbar,
     .module-subnav::-webkit-scrollbar,
     .overflow-x-auto::-webkit-scrollbar {
         display: none;
@@ -101,6 +100,29 @@
 
     .module-nav {
         @apply mt-6 flex gap-2 overflow-x-auto pb-1 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-0;
+        scrollbar-color: #9ca3af #f3f4f6;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+    }
+
+    .module-nav::-webkit-scrollbar {
+        width: 9px;
+        height: 9px;
+    }
+
+    .module-nav::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 999px;
+    }
+
+    .module-nav::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        border: 2px solid #f3f4f6;
+        border-radius: 999px;
+    }
+
+    .module-nav::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
     }
 
     .module-nav-link {
