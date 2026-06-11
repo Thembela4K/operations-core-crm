@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assignment;
+use App\Models\Department;
 use App\Models\Quotation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +29,26 @@ class QuotationController extends Controller
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->string('priority')))
+            ->when($request->filled('department_id') && $request->user()->canViewPortfolio(), fn ($query) => $query->whereHas('assignments', fn ($assignment) => $assignment->where('department_id', $request->integer('department_id'))))
+            ->when($request->filled('workflow_status'), fn ($query) => $query->whereHas('assignments', fn ($assignment) => $assignment->where('workflow_status', $request->string('workflow_status'))))
+            ->when($request->filled('assignment_state'), function ($query) use ($request): void {
+                if ($request->string('assignment_state')->toString() === 'assigned') {
+                    $query->has('assignments');
+                } elseif ($request->string('assignment_state')->toString() === 'unassigned') {
+                    $query->doesntHave('assignments');
+                }
+            })
+            ->when($request->filled('deadline_window'), function ($query) use ($request): void {
+                match ($request->string('deadline_window')->toString()) {
+                    'overdue' => $query->whereDate('valid_until', '<', now()->toDateString()),
+                    'today' => $query->whereDate('valid_until', now()->toDateString()),
+                    'next_5' => $query->whereBetween('valid_until', [now()->toDateString(), now()->addDays(5)->toDateString()]),
+                    'future' => $query->whereDate('valid_until', '>', now()->addDays(5)->toDateString()),
+                    default => null,
+                };
+            })
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('valid_until', '>=', $request->date('date_from')->toDateString()))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('valid_until', '<=', $request->date('date_to')->toDateString()))
             ->latest('valid_until')
             ->paginate(12)
             ->withQueryString();
@@ -35,6 +57,8 @@ class QuotationController extends Controller
             'quotations' => $quotations,
             'statuses' => Quotation::STATUSES,
             'priorities' => Quotation::PRIORITIES,
+            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'workflowStatuses' => Assignment::WORKFLOW_STATUSES,
         ]);
     }
 
@@ -63,7 +87,7 @@ class QuotationController extends Controller
 
         $quotation = Quotation::query()->create($data);
 
-        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation created.');
+        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation request created.');
     }
 
     public function show(Request $request, Quotation $quotation): View
@@ -108,7 +132,7 @@ class QuotationController extends Controller
 
         $quotation->update($data);
 
-        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation updated.');
+        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation request updated.');
     }
 
     public function destroy(Request $request, Quotation $quotation): RedirectResponse
@@ -119,7 +143,7 @@ class QuotationController extends Controller
 
         $quotation->delete();
 
-        return redirect()->route('quotations.index')->with('success', 'Quotation deleted.');
+        return redirect()->route('quotations.index')->with('success', 'Quotation request deleted.');
     }
 
     private function validateQuotation(Request $request, ?Quotation $quotation = null): array

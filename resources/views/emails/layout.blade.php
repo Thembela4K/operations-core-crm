@@ -15,7 +15,7 @@
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px; background:#ffffff; border:1px solid #d9e2e8;">
                     <tr>
                         <td style="border-top:4px solid #0b7faa; padding:28px 32px 10px;">
-                            <div style="font-size:12px; line-height:18px; letter-spacing:2px; text-transform:uppercase; color:#0b7faa; font-weight:700;">Datamatics Eswatini</div>
+                            <div style="font-size:12px; line-height:18px; letter-spacing:2px; text-transform:uppercase; color:#0b7faa; font-weight:700;">{{ config('company.email_signature.company', 'Your Company') }}</div>
                             <h1 style="margin:8px 0 0; font-size:24px; line-height:31px; color:#111827; font-weight:700;">@yield('heading')</h1>
                         </td>
                     </tr>

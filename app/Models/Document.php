@@ -23,6 +23,14 @@ class Document extends Model
 
     public const CATEGORY_SUPPORTING_DOCUMENT = 'supporting_document';
 
+    public const CATEGORY_EXPENSE_RECEIPT = 'expense_receipt';
+
+    public const CATEGORY_REQUISITION_ATTACHMENT = 'requisition_attachment';
+
+    public const CATEGORY_GENERATED_PDF = 'generated_pdf';
+
+    public const CATEGORY_RECEIPT = 'receipt';
+
     public const CATEGORY_OTHER = 'other';
 
     public const CATEGORIES = [
@@ -32,6 +40,10 @@ class Document extends Model
         self::CATEGORY_TECHNICAL_PROPOSAL => 'Technical Proposal',
         self::CATEGORY_FINANCIAL_PROPOSAL => 'Financial Proposal',
         self::CATEGORY_SUPPORTING_DOCUMENT => 'Supporting Document',
+        self::CATEGORY_EXPENSE_RECEIPT => 'Expense Receipt',
+        self::CATEGORY_REQUISITION_ATTACHMENT => 'Requisition Attachment',
+        self::CATEGORY_GENERATED_PDF => 'Generated PDF',
+        self::CATEGORY_RECEIPT => 'Receipt',
         self::CATEGORY_OTHER => 'Other',
     ];
 
@@ -49,6 +61,9 @@ class Document extends Model
 
     protected $fillable = [
         'category',
+        'title',
+        'tags',
+        'is_generated',
         'original_name',
         'stored_name',
         'path',
@@ -56,6 +71,13 @@ class Document extends Model
         'size',
         'uploaded_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_generated' => 'boolean',
+        ];
+    }
 
     public function documentable(): MorphTo
     {

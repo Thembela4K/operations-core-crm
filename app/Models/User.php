@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -17,25 +18,27 @@ class User extends Authenticatable
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
 
-    public const ROLE_MANAGER = 'manager';
-
     public const ROLE_DIRECTOR = 'director';
 
     public const ROLE_RECEPTION = 'reception';
 
     public const ROLE_DEPARTMENT_USER = 'department_user';
 
+    public const ROLE_BUSINESS_ANALYST = 'business_analyst';
+
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
-        self::ROLE_MANAGER => 'Manager',
         self::ROLE_DIRECTOR => 'Director',
         self::ROLE_RECEPTION => 'Reception',
         self::ROLE_DEPARTMENT_USER => 'Department User',
+        self::ROLE_BUSINESS_ANALYST => 'Business Analyst',
     ];
 
     protected $fillable = [
+        'staff_member_id',
         'department_id',
         'name',
+        'username',
         'email',
         'password',
         'role',
@@ -65,6 +68,16 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    public function staffMember(): BelongsTo
+    {
+        return $this->belongsTo(StaffMember::class);
+    }
+
+    public function crmNotifications(): HasMany
+    {
+        return $this->hasMany(CrmNotification::class);
+    }
+
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
@@ -72,7 +85,47 @@ class User extends Authenticatable
 
     public function canManage(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_MANAGER);
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+    }
+
+    public function canManageFinance(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+    }
+
+    public function canDraftFinance(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION, self::ROLE_DEPARTMENT_USER);
+    }
+
+    public function canApproveFinance(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+    }
+
+    public function canViewReports(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ANALYST);
+    }
+
+    public function canViewRequisitions(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ANALYST);
+    }
+
+    public function canApproveRequisitions(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+    }
+
+    public function canReleaseRequisitionFunds(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+    }
+
+    public function canFulfillRequisitions(): bool
+    {
+        return $this->canReleaseRequisitionFunds();
     }
 
     public function canReviewSubmissions(): bool
@@ -89,11 +142,21 @@ class User extends Authenticatable
 
     public function canViewPortfolio(): bool
     {
-        return $this->canManage() || $this->canReviewSubmissions();
+        return $this->canManage() || $this->canReviewSubmissions() || $this->hasRole(self::ROLE_BUSINESS_ANALYST);
     }
 
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(self::ROLE_SUPER_ADMIN);
+    }
+
+    public function canManageAttendance(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+    }
+
+    public function displayLogin(): string
+    {
+        return $this->username ?: (string) $this->email;
     }
 }

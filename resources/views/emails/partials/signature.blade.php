@@ -18,7 +18,7 @@
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:28px; border-top:1px solid #d7e2e8; padding-top:16px;">
         <tr>
             <td>
-                <img src="{{ $signatureImageSrc }}" width="680" alt="Datamatics Eswatini email signature" style="display:block; width:100%; max-width:680px; height:auto; border:0;">
+                <img src="{{ $signatureImageSrc }}" width="680" alt="Company email signature" style="display:block; width:100%; max-width:680px; height:auto; border:0;">
             </td>
         </tr>
     </table>
@@ -27,7 +27,7 @@
         <tr>
             @if($logoSrc)
                 <td width="96" valign="top" style="padding-right:14px;">
-                    <img src="{{ $logoSrc }}" width="88" alt="Datamatics Eswatini" style="display:block; width:88px; height:auto; border:0;">
+                    <img src="{{ $logoSrc }}" width="88" alt="Your Company" style="display:block; width:88px; height:auto; border:0;">
                 </td>
             @endif
             <td valign="top" style="font-size:12px; line-height:17px; color:#111827;">

@@ -1,12 +1,12 @@
 @extends('emails.layout')
 
 @section('title', 'Notification Test')
-@section('preheader', 'This confirms the Laravel SMTP configuration can send Datamatics system notifications.')
+@section('preheader', 'This confirms the Laravel SMTP configuration can send system notifications.')
 @section('heading', 'Notification Email Test')
 
 @section('content')
     <p style="margin:0 0 16px; font-size:15px; line-height:23px; color:#374151;">
-        This is a development test from the Tender Proposal & Quotation Assignment Tracker.
+        This is a development test from OperationsCore CRM.
         If you received this message, Laravel is able to send notification emails through the configured SMTP account.
     </p>
 

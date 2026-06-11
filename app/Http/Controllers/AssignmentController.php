@@ -10,6 +10,7 @@ use App\Models\StaffMember;
 use App\Models\TenderProposal;
 use App\Models\User;
 use App\Services\AssignmentEmailService;
+use App\Services\CrmNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,7 +41,7 @@ class AssignmentController extends Controller
         ]);
     }
 
-    public function store(Request $request, AssignmentEmailService $emailService): RedirectResponse
+    public function store(Request $request, AssignmentEmailService $emailService, CrmNotificationService $notifications): RedirectResponse
     {
         $data = $request->validate([
             'target' => ['required', 'string'],
@@ -108,6 +109,7 @@ class AssignmentController extends Controller
 
         if ($request->boolean('send_email')) {
             $status = $emailService->send($assignment);
+            $notifications->notifyDepartment($department, 'operations_assignment', 'New operations assignment', $record->title ?? $record->opportunity, $record instanceof TenderProposal ? route('tender-proposals.show', $record) : route('quotations.show', $record));
 
             return redirect()->route('assignments.index')->with(
                 $status === 'Assignment Email Sent' ? 'success' : 'warning',
@@ -116,6 +118,8 @@ class AssignmentController extends Controller
                     : 'Assignment saved, but the email failed. Check the email log.',
             );
         }
+
+        $notifications->notifyDepartment($department, 'operations_assignment', 'New operations assignment', $record->title ?? $record->opportunity, $record instanceof TenderProposal ? route('tender-proposals.show', $record) : route('quotations.show', $record));
 
         return redirect()->route('assignments.index')->with('success', 'Assignment saved.');
     }

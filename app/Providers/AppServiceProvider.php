@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Assignment;
+use App\Models\CrmNotification;
 use App\Models\Quotation;
 use App\Models\TenderProposal;
 use Illuminate\Support\Facades\Auth;
@@ -64,6 +65,10 @@ class AppServiceProvider extends ServiceProvider
                 'layoutDueSoonAssignments' => (clone $baseAssignments)
                     ->whereNotNull('due_date')
                     ->whereDate('due_date', '<=', now()->addDays(5)->toDateString())
+                    ->count(),
+                'layoutUnreadCrmNotifications' => CrmNotification::query()
+                    ->where('user_id', $user->id)
+                    ->whereNull('read_at')
                     ->count(),
             ]);
         });

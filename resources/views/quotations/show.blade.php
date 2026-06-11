@@ -3,7 +3,7 @@
 @section('content')
     @php
         $countdownDueDate = $assignmentForUser?->due_date ?? $quotation->latestAssignment?->due_date ?? $quotation->valid_until;
-        $countdownLabel = ($assignmentForUser?->due_date || $quotation->latestAssignment?->due_date) ? 'Assignment Due Date' : 'Quotation Due Date';
+        $countdownLabel = ($assignmentForUser?->due_date || $quotation->latestAssignment?->due_date) ? 'Assignment Due Date' : 'Quotation Request Due Date';
         $countdownTarget = $countdownDueDate?->copy()->endOfDay()->toIso8601String();
     @endphp
 
@@ -45,7 +45,7 @@
 
     <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel xl:col-span-2">
-            <h2 class="section-title">Quotation Details</h2>
+            <h2 class="section-title">Quotation Request Details</h2>
             <dl class="mt-4 grid gap-4 md:grid-cols-3">
                 <div><dt class="label">Client</dt><dd>{{ $quotation->client }}</dd></div>
                 <div><dt class="label">Priority</dt><dd>{{ $quotation->priority }}</dd></div>

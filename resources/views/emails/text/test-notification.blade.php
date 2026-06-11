@@ -1,6 +1,6 @@
 Notification Email Test
 
-This is a development test from the Tender Proposal & Quotation Assignment Tracker.
+This is a development test from OperationsCore CRM.
 
 Application: {{ config('app.name') }}
 Environment: {{ app()->environment() }}

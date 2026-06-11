@@ -1,0 +1,11 @@
+<div class="grid gap-4 md:grid-cols-2">
+    <label><span class="label">Purchase Number</span><input class="input" name="purchase_number" value="{{ old('purchase_number', $purchase->purchase_number) }}"></label>
+    <label><span class="label">Title</span><input class="input" name="title" value="{{ old('title', $purchase->title) }}" required></label>
+    <label><span class="label">Supplier</span><select class="input" name="supplier_id"><option value="">No supplier</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}" @selected((int) old('supplier_id', $purchase->supplier_id) === $supplier->id)>{{ $supplier->name }}</option>@endforeach</select></label>
+    <label><span class="label">Requisition</span><select class="input" name="requisition_id"><option value="">No requisition</option>@foreach($requisitions as $requisition)<option value="{{ $requisition->id }}" @selected((int) old('requisition_id', $purchase->requisition_id) === $requisition->id)>{{ $requisition->requisition_number }} - {{ $requisition->title }}</option>@endforeach</select></label>
+    <label><span class="label">Department</span><select class="input" name="department_id"><option value="">Company-wide</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected((int) old('department_id', $purchase->department_id) === $department->id)>{{ $department->name }}</option>@endforeach</select></label>
+    <label><span class="label">Status</span><select class="input" name="status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected(old('status', $purchase->status) === $status)>{{ $status }}</option>@endforeach</select></label>
+    <label><span class="label">Purchase Date</span><input class="input" type="date" name="purchase_date" value="{{ old('purchase_date', optional($purchase->purchase_date)->format('Y-m-d')) }}"></label>
+    <label><span class="label">Amount</span><input class="input" type="number" min="0" step="0.01" name="amount" value="{{ old('amount', $purchase->amount ?? 0) }}" required></label>
+    <label class="md:col-span-2"><span class="label">Notes</span><textarea class="input min-h-24" name="notes">{{ old('notes', $purchase->notes) }}</textarea></label>
+</div>

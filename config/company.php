@@ -2,7 +2,7 @@
 
 return [
     'email_signature' => [
-        'company' => env('MAIL_SIGNATURE_COMPANY', 'Datamatics Eswatini'),
+        'company' => env('MAIL_SIGNATURE_COMPANY', 'Your Company'),
         'phone' => env('MAIL_SIGNATURE_PHONE'),
         'landline' => env('MAIL_SIGNATURE_LANDLINE'),
         'email' => env('MAIL_SIGNATURE_EMAIL'),

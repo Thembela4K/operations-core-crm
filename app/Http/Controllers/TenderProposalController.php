@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\Department;
+use App\Models\Assignment;
 use App\Models\TenderProposal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,26 @@ class TenderProposalController extends Controller
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+            ->when($request->filled('department_id') && $request->user()->canViewPortfolio(), fn ($query) => $query->whereHas('assignments', fn ($assignment) => $assignment->where('department_id', $request->integer('department_id'))))
+            ->when($request->filled('workflow_status'), fn ($query) => $query->whereHas('assignments', fn ($assignment) => $assignment->where('workflow_status', $request->string('workflow_status'))))
+            ->when($request->filled('assignment_state'), function ($query) use ($request): void {
+                if ($request->string('assignment_state')->toString() === 'assigned') {
+                    $query->has('assignments');
+                } elseif ($request->string('assignment_state')->toString() === 'unassigned') {
+                    $query->doesntHave('assignments');
+                }
+            })
+            ->when($request->filled('deadline_window'), function ($query) use ($request): void {
+                match ($request->string('deadline_window')->toString()) {
+                    'overdue' => $query->whereDate('closing_date', '<', now()->toDateString()),
+                    'today' => $query->whereDate('closing_date', now()->toDateString()),
+                    'next_5' => $query->whereBetween('closing_date', [now()->toDateString(), now()->addDays(5)->toDateString()]),
+                    'future' => $query->whereDate('closing_date', '>', now()->addDays(5)->toDateString()),
+                    default => null,
+                };
+            })
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('closing_date', '>=', $request->date('date_from')->toDateString()))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('closing_date', '<=', $request->date('date_to')->toDateString()))
             ->latest('closing_date')
             ->paginate(12)
             ->withQueryString();
@@ -38,6 +60,8 @@ class TenderProposalController extends Controller
         return view('tender_proposals.index', [
             'tenderProposals' => $tenderProposals,
             'statuses' => TenderProposal::STATUSES,
+            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'workflowStatuses' => Assignment::WORKFLOW_STATUSES,
         ]);
     }
 

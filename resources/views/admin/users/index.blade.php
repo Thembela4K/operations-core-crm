@@ -11,12 +11,12 @@
 
     <section class="panel mt-6 overflow-x-auto">
         <table class="data-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Reviewer</th><th>SPPRA</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Login</th><th>Role</th><th>Department</th><th>Reviewer</th><th>SPPRA</th><th>Status</th><th></th></tr></thead>
             <tbody>
                 @foreach($users as $user)
                     <tr>
                         <td>{{ $user->name }}</td>
-                        <td>{{ $user->email }}</td>
+                        <td>{{ $user->username ?: '-' }}<br><span class="text-xs text-neutral-500">{{ $user->email ?: 'No email' }}</span></td>
                         <td>{{ \App\Models\User::ROLES[$user->role] ?? $user->role }}</td>
                         <td>{{ $user->department?->name ?? '-' }}</td>
                         <td>{{ $user->canReviewSubmissions() ? 'Yes' : 'No' }}</td>

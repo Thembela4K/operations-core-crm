@@ -16,19 +16,19 @@ class TenderProposalWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_manager_can_create_tender_proposal_with_important_dates(): void
+    public function test_reception_can_create_tender_proposal_with_important_dates(): void
     {
         Storage::fake('local');
 
-        $manager = User::query()->create([
-            'name' => 'Manager',
-            'email' => 'manager@example.com',
+        $reception = User::query()->create([
+            'name' => 'Reception',
+            'email' => 'reception@example.com',
             'password' => 'password',
-            'role' => User::ROLE_MANAGER,
+            'role' => User::ROLE_RECEPTION,
             'is_active' => true,
         ]);
 
-        $this->actingAs($manager)->post(route('tender-proposals.store'), [
+        $this->actingAs($reception)->post(route('tender-proposals.store'), [
             'tender_reference' => 'TDR-500',
             'title' => 'New Tender Proposal',
             'closing_date' => now()->addMonth()->toDateString(),

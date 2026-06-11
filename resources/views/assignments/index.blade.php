@@ -3,7 +3,7 @@
 @section('content')
     <div>
         <h1 class="page-title">Assignment Center</h1>
-        <p class="page-subtitle">Route tender proposals and quotations to departments with due dates, instructions, and portal email notices.</p>
+        <p class="page-subtitle">Route tender proposals and quotation requests to departments with due dates, instructions, and portal email notices.</p>
     </div>
 
     <section class="panel mt-6">
@@ -22,7 +22,7 @@
                             </option>
                         @endforeach
                     </optgroup>
-                    <optgroup label="Quotations">
+                    <optgroup label="Quotation Requests">
                         @foreach($quotations as $quotation)
                             @php($targetValue = "quotation:{$quotation->id}")
                             <option value="{{ $targetValue }}" @selected($currentTarget === $targetValue)>

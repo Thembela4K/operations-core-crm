@@ -15,7 +15,7 @@ class TestNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Datamatics notification email test',
+            subject: 'OperationsCore notification email test',
         );
     }
 

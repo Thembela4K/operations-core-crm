@@ -1,12 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "thembela4k/tender-proposal-quotation-assignment-tracker",
+    "name": "thembela4k/operations-core-crm",
     "type": "project",
-    "description": "A Laravel and MySQL app for tracking tender proposal and quotation assignments.",
-    "keywords": ["laravel", "tenders", "quotations", "assignments"],
+    "description": "A Laravel and MySQL CRM for operations, client finance, tenders, requisitions, tasks, attendance, and approvals.",
+    "keywords": ["laravel", "crm", "finance", "tenders", "quotations", "assignments"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "*",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0"
     },
@@ -69,7 +70,9 @@
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [
+                "barryvdh/laravel-dompdf"
+            ]
         }
     },
     "config": {

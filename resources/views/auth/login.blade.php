@@ -6,27 +6,27 @@
             <div class="login-brand-panel">
                 <div class="login-logo-frame">
                     @if(file_exists(public_path('images/app-logo.png')))
-                        <img src="{{ asset('images/app-logo.png') }}" alt="Datamatics Eswatini logo">
+                        <img src="{{ asset('images/app-logo.png') }}" alt="Company logo">
                     @else
-                        <span>Datamatics Eswatini</span>
+                        <span>{{ config('company.email_signature.company', 'Your Company') }}</span>
                     @endif
                 </div>
 
                 <div class="login-brand-copy">
                     <span>Internal Workspace</span>
-                    <h1>Tender Proposal & Quotation Assignment Tracker</h1>
+                    <h1>{{ config('app.name', 'OperationsCore CRM') }}</h1>
                 </div>
 
                 <div class="login-access-note">
                     <strong>Authorized Access</strong>
-                    <span>Use your assigned Datamatics account.</span>
+                    <span>Use your assigned staff account.</span>
                 </div>
             </div>
 
             <div class="login-form-panel">
                 <div class="login-mobile-brand">
                     @if(file_exists(public_path('images/app-logo.png')))
-                        <img src="{{ asset('images/app-logo.png') }}" alt="Datamatics Eswatini logo">
+                        <img src="{{ asset('images/app-logo.png') }}" alt="Company logo">
                     @endif
                 </div>
 
@@ -38,8 +38,8 @@
                 <form method="POST" action="{{ route('login.store') }}" class="login-form">
                     @csrf
                     <label class="block">
-                        <span class="label">Email address</span>
-                        <input class="input h-11" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required autofocus>
+                        <span class="label">Username or email</span>
+                        <input class="input h-11" name="login" value="{{ old('login') }}" autocomplete="username" required autofocus>
                     </label>
                     <label class="block">
                         <span class="label">Password</span>

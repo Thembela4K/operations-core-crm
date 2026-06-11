@@ -79,7 +79,8 @@ class UserController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
+            'username' => ['required_without:email', 'nullable', 'string', 'max:80', 'alpha_dash:ascii', Rule::unique('users', 'username')->ignore($user)],
+            'email' => ['required_without:username', 'nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'department_id' => ['nullable', 'exists:departments,id'],

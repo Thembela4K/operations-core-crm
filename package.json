@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
-    "name": "tender-proposal-quotation-assignment-tracker",
+    "name": "operations-core-crm",
     "type": "module",
     "scripts": {
         "build": "vite build",
