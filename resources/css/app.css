@@ -398,6 +398,30 @@
         @apply font-semibold text-neutral-950;
     }
 
+    .status-pill {
+        @apply inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-semibold text-neutral-700;
+    }
+
+    .attendance-table {
+        @apply min-w-[1080px];
+    }
+
+    .correction-panel {
+        @apply min-w-[180px];
+    }
+
+    .correction-panel summary {
+        @apply inline-flex cursor-pointer select-none items-center justify-center rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50;
+    }
+
+    .correction-panel[open] summary {
+        @apply border-[#087aa5] text-[#087aa5];
+    }
+
+    .correction-panel form {
+        @apply mt-3 grid min-w-[420px] gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 sm:grid-cols-2;
+    }
+
     .empty {
         @apply py-4 text-sm text-neutral-500;
     }

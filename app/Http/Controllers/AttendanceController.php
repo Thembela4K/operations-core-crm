@@ -20,14 +20,17 @@ class AttendanceController extends Controller
             ->whereDate('work_date', now()->toDateString())
             ->first();
 
-        $records = AttendanceRecord::query()
+        $recordsQuery = AttendanceRecord::query()
             ->visibleTo($request->user())
             ->with(['user', 'department', 'corrector'])
             ->when($request->filled('department_id') && $request->user()->canViewReports(), fn ($query) => $query->where('department_id', $request->integer('department_id')))
             ->when($request->filled('user_id') && $request->user()->canViewReports(), fn ($query) => $query->where('user_id', $request->integer('user_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('work_date', '>=', $request->date('date_from')->toDateString()))
-            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('work_date', '<=', $request->date('date_to')->toDateString()))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('work_date', '<=', $request->date('date_to')->toDateString()));
+
+        $attendanceMetrics = (clone $recordsQuery)->get();
+        $records = (clone $recordsQuery)
             ->latest('work_date')
             ->paginate(14)
             ->withQueryString();
@@ -35,6 +38,10 @@ class AttendanceController extends Controller
         return view('attendance.index', [
             'todayRecord' => $todayRecord,
             'records' => $records,
+            'attendanceRecordCount' => $attendanceMetrics->count(),
+            'attendanceCompletedCount' => $attendanceMetrics->where('status', AttendanceRecord::STATUS_COMPLETED)->count(),
+            'attendancePendingCount' => $attendanceMetrics->where('status', AttendanceRecord::STATUS_PENDING_REVIEW)->count(),
+            'attendanceTotalHours' => round($attendanceMetrics->sum('total_minutes') / 60, 1),
             'statuses' => AttendanceRecord::STATUSES,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
