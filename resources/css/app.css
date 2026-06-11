@@ -156,11 +156,15 @@
     }
 
     .module-icon {
-        @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm transition;
+        @apply grid h-10 w-10 shrink-0 place-items-center text-neutral-500 transition;
     }
 
     .module-nav-link-active .module-icon {
-        @apply border-[#087aa5] bg-[#087aa5] text-white shadow-[0_10px_18px_rgba(8,122,165,0.24)];
+        @apply text-[#087aa5];
+    }
+
+    .module-nav-link:hover .module-icon {
+        @apply text-[#087aa5];
     }
 
     .module-label {
@@ -246,23 +250,22 @@
     }
 
     .sidebar-is-collapsed .app-frame {
-        grid-template-columns: 86px minmax(0, 1fr);
+        grid-template-columns: 78px minmax(0, 1fr);
     }
 
     .sidebar-is-collapsed .sidebar-brand-copy,
     .sidebar-is-collapsed .sidebar-section-label,
     .sidebar-is-collapsed .module-label,
-    .sidebar-is-collapsed .sidebar-footer,
-    .sidebar-is-collapsed .module-nav-link .nav-badge {
+    .sidebar-is-collapsed .sidebar-footer {
         @apply lg:hidden;
     }
 
     .sidebar-is-collapsed .app-sidebar {
-        @apply lg:px-2;
+        @apply lg:px-2.5;
     }
 
     .sidebar-is-collapsed .sidebar-head {
-        @apply lg:flex-col;
+        @apply lg:flex-col lg:border-[#087aa5]/10 lg:bg-white/80 lg:p-2 lg:shadow-[0_12px_24px_rgba(8,122,165,0.08)];
     }
 
     .sidebar-is-collapsed .sidebar-brand {
@@ -270,7 +273,7 @@
     }
 
     .sidebar-is-collapsed .sidebar-logo {
-        @apply lg:h-10 lg:w-12;
+        @apply lg:h-10 lg:w-12 lg:rounded-xl lg:border-transparent lg:shadow-none;
     }
 
     .sidebar-is-collapsed .sidebar-toggle svg {
@@ -278,7 +281,27 @@
     }
 
     .sidebar-is-collapsed .module-nav-link {
-        @apply lg:min-w-0 lg:justify-center lg:px-2;
+        @apply lg:min-w-0 lg:justify-center lg:rounded-2xl lg:border-transparent lg:px-2 lg:py-3 lg:hover:bg-white lg:hover:shadow-[0_12px_22px_rgba(15,23,42,0.08)];
+    }
+
+    .sidebar-is-collapsed .module-nav-link::before {
+        @apply lg:left-0 lg:h-6 lg:w-1;
+    }
+
+    .sidebar-is-collapsed .module-nav-link-active {
+        @apply lg:bg-white lg:shadow-[0_14px_26px_rgba(8,122,165,0.14)];
+    }
+
+    .sidebar-is-collapsed .module-icon {
+        @apply lg:h-9 lg:w-9 lg:text-neutral-500;
+    }
+
+    .sidebar-is-collapsed .module-nav-link-active .module-icon {
+        @apply lg:text-[#087aa5];
+    }
+
+    .sidebar-is-collapsed .module-nav-link .nav-badge {
+        @apply lg:absolute lg:right-1 lg:top-1 lg:ml-0 lg:h-4 lg:min-w-4 lg:px-1 lg:text-[10px];
     }
 
     @media (min-width: 1024px) {
