@@ -9,7 +9,7 @@
         <a class="btn-primary" href="{{ route('tasks.create') }}">New Task</a>
     </div>
 
-    <form class="panel mt-6 grid gap-3 lg:grid-cols-[1fr_repeat(4,180px)_auto]" method="GET">
+    <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_repeat(4,minmax(140px,180px))_auto]" method="GET">
         <input class="input" name="search" value="{{ request('search') }}" placeholder="Search task number, title, or description">
         <select class="input" name="status"><option value="">All statuses</option>@foreach($statuses as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ $status }}</option>@endforeach</select>
         <select class="input" name="priority"><option value="">All priorities</option>@foreach($priorities as $priority)<option value="{{ $priority }}" @selected(request('priority') === $priority)>{{ $priority }}</option>@endforeach</select>

@@ -9,7 +9,7 @@
         <a class="btn-primary" href="{{ route('requisitions.create') }}">New Requisition</a>
     </div>
 
-    <form method="GET" class="panel mt-6 grid gap-3 xl:grid-cols-[1.2fr_180px_180px_180px_190px_160px_160px_auto]">
+    <form method="GET" class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-[minmax(240px,1.2fr)_repeat(3,minmax(140px,180px))_minmax(150px,190px)_repeat(2,minmax(140px,160px))_auto]">
         <input class="input" name="search" placeholder="Search requisitions, requester, or purpose" value="{{ request('search') }}">
         <select class="input" name="status">
             <option value="">All statuses</option>
@@ -41,7 +41,7 @@
         @endif
         <input class="input" type="date" name="date_from" value="{{ request('date_from') }}">
         <input class="input" type="date" name="date_to" value="{{ request('date_to') }}">
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
             <button class="btn-secondary" type="submit">Filter</button>
             <a class="btn-secondary" href="{{ route('requisitions.index') }}">Reset</a>
         </div>

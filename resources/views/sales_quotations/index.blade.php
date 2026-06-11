@@ -11,7 +11,7 @@
         @endif
     </div>
 
-    <form class="panel mt-6 grid gap-3 md:grid-cols-[1fr_220px_auto]" method="GET">
+    <form class="panel mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(170px,220px)_auto]" method="GET">
         <input class="input" name="search" value="{{ request('search') }}" placeholder="Search quotation, client, or title">
         <select class="input" name="status">
             <option value="">All statuses</option>

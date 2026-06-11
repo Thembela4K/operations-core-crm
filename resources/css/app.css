@@ -50,7 +50,7 @@
     }
 
     .app-frame {
-        @apply min-h-screen;
+        @apply min-h-screen min-w-0;
     }
 
     .app-sidebar {
@@ -163,12 +163,16 @@
         @apply flex flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8;
     }
 
+    .module-heading {
+        @apply min-w-0;
+    }
+
     .module-heading span {
         @apply block text-xs font-semibold uppercase tracking-[0.16em] text-[#087aa5];
     }
 
     .module-heading strong {
-        @apply mt-1 block text-base font-semibold text-neutral-950;
+        @apply mt-1 block truncate text-base font-semibold text-neutral-950;
     }
 
     .module-subnav {
@@ -184,7 +188,7 @@
     }
 
     .app-content {
-        @apply mx-auto w-full max-w-[1760px] px-4 py-8 sm:px-6 lg:px-8;
+        @apply mx-auto w-full max-w-[1760px] min-w-0 px-4 py-8 sm:px-6 lg:px-8;
     }
 
     .sidebar-is-collapsed .app-frame {
@@ -255,7 +259,7 @@
     }
 
     .user-cluster {
-        @apply flex items-center gap-3;
+        @apply flex min-w-0 flex-wrap items-center justify-end gap-3;
     }
 
     .user-panel {
@@ -287,7 +291,7 @@
     }
 
     .panel {
-        @apply rounded-md border border-neutral-300 bg-white p-5 shadow-sm;
+        @apply min-w-0 rounded-md border border-neutral-300 bg-white p-4 shadow-sm sm:p-5;
     }
 
     .flash-message {
@@ -399,27 +403,32 @@
     }
 
     .dashboard-header {
-        @apply flex flex-wrap items-end justify-between gap-3;
+        @apply flex min-w-0 flex-wrap items-end justify-between gap-3;
+    }
+
+    .dashboard-header > div:first-child {
+        @apply min-w-0;
     }
 
     .dashboard-metrics {
-        @apply mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6;
+        @apply mt-6 grid gap-4;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
     }
 
     .metric-card {
-        @apply rounded-md border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#087aa5];
+        @apply min-w-0 overflow-hidden rounded-md border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#087aa5];
     }
 
     .metric-card span {
-        @apply block text-xs font-semibold uppercase tracking-wide text-neutral-500;
+        @apply block truncate text-xs font-semibold uppercase tracking-wide text-neutral-500;
     }
 
     .metric-card strong {
-        @apply mt-3 block text-3xl font-semibold tracking-tight text-neutral-950;
+        @apply mt-3 block break-words text-2xl font-semibold leading-tight tracking-tight text-neutral-950 2xl:text-3xl;
     }
 
     .metric-foot {
-        @apply mt-2 text-xs font-medium text-neutral-500;
+        @apply mt-2 break-words text-xs font-medium text-neutral-500;
     }
 
     .metric-line {
@@ -435,15 +444,19 @@
     }
 
     .chart-panel {
-        @apply p-5;
+        @apply min-w-0 p-4 sm:p-5;
     }
 
     .panel-heading {
-        @apply flex items-center justify-between gap-3 border-b border-neutral-100 pb-3;
+        @apply flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-neutral-100 pb-3;
+    }
+
+    .panel-heading h2 {
+        @apply min-w-0;
     }
 
     .panel-heading span {
-        @apply text-xs font-semibold uppercase tracking-wide text-neutral-500;
+        @apply min-w-0 break-words text-xs font-semibold uppercase tracking-wide text-neutral-500;
     }
 
     .deadline-banner {
@@ -467,7 +480,7 @@
     }
 
     .deadline-countdown {
-        @apply min-w-[320px] rounded-md border border-neutral-200 bg-neutral-50 p-4 text-right;
+        @apply w-full rounded-md border border-neutral-200 bg-neutral-50 p-4 text-left sm:max-w-[360px] sm:text-right;
     }
 
     .deadline-countdown > span {
@@ -479,7 +492,7 @@
     }
 
     .deadline-countdown-grid {
-        @apply mt-3 grid grid-cols-4 gap-2;
+        @apply mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4;
     }
 
     .deadline-countdown-grid em {
@@ -503,7 +516,7 @@
     }
 
     .bar-row-meta {
-        @apply flex items-center justify-between gap-3 text-sm;
+        @apply flex min-w-0 items-center justify-between gap-3 text-sm;
     }
 
     .bar-row-meta span {
@@ -523,7 +536,7 @@
     }
 
     .donut-wrap {
-        @apply mt-6 flex flex-col items-center gap-6 lg:flex-row lg:items-center;
+        @apply mt-6 flex min-w-0 flex-col items-center gap-6 lg:flex-row lg:items-center;
     }
 
     .donut-stat-target {
@@ -548,7 +561,7 @@
     }
 
     .donut-legend div {
-        @apply flex items-center gap-2;
+        @apply flex min-w-0 items-center gap-2;
     }
 
     .donut-legend i {
@@ -560,7 +573,7 @@
     }
 
     .deadline-chart {
-        @apply mt-6 grid h-56 grid-cols-3 items-end gap-3;
+        @apply mt-6 grid h-56 min-w-0 grid-cols-3 items-end gap-3;
     }
 
     .deadline-column {
@@ -580,15 +593,15 @@
     }
 
     .deadline-column span {
-        @apply text-xs font-medium uppercase tracking-wide text-neutral-500;
+        @apply max-w-full break-words text-xs font-medium uppercase tracking-wide text-neutral-500;
     }
 
     .workflow-grid {
-        @apply mt-5 grid gap-3;
+        @apply mt-5 grid min-w-0 gap-3;
     }
 
     .workflow-grid div {
-        @apply rounded-md border border-neutral-200 bg-neutral-50 p-3;
+        @apply min-w-0 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50 p-3;
     }
 
     .stat-tooltip {
@@ -596,7 +609,7 @@
     }
 
     .stat-tooltip::after {
-        @apply pointer-events-none absolute left-1/2 top-0 z-30 max-w-64 -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] whitespace-nowrap rounded-md bg-neutral-950 px-3 py-2 text-xs font-medium text-white opacity-0 shadow-lg transition;
+        @apply pointer-events-none absolute left-1/2 top-0 z-30 w-max max-w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] whitespace-normal rounded-md bg-neutral-950 px-3 py-2 text-xs font-medium text-white opacity-0 shadow-lg transition;
         content: attr(data-tooltip);
     }
 
@@ -613,19 +626,19 @@
     }
 
     .workflow-grid span {
-        @apply block text-xs font-semibold uppercase tracking-wide text-neutral-500;
+        @apply block break-words text-xs font-semibold uppercase tracking-wide text-neutral-500;
     }
 
     .workflow-grid strong {
-        @apply mt-2 block text-xl font-semibold text-neutral-950;
+        @apply mt-2 block break-words text-xl font-semibold text-neutral-950;
     }
 
     .compact-list {
-        @apply p-5;
+        @apply p-4 sm:p-5;
     }
 
     .list-row {
-        @apply flex items-center justify-between gap-4 py-3 text-sm;
+        @apply flex min-w-0 flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4;
     }
 
     a.list-row {
@@ -645,7 +658,7 @@
     }
 
     .list-row em {
-        @apply shrink-0 not-italic text-xs font-semibold uppercase tracking-wide text-neutral-500;
+        @apply max-w-full shrink-0 break-words not-italic text-xs font-semibold uppercase tracking-wide text-neutral-500;
     }
 
     .modal-open {

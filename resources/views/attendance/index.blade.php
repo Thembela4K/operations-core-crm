@@ -30,7 +30,7 @@
         </div>
     </section>
 
-    <form class="panel mt-6 grid gap-3 lg:grid-cols-[repeat(5,1fr)_auto]" method="GET">
+    <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(130px,1fr))_auto]" method="GET">
         <select class="input" name="department_id"><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected((int) request('department_id') === $department->id)>{{ $department->name }}</option>@endforeach</select>
         <select class="input" name="user_id"><option value="">All staff</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int) request('user_id') === $user->id)>{{ $user->name }}</option>@endforeach</select>
         <select class="input" name="status"><option value="">All statuses</option>@foreach($statuses as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ $status }}</option>@endforeach</select>
