@@ -223,6 +223,8 @@
                     </button>
                 </div>
 
+                <div class="sidebar-section-label">Modules</div>
+
                 <nav class="module-nav" aria-label="Primary modules">
                     @foreach($moduleNav as $moduleItem)
                         @if($moduleItem['visible'])
