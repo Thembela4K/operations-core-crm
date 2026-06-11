@@ -50,13 +50,7 @@ class OperationsAssistantService
             'conversation_id' => $conversation->id,
             'reply' => $result['reply'],
             'action' => $result['action'],
-            'suggestions' => $result['suggestions'],
         ];
-    }
-
-    public function suggestions(User $user): array
-    {
-        return $this->resolver->suggestions($user);
     }
 
     public function startConversation(User $user): array
@@ -73,7 +67,6 @@ class OperationsAssistantService
         return [
             'conversation_id' => $conversation->id,
             'messages' => [],
-            'suggestions' => $this->suggestions($user),
         ];
     }
 
@@ -88,7 +81,6 @@ class OperationsAssistantService
             return [
                 'conversation_id' => null,
                 'messages' => [],
-                'suggestions' => $this->suggestions($user),
             ];
         }
 
@@ -108,7 +100,6 @@ class OperationsAssistantService
         return [
             'conversation_id' => $conversation->id,
             'messages' => $messages,
-            'suggestions' => $this->suggestions($user),
         ];
     }
 

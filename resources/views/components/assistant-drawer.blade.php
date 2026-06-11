@@ -3,7 +3,6 @@
     data-assistant
     data-assistant-message-url="{{ route('assistant.message') }}"
     data-assistant-new-url="{{ route('assistant.conversation') }}"
-    data-assistant-suggestions-url="{{ route('assistant.suggestions') }}"
     data-assistant-history-url="{{ route('assistant.history') }}"
     hidden
 >
@@ -48,19 +47,6 @@
                     <p>Tell me what you want to find. I can open filtered CRM pages for tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, and notifications.</p>
                 </div>
             </div>
-
-            <section class="assistant-suggestion-panel" aria-label="Suggested MIS prompts">
-                <div class="assistant-panel-heading">
-                    <span>Suggested actions</span>
-                    <small>Use these when you want a quick result.</small>
-                </div>
-                <div class="assistant-suggestions" data-assistant-suggestions>
-                    <button type="button" data-assistant-prompt="Show overdue tender proposals">Overdue tenders</button>
-                    <button type="button" data-assistant-prompt="Show quotation requests due next 5 days">Due soon requests</button>
-                    <button type="button" data-assistant-prompt="Show last month submitted tender documents">Submitted documents</button>
-                    <button type="button" data-assistant-prompt="Open unpaid invoices">Unpaid invoices</button>
-                </div>
-            </section>
         </div>
 
         <form class="assistant-form" data-assistant-form>

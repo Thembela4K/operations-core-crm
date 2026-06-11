@@ -11,10 +11,8 @@ const assistantElements = () => {
         shell,
         messageUrl: shell.dataset.assistantMessageUrl,
         newUrl: shell.dataset.assistantNewUrl,
-        suggestionsUrl: shell.dataset.assistantSuggestionsUrl,
         historyUrl: shell.dataset.assistantHistoryUrl,
         messages: shell.querySelector('[data-assistant-messages]'),
-        suggestions: shell.querySelector('[data-assistant-suggestions]'),
         form: shell.querySelector('[data-assistant-form]'),
         input: shell.querySelector('[data-assistant-input]'),
         status: shell.querySelector('[data-assistant-status]'),
@@ -59,21 +57,6 @@ const renderAssistantHistory = (elements, messages) => {
     });
 };
 
-const renderAssistantSuggestions = (elements, suggestions) => {
-    if (! Array.isArray(suggestions) || suggestions.length === 0) {
-        return;
-    }
-
-    elements.suggestions.replaceChildren(...suggestions.slice(0, 7).map((suggestion) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.assistantPrompt = suggestion;
-        button.textContent = suggestion;
-
-        return button;
-    }));
-};
-
 const setAssistantBusy = (elements, busy) => {
     elements.form.querySelector('button[type="submit"]').disabled = busy;
     elements.input.disabled = busy;
@@ -113,7 +96,6 @@ const startAssistantConversation = async () => {
 
         const data = await response.json();
         assistantConversationId = data.conversation_id || null;
-        renderAssistantSuggestions(elements, data.suggestions);
     } catch {
         assistantConversationId = null;
     }
@@ -136,21 +118,9 @@ const openAssistant = async () => {
             const data = await response.json();
             assistantConversationId = data.conversation_id || assistantConversationId;
             renderAssistantHistory(elements, data.messages);
-            renderAssistantSuggestions(elements, data.suggestions);
             elements.shell.dataset.historyLoaded = '1';
         } catch {
             elements.shell.dataset.historyLoaded = '1';
-        }
-    }
-
-    if (! elements.shell.dataset.suggestionsLoaded && elements.suggestionsUrl) {
-        try {
-            const response = await fetch(elements.suggestionsUrl, { headers: { Accept: 'application/json' } });
-            const data = await response.json();
-            renderAssistantSuggestions(elements, data.suggestions);
-            elements.shell.dataset.suggestionsLoaded = '1';
-        } catch {
-            elements.shell.dataset.suggestionsLoaded = '1';
         }
     }
 };
@@ -199,7 +169,6 @@ const submitAssistantMessage = async (prompt = null) => {
         const data = await response.json();
         assistantConversationId = data.conversation_id || assistantConversationId;
         appendAssistantMessage(elements, 'bot', data.reply || 'I found a matching CRM action.');
-        renderAssistantSuggestions(elements, data.suggestions);
 
         if (data.action?.type === 'navigate' && data.action.url && data.action.auto) {
             elements.status.textContent = 'Opening the filtered CRM page...';
@@ -229,12 +198,6 @@ document.addEventListener('click', (event) => {
     if (event.target.closest('[data-assistant-new]')) {
         startAssistantConversation();
         return;
-    }
-
-    const suggestion = event.target.closest('[data-assistant-prompt]');
-
-    if (suggestion) {
-        submitAssistantMessage(suggestion.dataset.assistantPrompt);
     }
 });
 

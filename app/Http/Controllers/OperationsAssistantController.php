@@ -22,13 +22,6 @@ class OperationsAssistantController extends Controller
         ));
     }
 
-    public function suggestions(Request $request, OperationsAssistantService $assistant): JsonResponse
-    {
-        return response()->json([
-            'suggestions' => $assistant->suggestions($request->user()),
-        ]);
-    }
-
     public function conversation(Request $request, OperationsAssistantService $assistant): JsonResponse
     {
         return response()->json($assistant->startConversation($request->user()));
