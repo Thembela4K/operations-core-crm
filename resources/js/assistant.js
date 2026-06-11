@@ -10,6 +10,7 @@ const assistantElements = () => {
     return {
         shell,
         messageUrl: shell.dataset.assistantMessageUrl,
+        newUrl: shell.dataset.assistantNewUrl,
         suggestionsUrl: shell.dataset.assistantSuggestionsUrl,
         historyUrl: shell.dataset.assistantHistoryUrl,
         messages: shell.querySelector('[data-assistant-messages]'),
@@ -26,11 +27,20 @@ const scrollAssistant = (elements) => {
     elements.messages.scrollTop = elements.messages.scrollHeight;
 };
 
+const renderAssistantWelcome = (elements) => {
+    elements.messages.replaceChildren();
+    appendAssistantMessage(
+        elements,
+        'bot',
+        'Tell me what you want to find. I can open filtered CRM pages for tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, and notifications.',
+    );
+};
+
 const appendAssistantMessage = (elements, role, text) => {
     const message = document.createElement('div');
     const visualRole = role === 'assistant' ? 'bot' : role;
     message.className = `assistant-message assistant-message-${visualRole}`;
-    message.innerHTML = `<span>${visualRole === 'user' ? 'You' : 'Operations Assistant'}</span><p></p>`;
+    message.innerHTML = `<span>${visualRole === 'user' ? 'You' : 'MIS'}</span><p></p>`;
     message.querySelector('p').textContent = text;
     elements.messages.appendChild(message);
     scrollAssistant(elements);
@@ -66,6 +76,45 @@ const setAssistantBusy = (elements, busy) => {
     elements.form.querySelector('button[type="submit"]').disabled = busy;
     elements.input.disabled = busy;
     elements.status.textContent = busy ? 'Reading the CRM and preparing the next step...' : 'Read-only. I can find and open records, not change them.';
+};
+
+const startAssistantConversation = async () => {
+    const elements = assistantElements();
+
+    if (! elements) {
+        return;
+    }
+
+    assistantConversationId = null;
+    renderAssistantWelcome(elements);
+    elements.status.textContent = 'New MIS chat ready.';
+    elements.input.value = '';
+    elements.input.focus();
+
+    if (! elements.newUrl) {
+        return;
+    }
+
+    try {
+        const response = await fetch(elements.newUrl, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+        });
+
+        if (! response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        assistantConversationId = data.conversation_id || null;
+        renderAssistantSuggestions(elements, data.suggestions);
+    } catch {
+        assistantConversationId = null;
+    }
 };
 
 const openAssistant = async () => {
@@ -172,6 +221,11 @@ document.addEventListener('click', (event) => {
 
     if (event.target.closest('[data-assistant-close]')) {
         closeAssistant();
+        return;
+    }
+
+    if (event.target.closest('[data-assistant-new]')) {
+        startAssistantConversation();
         return;
     }
 

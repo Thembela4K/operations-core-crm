@@ -115,10 +115,10 @@ Artisan::command('assistant:index-documents', function (DocumentTextExtractor $e
             });
         });
 
-    $this->info("{$count} documents indexed for Operations Assistant.");
+    $this->info("{$count} documents indexed for MIS.");
 
     return self::SUCCESS;
-})->purpose('Index existing document text for Operations Assistant search');
+})->purpose('Index existing document text for MIS search');
 
 Schedule::command('reminders:send-due')->dailyAt('08:00');
 Schedule::command('crm:send-daily-notifications')->dailyAt('08:15');

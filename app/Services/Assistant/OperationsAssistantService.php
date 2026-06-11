@@ -59,6 +59,24 @@ class OperationsAssistantService
         return $this->resolver->suggestions($user);
     }
 
+    public function startConversation(User $user): array
+    {
+        $conversation = AiConversation::query()->create([
+            'user_id' => $user->id,
+            'title' => 'New MIS chat',
+            'metadata' => [
+                'provider' => 'local',
+                'assistant' => 'mis',
+            ],
+        ]);
+
+        return [
+            'conversation_id' => $conversation->id,
+            'messages' => [],
+            'suggestions' => $this->suggestions($user),
+        ];
+    }
+
     public function history(User $user): array
     {
         $conversation = AiConversation::query()

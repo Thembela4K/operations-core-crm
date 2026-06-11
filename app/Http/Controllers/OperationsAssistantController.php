@@ -29,6 +29,11 @@ class OperationsAssistantController extends Controller
         ]);
     }
 
+    public function conversation(Request $request, OperationsAssistantService $assistant): JsonResponse
+    {
+        return response()->json($assistant->startConversation($request->user()));
+    }
+
     public function history(Request $request, OperationsAssistantService $assistant): JsonResponse
     {
         return response()->json($assistant->history($request->user()));

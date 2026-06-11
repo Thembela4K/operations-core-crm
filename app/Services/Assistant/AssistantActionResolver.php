@@ -90,7 +90,7 @@ class AssistantActionResolver
             'date' => $this->dateReply(),
             'thanks' => "You are welcome, {$this->firstName($user)}. Send me a record type, a date window, a status, or a department, and I will open the relevant CRM view for you.",
             'capabilities' => $this->capabilitiesReply($user),
-            'identity' => "I am Operations Assistant, a local CRM helper built into this portal. I can read the CRM structure, interpret common work requests, search indexed records and documents, and open filtered pages. I do not use an external AI service and I do not change records.",
+            'identity' => "I am MIS, the local operations helper built into this portal. I can read the CRM structure, interpret common work requests, search indexed records and documents, and open filtered pages. I do not use an external AI service and I do not change records.",
             'unknown' => "I did not get a clear CRM action from that. Try wording it like: show overdue tenders, find unpaid invoices, open submitted tender documents from last month, or show my assigned tasks.",
             default => "Hi {$this->firstName($user)}. I can help you find tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, notifications, and deadlines. Ask naturally, for example: show me quotation requests due this week.",
         };
