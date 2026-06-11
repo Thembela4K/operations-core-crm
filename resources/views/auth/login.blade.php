@@ -14,7 +14,7 @@
 
                 <div class="login-brand-copy">
                     <span>Internal Workspace</span>
-                    <h1>{{ config('app.name', 'OperationsCore CRM') }}</h1>
+                    <h1>Datamatics Eswatini</h1>
                 </div>
 
                 <div class="login-access-note">

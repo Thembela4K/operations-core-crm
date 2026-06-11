@@ -13,7 +13,7 @@
 
     <div class="dashboard-header">
         <div>
-            <h1 class="page-title">{{ config('app.name', 'OperationsCore CRM') }} Dashboard</h1>
+            <h1 class="page-title">Datamatics Eswatini Dashboard</h1>
             <p class="page-subtitle">Company view across clients, finance, operations, assignments, and deadlines.</p>
         </div>
         @if($sppraUrl)

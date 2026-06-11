@@ -1,6 +1,6 @@
-# OperationsCore CRM
+# Datamatics Eswatini
 
-A Laravel + MySQL/MariaDB CRM for operations teams managing clients, sales quotations, invoices, payments, expenses, tender proposals, quotation requests, assignments, reminders, documents, approvals, and reporting.
+A Laravel + MySQL/MariaDB business operations portal for managing clients, sales quotations, invoices, payments, expenses, tender proposals, quotation requests, assignments, reminders, documents, approvals, and reporting.
 
 ## Stack
 
@@ -87,7 +87,7 @@ MAIL_PORT=587
 MAIL_USERNAME=your-system-mailbox@example.com
 MAIL_PASSWORD=
 MAIL_FROM_ADDRESS=your-system-mailbox@example.com
-MAIL_FROM_NAME="OperationsCore Notifications"
+MAIL_FROM_NAME="Datamatics Eswatini Notifications"
 ```
 
 For Gmail, `MAIL_PASSWORD` must be the private Google app password for that sender mailbox:

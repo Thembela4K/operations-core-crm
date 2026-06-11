@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>@yield('title', config('app.name'))</title>
+    <title>@yield('title', 'Datamatics Eswatini')</title>
 </head>
 <body style="margin:0; padding:0; background:#f4f7f9; color:#111827; font-family:Arial, Helvetica, sans-serif;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0;">@yield('preheader')</div>

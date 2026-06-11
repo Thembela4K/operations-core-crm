@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'OperationsCore CRM') }}</title>
+    <title>Datamatics Eswatini</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="app-shell antialiased">
@@ -210,8 +210,8 @@
                         @endif
                     </span>
                     <span class="global-brand-copy">
-                        <strong>OperationsCore</strong>
-                        <small>Business Workspace</small>
+                        <strong>Datamatics Eswatini</strong>
+                        <small>Business Operations Portal</small>
                     </span>
                 </a>
 
@@ -308,7 +308,7 @@
                     <div class="module-header-top">
                         <div class="module-heading">
                             <span>{{ $activeModuleMeta['label'] ?? 'Workspace' }}</span>
-                            <strong>{{ $activeModuleMeta['meta'] ?? 'OperationsCore CRM' }}</strong>
+                            <strong>{{ $activeModuleMeta['meta'] ?? 'Datamatics Eswatini' }}</strong>
                         </div>
                     </div>
 

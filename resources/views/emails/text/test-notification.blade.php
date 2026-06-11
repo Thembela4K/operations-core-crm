@@ -1,7 +1,7 @@
 Notification Email Test
 
-This is a development test from OperationsCore CRM.
+This is a development test from Datamatics Eswatini.
 
-Application: {{ config('app.name') }}
+Application: Datamatics Eswatini
 Environment: {{ app()->environment() }}
 Sent at: {{ now()->toDayDateTimeString() }}

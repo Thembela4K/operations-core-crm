@@ -112,7 +112,7 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS') ?: env('MAIL_USERNAME', 'no-reply@example.com'),
-        'name' => env('MAIL_FROM_NAME') ?: 'OperationsCore Notifications',
+        'name' => env('MAIL_FROM_NAME') ?: 'Datamatics Eswatini Notifications',
     ],
 
 ];

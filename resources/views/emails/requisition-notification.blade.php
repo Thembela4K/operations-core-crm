@@ -52,7 +52,7 @@
 
     <p style="margin:0 0 24px;">
         <a href="{{ $portalUrl }}" style="display:inline-block; background:#087aa5; color:#ffffff; text-decoration:none; padding:12px 18px; border-radius:6px; font-size:14px; font-weight:700;">
-            Open in OperationsCore CRM
+            Open in Datamatics Eswatini
         </a>
     </p>
 @endsection

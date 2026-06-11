@@ -22,7 +22,7 @@ class ImportOldCrmDataCommand extends Command
 {
     protected $signature = 'crm:import-old-data {--database=datamatics_crm_old_import}';
 
-    protected $description = 'Import useful records from the old RISE CRM database into OperationsCore CRM.';
+    protected $description = 'Import useful records from the old RISE CRM database into Datamatics Eswatini.';
 
     public function handle(FinanceCalculatorService $calculator): int
     {

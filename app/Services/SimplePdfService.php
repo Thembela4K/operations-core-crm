@@ -10,7 +10,7 @@ class SimplePdfService
      *
      * @param  array<int, string>  $lines
      */
-    public function fromLines(array $lines, string $title = 'OperationsCore CRM Document'): string
+    public function fromLines(array $lines, string $title = 'Datamatics Eswatini Document'): string
     {
         $pages = array_chunk($lines, 42);
         $objects = [];
