@@ -37,7 +37,7 @@
 
 @layer components {
     .app-shell {
-        @apply min-h-screen bg-[#f5f7f8] text-neutral-950;
+        @apply min-h-screen bg-white text-neutral-950;
     }
 
     .app-header {
@@ -50,18 +50,82 @@
 
     .app-frame {
         @apply min-h-screen min-w-0;
+        min-height: calc(100vh - 73px);
+    }
+
+    .global-header {
+        @apply sticky top-0 z-50 border-b border-neutral-200 bg-white;
+    }
+
+    .global-header-inner {
+        @apply flex min-h-[73px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12;
+    }
+
+    .global-brand {
+        @apply flex min-w-0 items-center gap-3 text-neutral-950;
+    }
+
+    .global-logo {
+        @apply grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-neutral-200 bg-white text-xs font-semibold text-[#087aa5];
+    }
+
+    .global-logo img {
+        @apply h-full w-full object-contain p-1;
+    }
+
+    .global-brand-copy {
+        @apply min-w-0;
+    }
+
+    .global-brand-copy strong {
+        @apply block truncate text-lg font-semibold uppercase tracking-[0.16em] text-[#0f3f63];
+    }
+
+    .global-brand-copy small {
+        @apply mt-0.5 block truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500;
+    }
+
+    .global-actions {
+        @apply flex min-w-0 items-center justify-end gap-3;
+    }
+
+    .global-icon-button {
+        @apply relative inline-grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-transparent text-neutral-700 transition hover:border-neutral-200 hover:bg-neutral-50 hover:text-[#0f3f63];
+    }
+
+    .global-icon-button svg {
+        @apply h-5 w-5;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .global-badge {
+        @apply absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white;
+    }
+
+    .global-user {
+        @apply hidden min-w-0 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-right md:block;
+    }
+
+    .global-user strong {
+        @apply block truncate text-sm font-semibold text-neutral-950;
+    }
+
+    .global-user span {
+        @apply mt-0.5 block truncate text-xs text-neutral-500;
     }
 
     .app-sidebar {
-        @apply sticky top-0 z-50 flex max-h-screen flex-col overflow-hidden border-b border-neutral-200 bg-white px-3 py-4 shadow-[12px_0_34px_rgba(15,23,42,0.07)] lg:h-screen lg:border-b-0 lg:border-r lg:border-neutral-200/80;
-        background:
-            linear-gradient(180deg, rgba(8, 122, 165, 0.08) 0%, rgba(255, 255, 255, 0) 210px),
-            linear-gradient(90deg, rgba(8, 122, 165, 0.08), rgba(255, 255, 255, 0) 28%),
-            #ffffff;
+        @apply sticky z-40 flex flex-col overflow-hidden border-b border-neutral-200 bg-white px-3 py-4 lg:border-b-0 lg:border-r lg:border-neutral-200;
+        top: 73px;
+        max-height: calc(100vh - 73px);
     }
 
     .sidebar-head {
-        @apply relative flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white/90 p-3 pr-7 shadow-[0_12px_26px_rgba(15,23,42,0.07)];
+        @apply flex items-center justify-between gap-3 border-b border-neutral-200 px-2 pb-4;
     }
 
     .sidebar-brand {
@@ -88,13 +152,16 @@
         @apply mt-1 block truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-[#087aa5];
     }
 
+    .sidebar-nav-title {
+        @apply text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500;
+    }
+
     .sidebar-toggle {
-        @apply absolute -right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-full border border-[#087aa5]/20 bg-white text-[#075f82] shadow-[0_10px_20px_rgba(8,122,165,0.16)] outline-none transition hover:border-[#087aa5]/40 hover:bg-[#087aa5] hover:text-white hover:shadow-[0_14px_26px_rgba(8,122,165,0.24)] focus:ring-4 focus:ring-[#087aa5]/15 lg:inline-flex;
-        background-image: linear-gradient(135deg, #ffffff 0%, rgba(8, 122, 165, 0.08) 100%);
+        @apply hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 outline-none transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-[#0f3f63] focus:ring-4 focus:ring-neutral-200/70 lg:inline-flex;
     }
 
     .sidebar-toggle:hover {
-        background-image: linear-gradient(135deg, #087aa5 0%, #075f82 100%);
+        background-image: none;
     }
 
     .sidebar-toggle svg,
@@ -112,8 +179,8 @@
     }
 
     .module-nav {
-        @apply mt-3 flex gap-2 overflow-x-auto pb-1 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-2 lg:pr-1;
-        scrollbar-color: rgba(8, 122, 165, 0.45) rgba(8, 122, 165, 0.08);
+        @apply mt-4 flex gap-2 overflow-x-auto pb-1 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-2 lg:pr-1;
+        scrollbar-color: #9ca3af #f3f4f6;
         scrollbar-gutter: stable;
         scrollbar-width: thin;
     }
@@ -124,26 +191,26 @@
     }
 
     .module-nav::-webkit-scrollbar-track {
-        background: rgba(8, 122, 165, 0.08);
+        background: #f3f4f6;
         border-radius: 999px;
     }
 
     .module-nav::-webkit-scrollbar-thumb {
-        background: rgba(8, 122, 165, 0.45);
-        border: 2px solid rgba(8, 122, 165, 0.08);
+        background: #9ca3af;
+        border: 2px solid #f3f4f6;
         border-radius: 999px;
     }
 
     .module-nav::-webkit-scrollbar-thumb:hover {
-        background: rgba(8, 122, 165, 0.7);
+        background: #6b7280;
     }
 
     .module-nav-link {
-        @apply relative flex min-w-48 shrink-0 items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-neutral-700 transition hover:border-[#087aa5]/15 hover:bg-white hover:text-neutral-950 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)] lg:min-w-0;
+        @apply relative flex min-w-48 shrink-0 items-center gap-3 rounded-lg border border-transparent px-3 py-3 text-neutral-700 transition hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-950 lg:min-w-0;
     }
 
     .module-nav-link-active {
-        @apply border-[#087aa5]/20 bg-white text-[#075f82] shadow-[0_16px_34px_rgba(8,122,165,0.13)] hover:border-[#087aa5]/25 hover:bg-white hover:text-[#075f82];
+        @apply border-neutral-200 bg-neutral-50 text-[#0f3f63] hover:border-neutral-200 hover:bg-neutral-50 hover:text-[#0f3f63];
     }
 
     .module-icon {
@@ -171,11 +238,11 @@
     }
 
     .module-nav-link-active .module-label small {
-        @apply text-[#075f82]/75;
+        @apply text-neutral-500;
     }
 
     .sidebar-footer {
-        @apply mt-4 hidden rounded-xl border border-neutral-200/80 bg-white/90 p-3 text-sm shadow-[0_12px_24px_rgba(15,23,42,0.06)] lg:block;
+        @apply mt-4 hidden border-t border-neutral-200 pt-4 text-sm lg:block;
     }
 
     .sidebar-footer-label {
@@ -192,15 +259,12 @@
 
     .app-main {
         @apply min-w-0;
-        background:
-            radial-gradient(circle at top left, rgba(8, 122, 165, 0.06), transparent 340px),
-            linear-gradient(180deg, #f8fafb 0%, #f4f6f7 100%);
+        background: #ffffff;
     }
 
     .module-header {
-        @apply sticky top-0 z-40 border-b border-neutral-200/80 bg-white/90 shadow-[0_16px_34px_rgba(15,23,42,0.07)] backdrop-blur-xl;
-        background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 252, 253, 0.92) 55%, rgba(235, 247, 251, 0.88) 100%);
+        @apply sticky z-30 border-b border-neutral-200 bg-white;
+        top: 73px;
     }
 
     .module-header-top {
@@ -208,12 +272,11 @@
     }
 
     .module-heading {
-        @apply relative min-w-0 pl-4;
+        @apply relative min-w-0 pl-0;
     }
 
     .module-heading::before {
-        content: '';
-        @apply absolute left-0 top-1 h-10 w-1 rounded-full bg-[#087aa5];
+        display: none;
     }
 
     .module-heading span {
@@ -225,15 +288,15 @@
     }
 
     .module-subnav {
-        @apply flex items-center gap-2 overflow-x-auto border-t border-neutral-200/80 px-4 py-3 text-sm sm:px-6 lg:px-8;
+        @apply flex items-center gap-5 overflow-x-auto border-t border-neutral-200 px-4 py-0 text-sm sm:px-6 lg:px-8;
     }
 
     .subnav-link {
-        @apply relative inline-flex shrink-0 items-center rounded-full border border-transparent bg-white/40 px-4 py-2 font-semibold text-neutral-600 transition hover:border-[#087aa5]/20 hover:bg-white hover:text-neutral-950 hover:shadow-sm;
+        @apply relative inline-flex shrink-0 items-center border-b-2 border-transparent px-0 py-4 font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-950;
     }
 
     .subnav-link-active {
-        @apply border-[#087aa5] bg-[#087aa5] text-white shadow-[0_10px_20px_rgba(8,122,165,0.2)] hover:border-[#075f82] hover:bg-[#075f82] hover:text-white;
+        @apply border-[#0f3f63] bg-transparent text-neutral-950 shadow-none hover:border-[#0f3f63] hover:bg-transparent hover:text-neutral-950;
     }
 
     .app-content {
@@ -246,6 +309,7 @@
 
     .sidebar-is-collapsed .sidebar-brand-copy,
     .sidebar-is-collapsed .sidebar-section-label,
+    .sidebar-is-collapsed .sidebar-nav-title,
     .sidebar-is-collapsed .module-label,
     .sidebar-is-collapsed .sidebar-footer {
         @apply lg:hidden;
@@ -256,7 +320,7 @@
     }
 
     .sidebar-is-collapsed .sidebar-head {
-        @apply lg:flex-col lg:border-[#087aa5]/10 lg:bg-white/80 lg:p-2 lg:pr-2 lg:shadow-[0_12px_24px_rgba(8,122,165,0.08)];
+        @apply lg:justify-center lg:border-b lg:border-neutral-200 lg:px-0 lg:pb-4;
     }
 
     .sidebar-is-collapsed .sidebar-brand {
@@ -280,7 +344,7 @@
     }
 
     .sidebar-is-collapsed .module-nav-link-active {
-        @apply lg:bg-white lg:shadow-[0_14px_26px_rgba(8,122,165,0.14)];
+        @apply lg:bg-neutral-50 lg:shadow-none;
     }
 
     .sidebar-is-collapsed .module-icon {

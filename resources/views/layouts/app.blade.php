@@ -199,22 +199,55 @@
             };
         @endphp
 
+        <header class="global-header" aria-label="Application header">
+            <div class="global-header-inner">
+                <a href="{{ route('dashboard') }}" class="global-brand">
+                    <span class="global-logo">
+                        @if(file_exists(public_path('images/app-logo.png')))
+                            <img src="{{ asset('images/app-logo.png') }}" alt="Company logo">
+                        @else
+                            <span>OC</span>
+                        @endif
+                    </span>
+                    <span class="global-brand-copy">
+                        <strong>OperationsCore</strong>
+                        <small>Business Workspace</small>
+                    </span>
+                </a>
+
+                <div class="global-actions">
+                    <a class="global-icon-button" href="{{ route('notifications.index') }}" aria-label="Notifications">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                            <path d="M10 21h4" />
+                        </svg>
+                        @if($unreadCrmNotifications)
+                            <span class="global-badge">{{ $unreadCrmNotifications }}</span>
+                        @endif
+                    </a>
+
+                    <div class="global-user">
+                        <strong>{{ $user->name }}</strong>
+                        <span>
+                            {{ \App\Models\User::ROLES[$user->role] ?? $user->role }}
+                            @if($user->department)
+                                | {{ $user->department->name }}
+                            @endif
+                        </span>
+                    </div>
+
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="btn-secondary" type="submit">Log out</button>
+                    </form>
+                </div>
+            </div>
+        </header>
+
         <div class="app-frame">
             <aside class="app-sidebar" aria-label="CRM modules">
                 <div class="sidebar-head">
-                    <a href="{{ route('dashboard') }}" class="sidebar-brand">
-                        <span class="sidebar-logo">
-                            @if(file_exists(public_path('images/app-logo.png')))
-                                <img src="{{ asset('images/app-logo.png') }}" alt="Company logo">
-                            @else
-                                <span>OC</span>
-                            @endif
-                        </span>
-                        <span class="sidebar-brand-copy">
-                            <span>OperationsCore</span>
-                            <small>Business Workspace</small>
-                        </span>
-                    </a>
+                    <span class="sidebar-nav-title">Navigation</span>
 
                     <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-pressed="false">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -276,22 +309,6 @@
                         <div class="module-heading">
                             <span>{{ $activeModuleMeta['label'] ?? 'Workspace' }}</span>
                             <strong>{{ $activeModuleMeta['meta'] ?? 'OperationsCore CRM' }}</strong>
-                        </div>
-
-                        <div class="user-cluster">
-                            <div class="user-panel">
-                                <span class="user-name">{{ $user->name }}</span>
-                                <span class="user-meta">
-                                    {{ \App\Models\User::ROLES[$user->role] ?? $user->role }}
-                                    @if($user->department)
-                                        | {{ $user->department->name }}
-                                    @endif
-                                </span>
-                            </div>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button class="btn-secondary" type="submit">Log out</button>
-                            </form>
                         </div>
                     </div>
 
