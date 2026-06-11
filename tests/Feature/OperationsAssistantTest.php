@@ -58,6 +58,32 @@ class OperationsAssistantTest extends TestCase
         $this->assertStringContainsString('Thursday, June 11, 2026', $response->json('reply'));
     }
 
+    public function test_assistant_handles_general_chat_without_navigation(): void
+    {
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'do you know Chat GPT?',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('ChatGPT', $response->json('reply'));
+        $this->assertStringContainsString('portal', $response->json('reply'));
+    }
+
+    public function test_assistant_steers_off_topic_questions_back_to_portal(): void
+    {
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'what is the weather?',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('portal', $response->json('reply'));
+        $this->assertStringContainsString('not a general internet assistant', $response->json('reply'));
+    }
+
     public function test_assistant_history_returns_latest_conversation_messages(): void
     {
         $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);

@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 class OperationsAssistantService
 {
     public function __construct(
+        private readonly ConversationResponder $conversationResponder,
         private readonly AssistantActionResolver $resolver,
     ) {
     }
@@ -22,7 +23,8 @@ class OperationsAssistantService
             'content' => $message,
         ]);
 
-        $result = $this->resolver->resolve($user, $message);
+        $result = $this->conversationResponder->respond($user, $message)
+            ?? $this->resolver->resolve($user, $message);
 
         $conversation->messages()->create([
             'role' => 'assistant',
