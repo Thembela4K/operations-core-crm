@@ -58,19 +58,19 @@
     }
 
     .global-header-inner {
-        @apply flex min-h-[88px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12;
+        @apply flex min-h-[88px] items-center justify-between gap-5 px-5 sm:px-8 lg:px-12;
     }
 
     .global-brand {
-        @apply flex min-w-0 items-center gap-3 text-neutral-950;
+        @apply flex min-w-0 items-center gap-5 text-neutral-950;
     }
 
     .global-logo {
-        @apply grid h-16 w-36 shrink-0 place-items-center overflow-visible bg-transparent text-xs font-semibold text-[#087aa5];
+        @apply grid h-16 w-28 shrink-0 place-items-center overflow-visible bg-transparent text-xs font-semibold text-[#087aa5];
     }
 
     .global-logo img {
-        @apply h-full w-full object-contain p-0;
+        @apply h-full w-full object-contain object-center p-0;
     }
 
     .global-brand-copy {
@@ -78,11 +78,11 @@
     }
 
     .global-brand-copy strong {
-        @apply block truncate text-xl font-semibold uppercase tracking-[0.14em] text-[#0f3f63];
+        @apply block truncate text-xl font-semibold uppercase tracking-[0.18em] text-[#0f3f63];
     }
 
     .global-brand-copy small {
-        @apply mt-0.5 block truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500;
+        @apply mt-1 block truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500;
     }
 
     .global-actions {
