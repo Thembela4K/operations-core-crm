@@ -228,8 +228,11 @@
 
                     <button class="global-icon-button" type="button" data-assistant-toggle aria-label="Ask MIS">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-                            <path d="M8 9h8M8 13h5" />
+                            <path d="M12 3v3" />
+                            <path d="M8 3h8" />
+                            <path d="M6 8h12a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Z" />
+                            <path d="M8.5 13h.01M15.5 13h.01" />
+                            <path d="M9 17h6" />
                         </svg>
                     </button>
 

@@ -40,7 +40,9 @@ const appendAssistantMessage = (elements, role, text) => {
     const message = document.createElement('div');
     const visualRole = role === 'assistant' ? 'bot' : role;
     message.className = `assistant-message assistant-message-${visualRole}`;
-    message.innerHTML = `<span>${visualRole === 'user' ? 'You' : 'MIS'}</span><p></p>`;
+    message.innerHTML = visualRole === 'user'
+        ? '<span>You</span><p></p>'
+        : '<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M8 3h8M6 8h12a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3ZM8.5 13h.01M15.5 13h.01M9 17h6" /></svg>MIS</span><p></p>';
     message.querySelector('p').textContent = text;
     elements.messages.appendChild(message);
     scrollAssistant(elements);

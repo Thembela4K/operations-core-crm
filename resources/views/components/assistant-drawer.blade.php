@@ -12,9 +12,20 @@
     <section class="assistant-drawer" role="dialog" aria-modal="true" aria-label="Ask MIS">
         <header class="assistant-header">
             <div class="assistant-title">
-                <span>Ask MIS</span>
-                <strong>Operations helpdesk</strong>
-                <p>Find records, open filtered pages, check deadlines, and review document trails.</p>
+                <span class="assistant-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 3v3" />
+                        <path d="M8 3h8" />
+                        <path d="M6 8h12a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Z" />
+                        <path d="M8.5 13h.01M15.5 13h.01" />
+                        <path d="M9 17h6" />
+                    </svg>
+                </span>
+                <span class="assistant-title-copy">
+                    <span>Ask MIS</span>
+                    <strong>Operations helpdesk</strong>
+                    <p>Find records, open filtered pages, check deadlines, and review document trails.</p>
+                </span>
             </div>
             <div class="assistant-header-actions">
                 <button class="assistant-new-chat" type="button" data-assistant-new>
@@ -30,7 +41,10 @@
         <div class="assistant-body">
             <div class="assistant-messages" data-assistant-messages>
                 <div class="assistant-message assistant-message-bot">
-                    <span>MIS</span>
+                    <span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M8 3h8M6 8h12a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3ZM8.5 13h.01M15.5 13h.01M9 17h6" /></svg>
+                        MIS
+                    </span>
                     <p>Tell me what you want to find. I can open filtered CRM pages for tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, and notifications.</p>
                 </div>
             </div>
