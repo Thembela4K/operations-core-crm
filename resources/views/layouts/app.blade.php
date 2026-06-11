@@ -211,8 +211,8 @@
                             @endif
                         </span>
                         <span class="sidebar-brand-copy">
-                            <span>{{ config('app.name', 'OperationsCore CRM') }}</span>
-                            <small>Operations Platform</small>
+                            <span>OperationsCore</span>
+                            <small>Business Workspace</small>
                         </span>
                     </a>
 

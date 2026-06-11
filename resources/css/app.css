@@ -61,7 +61,7 @@
     }
 
     .sidebar-head {
-        @apply relative flex items-center justify-between gap-3 rounded-xl border border-neutral-200/80 bg-white/90 p-2 shadow-[0_12px_26px_rgba(15,23,42,0.07)];
+        @apply relative flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white/90 p-3 pr-7 shadow-[0_12px_26px_rgba(15,23,42,0.07)];
     }
 
     .sidebar-brand {
@@ -69,7 +69,7 @@
     }
 
     .sidebar-logo {
-        @apply grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#087aa5]/20 bg-white text-sm font-semibold text-[#087aa5] shadow-[0_10px_22px_rgba(8,122,165,0.14)];
+        @apply grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-[#087aa5]/20 bg-white text-sm font-semibold text-[#087aa5] shadow-[0_10px_22px_rgba(8,122,165,0.14)];
     }
 
     .sidebar-logo img {
@@ -81,7 +81,7 @@
     }
 
     .sidebar-brand-copy span {
-        @apply block truncate text-[15px] font-semibold tracking-tight text-neutral-950;
+        @apply block truncate text-base font-semibold tracking-tight text-neutral-950;
     }
 
     .sidebar-brand-copy small {
@@ -89,7 +89,7 @@
     }
 
     .sidebar-toggle {
-        @apply hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#087aa5]/20 bg-white text-[#075f82] shadow-[0_10px_20px_rgba(8,122,165,0.16)] outline-none transition hover:-translate-y-0.5 hover:border-[#087aa5]/40 hover:bg-[#087aa5] hover:text-white hover:shadow-[0_14px_26px_rgba(8,122,165,0.24)] focus:ring-4 focus:ring-[#087aa5]/15 lg:inline-flex;
+        @apply absolute -right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-full border border-[#087aa5]/20 bg-white text-[#075f82] shadow-[0_10px_20px_rgba(8,122,165,0.16)] outline-none transition hover:border-[#087aa5]/40 hover:bg-[#087aa5] hover:text-white hover:shadow-[0_14px_26px_rgba(8,122,165,0.24)] focus:ring-4 focus:ring-[#087aa5]/15 lg:inline-flex;
         background-image: linear-gradient(135deg, #ffffff 0%, rgba(8, 122, 165, 0.08) 100%);
     }
 
@@ -142,17 +142,8 @@
         @apply relative flex min-w-48 shrink-0 items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-neutral-700 transition hover:border-[#087aa5]/15 hover:bg-white hover:text-neutral-950 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)] lg:min-w-0;
     }
 
-    .module-nav-link::before {
-        content: '';
-        @apply absolute left-1 top-1/2 hidden h-8 w-1 -translate-y-1/2 rounded-full bg-[#087aa5] opacity-0 transition lg:block;
-    }
-
     .module-nav-link-active {
         @apply border-[#087aa5]/20 bg-white text-[#075f82] shadow-[0_16px_34px_rgba(8,122,165,0.13)] hover:border-[#087aa5]/25 hover:bg-white hover:text-[#075f82];
-    }
-
-    .module-nav-link-active::before {
-        @apply opacity-100;
     }
 
     .module-icon {
@@ -265,7 +256,7 @@
     }
 
     .sidebar-is-collapsed .sidebar-head {
-        @apply lg:flex-col lg:border-[#087aa5]/10 lg:bg-white/80 lg:p-2 lg:shadow-[0_12px_24px_rgba(8,122,165,0.08)];
+        @apply lg:flex-col lg:border-[#087aa5]/10 lg:bg-white/80 lg:p-2 lg:pr-2 lg:shadow-[0_12px_24px_rgba(8,122,165,0.08)];
     }
 
     .sidebar-is-collapsed .sidebar-brand {
@@ -276,16 +267,16 @@
         @apply lg:h-10 lg:w-12 lg:rounded-xl lg:border-transparent lg:shadow-none;
     }
 
+    .sidebar-is-collapsed .sidebar-toggle {
+        @apply lg:static lg:mt-1 lg:translate-y-0;
+    }
+
     .sidebar-is-collapsed .sidebar-toggle svg {
         transform: rotate(180deg);
     }
 
     .sidebar-is-collapsed .module-nav-link {
         @apply lg:min-w-0 lg:justify-center lg:rounded-2xl lg:border-transparent lg:px-2 lg:py-3 lg:hover:bg-white lg:hover:shadow-[0_12px_22px_rgba(15,23,42,0.08)];
-    }
-
-    .sidebar-is-collapsed .module-nav-link::before {
-        @apply lg:left-0 lg:h-6 lg:w-1;
     }
 
     .sidebar-is-collapsed .module-nav-link-active {
