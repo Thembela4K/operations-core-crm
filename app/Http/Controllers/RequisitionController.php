@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Requisition;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
+use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\CrmNotificationService;
 use App\Services\FinanceNumberService;
 use App\Services\RequisitionEmailService;
@@ -400,7 +401,7 @@ class RequisitionController extends Controller
         foreach ($request->file('attachments', []) as $file) {
             $path = $file->store("documents/requisitions/{$requisition->id}");
 
-            $requisition->documents()->create([
+            $document = $requisition->documents()->create([
                 'category' => Document::CATEGORY_REQUISITION_ATTACHMENT,
                 'original_name' => $file->getClientOriginalName(),
                 'stored_name' => basename($path),
@@ -409,6 +410,8 @@ class RequisitionController extends Controller
                 'size' => $file->getSize(),
                 'uploaded_by' => $request->user()->id,
             ]);
+
+            app(DocumentTextExtractor::class)->index($document);
         }
     }
 

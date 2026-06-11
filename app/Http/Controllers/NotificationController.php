@@ -13,8 +13,10 @@ class NotificationController extends Controller
     {
         $notifications = CrmNotification::query()
             ->where('user_id', $request->user()->id)
+            ->when($request->string('state')->toString() === 'unread', fn ($query) => $query->whereNull('read_at'))
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return view('notifications.index', compact('notifications'));
     }

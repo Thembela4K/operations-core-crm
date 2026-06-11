@@ -1,3 +1,5 @@
+import './assistant';
+
 const sidebarStorageKey = 'operations-core-crm-sidebar-collapsed';
 
 const applySidebarState = (collapsed) => {

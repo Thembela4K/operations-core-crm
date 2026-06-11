@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Requisition;
 use App\Models\SalesQuotation;
+use App\Services\Assistant\DocumentTextExtractor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -122,7 +123,7 @@ class OfficialDocumentService
         $bytes = $this->pdf->fromLines($lines, $title);
         Storage::put($path, $bytes);
 
-        return $record->documents()->create([
+        $document = $record->documents()->create([
             'category' => $category,
             'title' => $title,
             'tags' => 'generated,pdf,official',
@@ -134,5 +135,9 @@ class OfficialDocumentService
             'size' => strlen($bytes),
             'uploaded_by' => auth()->id(),
         ]);
+
+        app(DocumentTextExtractor::class)->index($document);
+
+        return $document;
     }
 }

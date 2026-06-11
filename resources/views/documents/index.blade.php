@@ -5,9 +5,11 @@
         <h1 class="page-title">Document Registry</h1>
         <p class="page-subtitle">Search uploaded and generated documents across CRM modules.</p>
     </div>
-    <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_minmax(170px,220px)_repeat(2,minmax(140px,180px))_auto]" method="GET">
+    <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_repeat(5,minmax(150px,190px))_auto]" method="GET">
         <input class="input" name="search" value="{{ request('search') }}" placeholder="Search file name, title, or tags">
         <select class="input" name="category"><option value="">All categories</option>@foreach($categories as $value => $label)<option value="{{ $value }}" @selected(request('category') === $value)>{{ $label }}</option>@endforeach</select>
+        <select class="input" name="module"><option value="">All modules</option>@foreach($modules as $value => $label)<option value="{{ $value }}" @selected(request('module') === $value)>{{ $label }}</option>@endforeach</select>
+        <select class="input" name="linked_type"><option value="">Any submission type</option>@foreach($linkedTypes as $value => $label)<option value="{{ $value }}" @selected(request('linked_type') === $value)>{{ $label }}</option>@endforeach</select>
         <input class="input" type="date" name="date_from" value="{{ request('date_from') }}">
         <input class="input" type="date" name="date_to" value="{{ request('date_to') }}">
         <button class="btn-secondary" type="submit">Filter</button>

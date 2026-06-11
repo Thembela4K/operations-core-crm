@@ -31,6 +31,7 @@ class InvoiceController extends Controller
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+            ->when($request->string('payment_state')->toString() === 'unpaid', fn ($query) => $query->where('balance_due', '>', 0)->whereNotIn('status', [Invoice::STATUS_PAID, Invoice::STATUS_CANCELLED]))
             ->latest('issue_date')
             ->paginate(12)
             ->withQueryString();

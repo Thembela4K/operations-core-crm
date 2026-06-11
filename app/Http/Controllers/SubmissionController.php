@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Quotation;
 use App\Models\Submission;
 use App\Models\TenderProposal;
+use App\Services\Assistant\DocumentTextExtractor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -129,7 +130,7 @@ class SubmissionController extends Controller
     {
         $path = $file->store("documents/submissions/{$submission->id}");
 
-        $submission->documents()->create([
+        $document = $submission->documents()->create([
             'category' => $category,
             'original_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
@@ -138,5 +139,7 @@ class SubmissionController extends Controller
             'size' => $file->getSize(),
             'uploaded_by' => $userId,
         ]);
+
+        app(DocumentTextExtractor::class)->index($document);
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Requisition;
 use App\Models\SalesQuotation;
 use App\Models\Submission;
 use App\Models\TenderProposal;
+use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,16 +26,19 @@ class DocumentController extends Controller
     public function index(Request $request): View
     {
         $documents = Document::query()
-            ->with(['uploader', 'documentable'])
+            ->with(['uploader', 'documentable', 'textIndex'])
             ->when($request->filled('search'), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
                 $query->where(function ($inner) use ($search): void {
                     $inner->where('original_name', 'like', "%{$search}%")
                         ->orWhere('title', 'like', "%{$search}%")
-                        ->orWhere('tags', 'like', "%{$search}%");
+                        ->orWhere('tags', 'like', "%{$search}%")
+                        ->orWhereHas('textIndex', fn ($text) => $text->where('content', 'like', "%{$search}%"));
                 });
             })
             ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
+            ->when($request->filled('module'), fn ($query) => $this->applyModuleFilter($query, $request->string('module')->toString()))
+            ->when($request->filled('linked_type'), fn ($query) => $this->applyLinkedTypeFilter($query, $request->string('linked_type')->toString()))
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('created_at', '>=', $request->date('date_from')->toDateString()))
             ->when($request->filled('date_to'), fn ($query) => $query->whereDate('created_at', '<=', $request->date('date_to')->toDateString()))
             ->latest()
@@ -56,10 +60,15 @@ class DocumentController extends Controller
         return view('documents.index', [
             'documents' => $documents,
             'categories' => Document::CATEGORIES,
+            'modules' => $this->documentModules(),
+            'linkedTypes' => [
+                'tender_proposal' => 'Tender Proposal Submissions',
+                'quotation_request' => 'Quotation Request Submissions',
+            ],
         ]);
     }
 
-    public function store(Request $request, AuditLogService $audit): RedirectResponse
+    public function store(Request $request, AuditLogService $audit, DocumentTextExtractor $textExtractor): RedirectResponse
     {
         $data = $request->validate([
             'module' => ['required', 'in:tender_proposal,quotation,submission,expense,requisition,task,sales_quotation,invoice,payment'],
@@ -87,6 +96,7 @@ class DocumentController extends Controller
             'size' => $file->getSize(),
             'uploaded_by' => $request->user()->id,
         ]);
+        $textExtractor->index($document);
         $audit->record('document_uploaded', $document, "Document {$document->original_name} uploaded.");
 
         return back()->with('success', 'Document uploaded.');
@@ -140,6 +150,56 @@ class DocumentController extends Controller
             'payment' => Payment::query()->findOrFail($id),
             default => Quotation::query()->findOrFail($id),
         };
+    }
+
+    private function applyModuleFilter($query, string $module): void
+    {
+        $type = match ($module) {
+            'tender_proposal' => TenderProposal::class,
+            'quotation_request' => Quotation::class,
+            'submission' => Submission::class,
+            'expense' => Expense::class,
+            'requisition' => Requisition::class,
+            'task' => CrmTask::class,
+            'sales_quotation' => SalesQuotation::class,
+            'invoice' => Invoice::class,
+            'payment' => Payment::class,
+            default => null,
+        };
+
+        if ($type) {
+            $query->where('documentable_type', $type);
+        }
+    }
+
+    private function applyLinkedTypeFilter($query, string $linkedType): void
+    {
+        $type = match ($linkedType) {
+            'tender_proposal' => TenderProposal::class,
+            'quotation_request' => Quotation::class,
+            default => null,
+        };
+
+        if (! $type) {
+            return;
+        }
+
+        $query->whereHasMorph('documentable', [Submission::class], fn ($submission) => $submission->where('submittable_type', $type));
+    }
+
+    private function documentModules(): array
+    {
+        return [
+            'tender_proposal' => 'Tender Proposals',
+            'quotation_request' => 'Quotation Requests',
+            'submission' => 'Submissions',
+            'requisition' => 'Requisitions',
+            'task' => 'Tasks',
+            'sales_quotation' => 'Sales Quotations',
+            'invoice' => 'Invoices',
+            'payment' => 'Payments',
+            'expense' => 'Expenses',
+        ];
     }
 
     private function authorizeRecordAccess(Request $request, TenderProposal|Quotation|Submission|Expense|Requisition|CrmTask|SalesQuotation|Invoice|Payment|null $record): void

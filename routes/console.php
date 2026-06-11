@@ -3,9 +3,11 @@
 use App\Mail\TestNotificationMail;
 use App\Models\AttendanceRecord;
 use App\Models\CrmTask;
+use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Requisition;
 use App\Models\SalesQuotation;
+use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\ReminderService;
 use App\Services\CrmNotificationService;
 use Illuminate\Foundation\Inspiring;
@@ -99,6 +101,24 @@ Artisan::command('crm:send-daily-notifications', function (): int {
 
     return self::SUCCESS;
 })->purpose('Create daily CRM reminders and approval notifications');
+
+Artisan::command('assistant:index-documents', function (DocumentTextExtractor $extractor): int {
+    $count = 0;
+
+    Document::query()
+        ->whereDoesntHave('textIndex')
+        ->orderBy('id')
+        ->chunkById(50, function ($documents) use ($extractor, &$count): void {
+            $documents->each(function (Document $document) use ($extractor, &$count): void {
+                $extractor->index($document);
+                $count++;
+            });
+        });
+
+    $this->info("{$count} documents indexed for Operations Assistant.");
+
+    return self::SUCCESS;
+})->purpose('Index existing document text for Operations Assistant search');
 
 Schedule::command('reminders:send-due')->dailyAt('08:00');
 Schedule::command('crm:send-daily-notifications')->dailyAt('08:15');

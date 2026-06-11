@@ -11,13 +11,17 @@
         @endif
     </div>
 
-    <form class="panel mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(170px,220px)_auto]" method="GET">
+    <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(170px,220px)_minmax(190px,240px)_auto]" method="GET">
         <input class="input" name="search" value="{{ request('search') }}" placeholder="Search invoice or client">
         <select class="input" name="status">
             <option value="">All statuses</option>
             @foreach($statuses as $status)
                 <option value="{{ $status }}" @selected(request('status') === $status)>{{ $status }}</option>
             @endforeach
+        </select>
+        <select class="input" name="payment_state">
+            <option value="">Any payment state</option>
+            <option value="unpaid" @selected(request('payment_state') === 'unpaid')>Unpaid / outstanding</option>
         </select>
         <button class="btn-secondary" type="submit">Filter</button>
     </form>

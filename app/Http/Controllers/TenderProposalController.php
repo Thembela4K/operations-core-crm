@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\Department;
 use App\Models\Assignment;
 use App\Models\TenderProposal;
+use App\Services\Assistant\DocumentTextExtractor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -205,7 +206,7 @@ class TenderProposalController extends Controller
         $file = $request->file('tender_document');
         $path = $file->store("documents/tender_proposal/{$tenderProposal->id}");
 
-        $tenderProposal->documents()->create([
+        $document = $tenderProposal->documents()->create([
             'category' => Document::CATEGORY_ORIGINAL_TENDER,
             'original_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
@@ -214,6 +215,8 @@ class TenderProposalController extends Controller
             'size' => $file->getSize(),
             'uploaded_by' => $request->user()->id,
         ]);
+
+        app(DocumentTextExtractor::class)->index($document);
     }
 
     private function defaultTenderProposalValues(Request $request): array

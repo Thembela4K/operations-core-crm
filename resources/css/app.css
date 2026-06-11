@@ -106,6 +106,102 @@
         @apply absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white;
     }
 
+    .assistant-shell[hidden] {
+        @apply hidden;
+    }
+
+    .assistant-shell {
+        @apply fixed inset-0 z-[80];
+    }
+
+    .assistant-backdrop {
+        @apply absolute inset-0 bg-neutral-950/25;
+    }
+
+    .assistant-drawer {
+        @apply absolute right-0 top-0 flex h-full w-full max-w-[480px] flex-col border-l border-neutral-200 bg-white shadow-2xl;
+    }
+
+    .assistant-header {
+        @apply flex items-start justify-between gap-4 border-b border-neutral-200 px-5 py-5;
+    }
+
+    .assistant-header span {
+        @apply block text-xs font-semibold uppercase tracking-[0.18em] text-[#087aa5];
+    }
+
+    .assistant-header strong {
+        @apply mt-1 block text-base font-semibold text-neutral-950;
+    }
+
+    .assistant-close {
+        @apply inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-neutral-200 text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950;
+    }
+
+    .assistant-close svg {
+        @apply h-5 w-5;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+    }
+
+    .assistant-messages {
+        @apply flex-1 space-y-3 overflow-y-auto px-5 py-5;
+    }
+
+    .assistant-message {
+        @apply max-w-[90%] rounded-lg border px-3 py-3 text-sm shadow-sm;
+    }
+
+    .assistant-message span {
+        @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .assistant-message p {
+        @apply leading-6 text-neutral-800;
+    }
+
+    .assistant-message-user {
+        @apply ml-auto border-[#087aa5]/20 bg-[#087aa5]/5;
+    }
+
+    .assistant-message-bot {
+        @apply mr-auto border-neutral-200 bg-neutral-50;
+    }
+
+    .assistant-suggestions {
+        @apply flex flex-wrap gap-2 border-t border-neutral-100 px-5 py-4;
+    }
+
+    .assistant-suggestions button {
+        @apply rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-[#087aa5]/30 hover:bg-[#087aa5]/5 hover:text-[#075f82];
+    }
+
+    .assistant-form {
+        @apply border-t border-neutral-200 p-5;
+    }
+
+    .assistant-form textarea {
+        @apply min-h-24 w-full resize-none rounded-lg border border-neutral-300 px-3 py-3 text-sm outline-none transition focus:border-[#087aa5] focus:ring-4 focus:ring-sky-100;
+    }
+
+    .assistant-form div {
+        @apply mt-3 flex items-center justify-between gap-3;
+    }
+
+    .assistant-form small {
+        @apply text-xs text-neutral-500;
+    }
+
+    .assistant-form button {
+        @apply inline-flex items-center justify-center rounded-lg bg-[#087aa5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#075f82] disabled:cursor-not-allowed disabled:bg-neutral-300;
+    }
+
+    .assistant-open {
+        @apply overflow-hidden;
+    }
+
     .global-user {
         @apply hidden min-w-0 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-right md:block;
     }
