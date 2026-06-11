@@ -679,6 +679,112 @@
         @apply mt-2 block break-words text-xl font-semibold text-neutral-950;
     }
 
+    .trend-legend {
+        @apply mt-5 flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .trend-legend span {
+        @apply inline-flex items-center gap-2;
+    }
+
+    .trend-legend i {
+        @apply h-2.5 w-2.5 rounded-full;
+    }
+
+    .trend-chart {
+        @apply mt-5 grid min-h-[280px] min-w-0 grid-cols-2 gap-4 border-t border-neutral-100 pt-5 sm:grid-cols-3 xl:grid-cols-6;
+    }
+
+    .trend-month {
+        @apply grid min-w-0 grid-rows-[1fr_auto] gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-3;
+    }
+
+    .trend-month strong {
+        @apply text-center text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .trend-bars {
+        @apply flex h-52 items-end justify-center gap-2 rounded-md bg-white px-3 py-3 shadow-inner;
+    }
+
+    .trend-bar {
+        @apply block w-4 rounded-t-sm transition;
+        min-height: 0;
+    }
+
+    .trend-bar.revenue {
+        @apply bg-[#087aa5];
+    }
+
+    .trend-bar.payments {
+        @apply bg-[#0f766e];
+    }
+
+    .trend-bar.expenses {
+        @apply bg-[#c27803];
+    }
+
+    .trend-quote {
+        @apply mx-auto -mt-14 flex w-full max-w-20 items-start justify-center border-t-2 border-neutral-900 pt-1;
+        min-height: 0;
+    }
+
+    .trend-quote span {
+        @apply rounded-full bg-neutral-950 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm;
+    }
+
+    .progress-list {
+        @apply mt-5 space-y-4;
+    }
+
+    .progress-row {
+        @apply rounded-md border border-neutral-200 bg-neutral-50 p-3;
+    }
+
+    .progress-meta {
+        @apply flex min-w-0 items-center justify-between gap-3 text-sm;
+    }
+
+    .progress-meta span {
+        @apply min-w-0 truncate font-medium text-neutral-700;
+    }
+
+    .progress-meta strong {
+        @apply shrink-0 text-base font-semibold text-neutral-950;
+    }
+
+    .progress-track {
+        @apply mt-2 h-2 overflow-hidden rounded-full bg-neutral-200;
+    }
+
+    .progress-track i {
+        @apply block h-full rounded-full;
+    }
+
+    .compact-kpi-list {
+        @apply mt-5 grid gap-3;
+    }
+
+    .compact-kpi {
+        @apply min-w-0 rounded-md border border-neutral-200 bg-neutral-50 p-3;
+    }
+
+    .compact-kpi span {
+        @apply block truncate text-xs font-semibold uppercase tracking-wide text-neutral-500;
+    }
+
+    .compact-kpi strong {
+        @apply mt-2 block text-2xl font-semibold text-neutral-950;
+    }
+
+    .kpi-track {
+        @apply mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200;
+    }
+
+    .kpi-track i {
+        @apply block h-full rounded-full bg-[#087aa5];
+    }
+
     .compact-list {
         @apply p-4 sm:p-5;
     }
