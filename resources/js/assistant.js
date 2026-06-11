@@ -344,6 +344,12 @@ document.addEventListener('submit', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+    if (event.target.matches('[data-assistant-input]') && event.key === 'Enter' && ! event.shiftKey) {
+        event.preventDefault();
+        submitAssistantMessage();
+        return;
+    }
+
     if (event.key === 'Escape') {
         closeAssistant();
     }
