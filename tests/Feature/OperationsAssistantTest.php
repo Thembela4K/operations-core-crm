@@ -44,6 +44,35 @@ class OperationsAssistantTest extends TestCase
         $this->assertStringContainsString('tenders', $response->json('reply'));
     }
 
+    public function test_assistant_answers_today_date_directly(): void
+    {
+        Carbon::setTestNow('2026-06-11 10:15:00');
+        $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => "what is today's date?",
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('Thursday, June 11, 2026', $response->json('reply'));
+    }
+
+    public function test_assistant_history_returns_latest_conversation_messages(): void
+    {
+        $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
+
+        $conversationId = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'hi',
+        ])->assertOk()->json('conversation_id');
+
+        $response = $this->actingAs($user)->getJson(route('assistant.history'))->assertOk();
+
+        $response->assertJsonPath('conversation_id', $conversationId);
+        $this->assertCount(2, $response->json('messages'));
+        $this->assertSame('user', $response->json('messages.0.role'));
+        $this->assertSame('assistant', $response->json('messages.1.role'));
+    }
+
     public function test_assistant_opens_last_month_submitted_tender_documents(): void
     {
         Carbon::setTestNow('2026-06-11 10:00:00');
@@ -71,7 +100,7 @@ class OperationsAssistantTest extends TestCase
         $this->assertStringContainsString('linked_type=tender_proposal', $url);
         $this->assertStringContainsString('date_from=2026-05-01', $url);
         $this->assertStringContainsString('date_to=2026-05-31', $url);
-        $this->assertStringContainsString('I found 1 documents', $response->json('reply'));
+        $this->assertStringContainsString('I found 1 document', $response->json('reply'));
     }
 
     public function test_assistant_document_count_respects_department_access(): void
@@ -88,7 +117,7 @@ class OperationsAssistantTest extends TestCase
             'message' => 'show last month submitted tender documents',
         ])->assertOk();
 
-        $this->assertStringContainsString('I found 1 documents', $response->json('reply'));
+        $this->assertStringContainsString('I found 1 document', $response->json('reply'));
     }
 
     private function department(string $name): Department

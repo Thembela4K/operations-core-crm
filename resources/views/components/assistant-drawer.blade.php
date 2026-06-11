@@ -3,6 +3,7 @@
     data-assistant
     data-assistant-message-url="{{ route('assistant.message') }}"
     data-assistant-suggestions-url="{{ route('assistant.suggestions') }}"
+    data-assistant-history-url="{{ route('assistant.history') }}"
     hidden
 >
     <button class="assistant-backdrop" type="button" data-assistant-close aria-label="Close Operations Assistant"></button>

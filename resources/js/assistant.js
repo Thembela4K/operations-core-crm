@@ -11,6 +11,7 @@ const assistantElements = () => {
         shell,
         messageUrl: shell.dataset.assistantMessageUrl,
         suggestionsUrl: shell.dataset.assistantSuggestionsUrl,
+        historyUrl: shell.dataset.assistantHistoryUrl,
         messages: shell.querySelector('[data-assistant-messages]'),
         suggestions: shell.querySelector('[data-assistant-suggestions]'),
         form: shell.querySelector('[data-assistant-form]'),
@@ -27,11 +28,23 @@ const scrollAssistant = (elements) => {
 
 const appendAssistantMessage = (elements, role, text) => {
     const message = document.createElement('div');
-    message.className = `assistant-message assistant-message-${role}`;
-    message.innerHTML = `<span>${role === 'user' ? 'You' : 'Operations Assistant'}</span><p></p>`;
+    const visualRole = role === 'assistant' ? 'bot' : role;
+    message.className = `assistant-message assistant-message-${visualRole}`;
+    message.innerHTML = `<span>${visualRole === 'user' ? 'You' : 'Operations Assistant'}</span><p></p>`;
     message.querySelector('p').textContent = text;
     elements.messages.appendChild(message);
     scrollAssistant(elements);
+};
+
+const renderAssistantHistory = (elements, messages) => {
+    if (! Array.isArray(messages) || messages.length === 0) {
+        return;
+    }
+
+    elements.messages.replaceChildren();
+    messages.forEach((message) => {
+        appendAssistantMessage(elements, message.role, message.content);
+    });
 };
 
 const renderAssistantSuggestions = (elements, suggestions) => {
@@ -65,6 +78,19 @@ const openAssistant = async () => {
     elements.shell.hidden = false;
     document.body.classList.add('assistant-open');
     setTimeout(() => elements.input?.focus(), 50);
+
+    if (! elements.shell.dataset.historyLoaded && elements.historyUrl) {
+        try {
+            const response = await fetch(elements.historyUrl, { headers: { Accept: 'application/json' } });
+            const data = await response.json();
+            assistantConversationId = data.conversation_id || assistantConversationId;
+            renderAssistantHistory(elements, data.messages);
+            renderAssistantSuggestions(elements, data.suggestions);
+            elements.shell.dataset.historyLoaded = '1';
+        } catch {
+            elements.shell.dataset.historyLoaded = '1';
+        }
+    }
 
     if (! elements.shell.dataset.suggestionsLoaded && elements.suggestionsUrl) {
         try {

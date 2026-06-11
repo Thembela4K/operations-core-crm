@@ -24,7 +24,7 @@ class AssistantActionResolver
     {
         $local = $this->localInterpret($user, $message);
 
-        if (in_array($local['intent'], ['greeting', 'wellbeing_redirect'], true)) {
+        if (in_array($local['intent'], ['greeting', 'wellbeing_redirect', 'date', 'thanks', 'capabilities', 'identity', 'unknown'], true)) {
             return $this->directReply($user, $local['intent']);
         }
 
@@ -44,9 +44,7 @@ class AssistantActionResolver
         $url = $this->urlFor($module, $filters);
         $count = $this->countFor($user, $module, $filters);
         $label = $this->moduleLabel($module);
-        $reply = $count === null
-            ? "Opening {$label}."
-            : "I found {$count} {$label}. Opening the filtered view.";
+        $reply = $this->navigationReply($label, $count);
 
         return [
             'intent' => $local['intent'] ?? 'navigate',
@@ -65,6 +63,7 @@ class AssistantActionResolver
     public function suggestions(User $user): array
     {
         $suggestions = [
+            "What is today's date?",
             'Show overdue tender proposals',
             'Show quotation requests due next 5 days',
             'Show last month submitted tender documents',
@@ -86,9 +85,15 @@ class AssistantActionResolver
 
     private function directReply(User $user, string $intent): array
     {
-        $reply = $intent === 'wellbeing_redirect'
-            ? "I am sorry you are feeling that way, {$this->firstName($user)}. I can help reduce work pressure by finding CRM records, deadlines, documents, approvals, and reports for you."
-            : "Hi {$this->firstName($user)}. Ask me to find tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, or deadlines.";
+        $reply = match ($intent) {
+            'wellbeing_redirect' => "I am sorry you are feeling that way, {$this->firstName($user)}. I am not a counsellor, but I can help reduce the work pressure by finding the exact CRM records, deadlines, documents, approvals, and reports you need.",
+            'date' => $this->dateReply(),
+            'thanks' => "You are welcome, {$this->firstName($user)}. Send me a record type, a date window, a status, or a department, and I will open the relevant CRM view for you.",
+            'capabilities' => $this->capabilitiesReply($user),
+            'identity' => "I am Operations Assistant, a local CRM helper built into this portal. I can read the CRM structure, interpret common work requests, search indexed records and documents, and open filtered pages. I do not use an external AI service and I do not change records.",
+            'unknown' => "I did not get a clear CRM action from that. Try wording it like: show overdue tenders, find unpaid invoices, open submitted tender documents from last month, or show my assigned tasks.",
+            default => "Hi {$this->firstName($user)}. I can help you find tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, notifications, and deadlines. Ask naturally, for example: show me quotation requests due this week.",
+        };
 
         return [
             'intent' => $intent,
@@ -101,10 +106,26 @@ class AssistantActionResolver
 
     private function localInterpret(User $user, string $message): array
     {
-        $lower = mb_strtolower(trim($message));
+        $lower = $this->normalizeText($message);
 
         if (preg_match('/^(hi|hello|hey|good morning|good afternoon|good evening)\b/', $lower)) {
             return ['intent' => 'greeting', 'module' => null, 'filters' => []];
+        }
+
+        if (preg_match('/\b(what(?:\'s| is) today(?:\'s)? date|today(?:\'s)? date|current date|date today|what day is it|which day is it)\b/', $lower)) {
+            return ['intent' => 'date', 'module' => null, 'filters' => []];
+        }
+
+        if (preg_match('/\b(thanks|thank you|appreciate it|great thanks|okay thanks)\b/', $lower)) {
+            return ['intent' => 'thanks', 'module' => null, 'filters' => []];
+        }
+
+        if (preg_match('/\b(what can you do|help me|assist me|commands|suggestions|how can you help)\b/', $lower)) {
+            return ['intent' => 'capabilities', 'module' => null, 'filters' => []];
+        }
+
+        if (preg_match('/\b(who are you|what are you|your name|are you ai|are you chatgpt)\b/', $lower)) {
+            return ['intent' => 'identity', 'module' => null, 'filters' => []];
         }
 
         if (preg_match('/\b(feel down|sad|depressed|stressed|anxious|not okay|not ok)\b/', $lower)) {
@@ -118,16 +139,24 @@ class AssistantActionResolver
             return ['intent' => 'help', 'module' => $module, 'filters' => $filters];
         }
 
+        if (! $module && ! $this->hasActionLanguage($lower)) {
+            return ['intent' => 'unknown', 'module' => null, 'filters' => []];
+        }
+
         return ['intent' => 'navigate', 'module' => $module, 'filters' => $filters];
     }
 
     private function moduleFromText(string $lower): ?string
     {
+        if (str_contains($lower, 'dashboard') || str_contains($lower, 'home page') || str_contains($lower, 'overview')) {
+            return 'dashboard';
+        }
+
         if (preg_match('/\b(document|documents|file|files|attachment|attachments)\b/', $lower)) {
             return 'documents';
         }
 
-        if (str_contains($lower, 'quotation request')) {
+        if (str_contains($lower, 'quotation request') || str_contains($lower, 'quotation requests') || str_contains($lower, 'request for quotation')) {
             return 'quotation_requests';
         }
 
@@ -135,7 +164,7 @@ class AssistantActionResolver
             return 'sales_quotations';
         }
 
-        if (str_contains($lower, 'tender') || str_contains($lower, 'proposal')) {
+        if (str_contains($lower, 'tender') || str_contains($lower, 'proposal') || str_contains($lower, 'bid')) {
             return 'tender_proposals';
         }
 
@@ -143,11 +172,11 @@ class AssistantActionResolver
             return 'requisitions';
         }
 
-        if (str_contains($lower, 'invoice') || str_contains($lower, 'unpaid')) {
+        if (str_contains($lower, 'invoice') || str_contains($lower, 'unpaid') || str_contains($lower, 'outstanding balance') || str_contains($lower, 'money owed')) {
             return 'invoices';
         }
 
-        if (str_contains($lower, 'approval') || str_contains($lower, 'approve')) {
+        if (str_contains($lower, 'approval') || str_contains($lower, 'approve') || str_contains($lower, 'pending decision')) {
             return 'approvals';
         }
 
@@ -163,7 +192,7 @@ class AssistantActionResolver
             return 'suppliers';
         }
 
-        if (str_contains($lower, 'client') || str_contains($lower, 'customer')) {
+        if (str_contains($lower, 'client') || str_contains($lower, 'customer') || str_contains($lower, 'account')) {
             return 'clients';
         }
 
@@ -182,15 +211,24 @@ class AssistantActionResolver
     {
         $filters = [];
         $range = $this->dateRangeFromText($lower);
+        $search = $this->searchTermFromText($lower, $module);
 
         if ($range) {
             $filters['date_from'] = $range[0]->toDateString();
             $filters['date_to'] = $range[1]->toDateString();
         }
 
-        if (str_contains($lower, 'overdue')) {
+        if ($search) {
+            $filters['search'] = $search;
+        }
+
+        if ($departmentId = $this->departmentIdFromText($user, $lower)) {
+            $filters['department_id'] = $departmentId;
+        }
+
+        if (str_contains($lower, 'overdue') || str_contains($lower, 'late')) {
             $filters['deadline_window'] = 'overdue';
-        } elseif (str_contains($lower, 'next 5') || str_contains($lower, 'due soon') || str_contains($lower, 'upcoming')) {
+        } elseif (str_contains($lower, 'next 5') || str_contains($lower, 'next five') || str_contains($lower, 'due soon') || str_contains($lower, 'upcoming')) {
             $filters['deadline_window'] = 'next_5';
         } elseif (preg_match('/\btoday\b/', $lower)) {
             $filters['deadline_window'] = 'today';
@@ -218,11 +256,11 @@ class AssistantActionResolver
             }
         }
 
-        if ($module === 'requisitions' && (str_contains($lower, 'approval') || str_contains($lower, 'approve') || str_contains($lower, 'submitted'))) {
+        if ($module === 'requisitions' && (str_contains($lower, 'approval') || str_contains($lower, 'approve') || str_contains($lower, 'submitted') || str_contains($lower, 'pending'))) {
             $filters['status'] = Requisition::STATUS_SUBMITTED;
         }
 
-        if ($module === 'sales_quotations' && (str_contains($lower, 'approval') || str_contains($lower, 'submitted'))) {
+        if ($module === 'sales_quotations' && (str_contains($lower, 'approval') || str_contains($lower, 'submitted') || str_contains($lower, 'pending'))) {
             $filters['status'] = SalesQuotation::STATUS_SUBMITTED;
         }
 
@@ -246,6 +284,10 @@ class AssistantActionResolver
      */
     private function dateRangeFromText(string $lower): ?array
     {
+        if (str_contains($lower, 'yesterday')) {
+            return [now()->subDay()->startOfDay(), now()->subDay()->endOfDay()];
+        }
+
         if (str_contains($lower, 'last month')) {
             $start = now()->subMonthNoOverflow()->startOfMonth();
 
@@ -258,6 +300,10 @@ class AssistantActionResolver
 
         if (str_contains($lower, 'last week')) {
             return [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()];
+        }
+
+        if (str_contains($lower, 'this week')) {
+            return [now()->startOfWeek(), now()->endOfWeek()];
         }
 
         if (str_contains($lower, 'today')) {
@@ -463,12 +509,13 @@ class AssistantActionResolver
     private function helpReply(?string $module): string
     {
         return match ($module) {
-            'requisitions' => 'Use Requisitions to request funds, attach supporting documents, submit for director approval, and track release of funds.',
-            'documents' => 'Use Document Registry to search uploaded and generated documents by date, category, module, tags, and indexed text.',
-            'tender_proposals' => 'Tender Proposals track tender intake, documents, department assignment, due dates, and returned submissions.',
-            'quotation_requests' => 'Quotation Requests track incoming quotation work assigned to departments, including due dates and returned responses.',
-            'invoices' => 'Invoices track issued client invoices, balances, payments, and unpaid work.',
-            default => 'I can help you find records, deadlines, documents, approvals, reports, tasks, and notifications in this CRM.',
+            'requisitions' => 'Requisitions are for internal fund requests. A department prepares the request, adds line items and supporting documents, submits it for director approval, and then tracks approval, rejection, or funds release.',
+            'documents' => 'The Document Registry searches uploaded and generated files across the CRM. You can ask for documents by module, category, date window, filename, tags, or indexed document text.',
+            'tender_proposals' => 'Tender Proposals track tender intake from the first uploaded document through assignment, due dates, department submissions, and final returned work.',
+            'quotation_requests' => 'Quotation Requests track incoming quotation work assigned to departments, including request documents, due dates, response uploads, and submitted drafts or finished responses.',
+            'invoices' => 'Invoices track client billing, status, due dates, payments, and outstanding balances. Ask for unpaid invoices, overdue invoices, or invoices by client/reference.',
+            'tasks' => 'Tasks track work, owners, departments, priorities, deadlines, comments, and completion status. Ask for your tasks, overdue tasks, or work assigned to a department.',
+            default => 'I can help you find records, open filtered pages, explain CRM workflows, show deadlines, locate documents, check approvals, and answer simple system questions such as today\'s date.',
         };
     }
 
@@ -491,5 +538,113 @@ class AssistantActionResolver
     private function firstName(User $user): string
     {
         return strtok($user->name, ' ') ?: $user->name;
+    }
+
+    private function normalizeText(string $message): string
+    {
+        $lower = mb_strtolower(trim($message));
+        $replacements = [
+            'todays' => "today's",
+            'qoutation' => 'quotation',
+            'quotaton' => 'quotation',
+            'qotation' => 'quotation',
+            'tendar' => 'tender',
+            'documet' => 'document',
+            'documnet' => 'document',
+            'requisiton' => 'requisition',
+            'aproval' => 'approval',
+        ];
+
+        return str_replace(array_keys($replacements), array_values($replacements), $lower);
+    }
+
+    private function hasActionLanguage(string $lower): bool
+    {
+        return preg_match('/\b(show|open|find|search|list|take me|go to|display|check|view|where|which|what)\b/', $lower) === 1;
+    }
+
+    private function dateReply(): string
+    {
+        return 'Today is '.now()->format('l, F j, Y').'. The current system time is '.now()->format('H:i').' in the '.config('app.timezone').' timezone.';
+    }
+
+    private function capabilitiesReply(User $user): string
+    {
+        $extra = $user->canViewReports()
+            ? ' You can also ask for company-wide reports, unpaid invoices, pending approvals, and department workload.'
+            : ' I will keep results limited to records your profile is allowed to view.';
+
+        return 'I can understand common work requests in plain English, keep a short conversation history, search indexed document text, count matching records, explain workflows, and open filtered CRM pages automatically.'.$extra;
+    }
+
+    private function navigationReply(string $label, ?int $count): string
+    {
+        if ($count === null) {
+            return "I have understood the request. I am opening {$label} now.";
+        }
+
+        if ($count === 0) {
+            return "I did not find any {$label} matching that request. I am opening the filtered view anyway so you can confirm the result or adjust the filters.";
+        }
+
+        $noun = $count === 1 ? rtrim($label, 's') : $label;
+
+        return "I found {$count} {$noun} matching your request. I am opening the filtered view now with the relevant filters already applied.";
+    }
+
+    private function searchTermFromText(string $lower, ?string $module): ?string
+    {
+        if (! $module) {
+            return null;
+        }
+
+        if (preg_match('/\b(?:search|find|look for)\b.*?\b(?:for|called|named|about|containing)\s+(.+)$/', $lower, $matches)) {
+            return $this->cleanSearchTerm($matches[1]);
+        }
+
+        if (preg_match('/\b(?:client|customer|invoice|task|document|file|tender|requisition)\s+([a-z0-9][a-z0-9 ._\/-]{2,})$/', $lower, $matches)) {
+            return $this->cleanSearchTerm($matches[1]);
+        }
+
+        return null;
+    }
+
+    private function cleanSearchTerm(string $term): ?string
+    {
+        $term = trim(preg_replace('/\b(from|for|today|this week|this month|last week|last month|overdue|unpaid|submitted|pending)\b.*/', '', $term) ?? $term);
+        $term = trim($term, " \t\n\r\0\x0B'\".,");
+        $genericTerms = ['document', 'documents', 'file', 'files', 'tender', 'tenders', 'proposal', 'proposals', 'quotation', 'quotations', 'request', 'requests', 'requisition', 'requisitions', 'invoice', 'invoices', 'task', 'tasks', 'client', 'clients', 'customer', 'customers'];
+
+        return mb_strlen($term) >= 3 && ! in_array($term, $genericTerms, true) ? $term : null;
+    }
+
+    private function departmentIdFromText(User $user, string $lower): ?int
+    {
+        if (! $user->canViewPortfolio()) {
+            return null;
+        }
+
+        $aliases = [
+            'mis' => 'MIS Department',
+            'it' => 'IT Department',
+            'gis' => 'GIS Department',
+            'admin' => 'Admin (Reception)',
+            'reception' => 'Admin (Reception)',
+        ];
+
+        foreach ($aliases as $needle => $name) {
+            if (! preg_match('/\b'.preg_quote($needle, '/').'\b/', $lower)) {
+                continue;
+            }
+
+            $department = \App\Models\Department::query()
+                ->where('name', 'like', '%'.$name.'%')
+                ->orWhere('name', $name)
+                ->first();
+
+            return $department?->id;
+        }
+
+        return null;
     }
 }

@@ -33,6 +33,7 @@ class OperationsAssistantService
                 'assistant_mode' => 'local',
             ],
         ]);
+        $conversation->touch();
 
         AiActionLog::query()->create([
             'user_id' => $user->id,
@@ -56,6 +57,41 @@ class OperationsAssistantService
     public function suggestions(User $user): array
     {
         return $this->resolver->suggestions($user);
+    }
+
+    public function history(User $user): array
+    {
+        $conversation = AiConversation::query()
+            ->where('user_id', $user->id)
+            ->latest('updated_at')
+            ->first();
+
+        if (! $conversation) {
+            return [
+                'conversation_id' => null,
+                'messages' => [],
+                'suggestions' => $this->suggestions($user),
+            ];
+        }
+
+        $messages = $conversation->messages()
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn ($message): array => [
+                'role' => $message->role,
+                'content' => $message->content,
+                'created_at' => $message->created_at?->toIso8601String(),
+            ])
+            ->all();
+
+        return [
+            'conversation_id' => $conversation->id,
+            'messages' => $messages,
+            'suggestions' => $this->suggestions($user),
+        ];
     }
 
     private function conversation(User $user, string $message, ?int $conversationId): AiConversation

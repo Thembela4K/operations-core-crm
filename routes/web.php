@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('assistant/message', [OperationsAssistantController::class, 'message'])->name('assistant.message');
     Route::get('assistant/suggestions', [OperationsAssistantController::class, 'suggestions'])->name('assistant.suggestions');
+    Route::get('assistant/history', [OperationsAssistantController::class, 'history'])->name('assistant.history');
 
     Route::middleware('role:'.User::ROLE_SUPER_ADMIN.','.User::ROLE_RECEPTION)->group(function (): void {
         Route::get('tender-proposals/create', [TenderProposalController::class, 'create'])->name('tender-proposals.create');

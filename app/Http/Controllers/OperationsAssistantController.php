@@ -28,4 +28,9 @@ class OperationsAssistantController extends Controller
             'suggestions' => $assistant->suggestions($request->user()),
         ]);
     }
+
+    public function history(Request $request, OperationsAssistantService $assistant): JsonResponse
+    {
+        return response()->json($assistant->history($request->user()));
+    }
 }
