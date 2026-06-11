@@ -2,6 +2,7 @@
 
 namespace App\Services\Assistant;
 
+use App\Models\Client;
 use App\Models\CrmNotification;
 use App\Models\CrmTask;
 use App\Models\Document;
@@ -10,6 +11,7 @@ use App\Models\Quotation;
 use App\Models\Requisition;
 use App\Models\SalesQuotation;
 use App\Models\Submission;
+use App\Models\Supplier;
 use App\Models\TenderProposal;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -40,9 +42,19 @@ class AssistantActionResolver
             ];
         }
 
-        $url = $this->urlFor($module, $filters);
         $count = $this->countFor($user, $module, $filters);
         $label = $this->moduleLabel($module);
+
+        if (($local['intent'] ?? null) === 'count') {
+            return [
+                'intent' => 'count',
+                'reply' => $this->countReply($module, $label, $count, $filters),
+                'action' => null,
+                'filters' => $filters,
+            ];
+        }
+
+        $url = $this->urlFor($module, $filters);
         $reply = $this->navigationReply($label, $count);
 
         return [
@@ -108,6 +120,10 @@ class AssistantActionResolver
 
         $module = $this->moduleFromText($lower);
         $filters = $this->filtersFromText($user, $lower, $module);
+
+        if ($this->isCountQuestion($lower)) {
+            return ['intent' => 'count', 'module' => $module, 'filters' => $filters];
+        }
 
         if (str_contains($lower, 'how do i') || str_contains($lower, 'how can i') || str_contains($lower, 'explain')) {
             return ['intent' => 'help', 'module' => $module, 'filters' => $filters];
@@ -331,6 +347,7 @@ class AssistantActionResolver
     private function countFor(User $user, ?string $module, array $filters): ?int
     {
         return match ($module) {
+            'clients' => $this->clientQuery($filters)->count(),
             'documents' => $this->documentCount($user, $filters),
             'tender_proposals' => $this->tenderQuery($user, $filters)->count(),
             'quotation_requests' => $this->quotationQuery($user, $filters)->count(),
@@ -340,8 +357,36 @@ class AssistantActionResolver
             'invoices' => $this->invoiceQuery($user, $filters)->count(),
             'notifications' => $this->notificationQuery($user, $filters)->count(),
             'approvals' => $user->canViewReports() ? $this->approvalCount() : 0,
+            'suppliers' => $this->supplierQuery($user, $filters)->count(),
             default => null,
         };
+    }
+
+    private function clientQuery(array $filters)
+    {
+        return Client::query()
+            ->when($filters['search'] ?? null, function ($query, string $search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('client_code', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            });
+    }
+
+    private function supplierQuery(User $user, array $filters)
+    {
+        return Supplier::query()
+            ->visibleTo($user)
+            ->when($filters['search'] ?? null, function ($query, string $search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('supplier_code', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            });
     }
 
     private function documentCount(User $user, array $filters): int
@@ -496,6 +541,7 @@ class AssistantActionResolver
     private function moduleLabel(?string $module): string
     {
         return match ($module) {
+            'clients' => 'clients',
             'documents' => 'documents',
             'tender_proposals' => 'tender proposals',
             'quotation_requests' => 'quotation requests',
@@ -505,6 +551,7 @@ class AssistantActionResolver
             'invoices' => 'invoices',
             'notifications' => 'notifications',
             'approvals' => 'approval items',
+            'suppliers' => 'suppliers',
             default => 'results',
         };
     }
@@ -537,6 +584,11 @@ class AssistantActionResolver
         return preg_match('/\b(show|open|find|search|list|take me|go to|display|check|view|where|which|what)\b/', $lower) === 1;
     }
 
+    private function isCountQuestion(string $lower): bool
+    {
+        return preg_match('/\b(how many|how much|count|number of|total number of|what(?:\'s| is) the total|what(?:\'s| is) our total)\b/', $lower) === 1;
+    }
+
     private function dateReply(): string
     {
         return 'Today is '.now()->format('l, F j, Y').'. The current system time is '.now()->format('H:i').' in the '.config('app.timezone').' timezone.';
@@ -564,6 +616,25 @@ class AssistantActionResolver
         $noun = $count === 1 ? rtrim($label, 's') : $label;
 
         return "I found {$count} {$noun} matching your request. I am opening the filtered view now with the relevant filters already applied.";
+    }
+
+    private function countReply(?string $module, string $label, ?int $count, array $filters): string
+    {
+        if (! $module) {
+            return 'I can count records for you, but I need the record type first. Ask something like: how many suppliers do we have, how many clients are registered, or how many unpaid invoices are there?';
+        }
+
+        if ($count === null) {
+            return "I understood that you want a count for {$label}, but I do not have a direct database count for that area yet.";
+        }
+
+        $noun = $count === 1 ? rtrim($label, 's') : $label;
+
+        if ($filters !== []) {
+            return "I found {$count} {$noun} matching that question.";
+        }
+
+        return "We have {$count} {$noun} in the CRM.";
     }
 
     private function searchTermFromText(string $lower, ?string $module): ?string

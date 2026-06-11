@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentText;
 use App\Models\Submission;
+use App\Models\Supplier;
 use App\Models\TenderProposal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -118,6 +119,29 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $this->assertStringContainsString('I found 1 document', $response->json('reply'));
+    }
+
+    public function test_assistant_answers_count_questions_without_navigation(): void
+    {
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+
+        Supplier::query()->create([
+            'supplier_code' => 'SUP-001',
+            'name' => 'Alpha Supplies',
+            'is_active' => true,
+        ]);
+        Supplier::query()->create([
+            'supplier_code' => 'SUP-002',
+            'name' => 'Beta Supplies',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'how many suppliers do we have?',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('2 suppliers', $response->json('reply'));
     }
 
     private function department(string $name): Department
