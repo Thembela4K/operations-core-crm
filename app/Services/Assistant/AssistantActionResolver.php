@@ -36,7 +36,6 @@ class AssistantActionResolver
                 'intent' => 'help',
                 'reply' => $this->helpReply($module),
                 'action' => null,
-                'suggestions' => $this->suggestions($user),
                 'filters' => [],
             ];
         }
@@ -55,32 +54,8 @@ class AssistantActionResolver
                 'label' => "Open {$label}",
                 'auto' => true,
             ],
-            'suggestions' => $this->suggestions($user),
             'filters' => $filters,
         ];
-    }
-
-    public function suggestions(User $user): array
-    {
-        $suggestions = [
-            "What is today's date?",
-            'Show overdue tender proposals',
-            'Show quotation requests due next 5 days',
-            'Show last month submitted tender documents',
-            'Show my assigned tasks',
-            'Show unread notifications',
-        ];
-
-        if ($user->canViewRequisitions()) {
-            $suggestions[] = 'What requisitions need approval?';
-        }
-
-        if ($user->canViewReports()) {
-            $suggestions[] = 'Open unpaid invoices';
-            $suggestions[] = 'Show sales quotations awaiting approval';
-        }
-
-        return $suggestions;
     }
 
     private function directReply(User $user, string $intent): array
@@ -99,7 +74,6 @@ class AssistantActionResolver
             'intent' => $intent,
             'reply' => $reply,
             'action' => null,
-            'suggestions' => $this->suggestions($user),
             'filters' => [],
         ];
     }
@@ -120,7 +94,7 @@ class AssistantActionResolver
             return ['intent' => 'thanks', 'module' => null, 'filters' => []];
         }
 
-        if (preg_match('/\b(what can you do|help me|assist me|commands|suggestions|how can you help)\b/', $lower)) {
+        if (preg_match('/\b(what can you do|help me|assist me|how can you help)\b/', $lower)) {
             return ['intent' => 'capabilities', 'module' => null, 'filters' => []];
         }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AiConversation extends Model
 {
@@ -29,6 +30,11 @@ class AiConversation extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(AiMessage::class);
+    }
+
+    public function latestMessage(): HasOne
+    {
+        return $this->hasOne(AiMessage::class)->latestOfMany();
     }
 
     public function actionLogs(): HasMany

@@ -27,8 +27,17 @@ class OperationsAssistantController extends Controller
         return response()->json($assistant->startConversation($request->user()));
     }
 
+    public function conversations(Request $request, OperationsAssistantService $assistant): JsonResponse
+    {
+        return response()->json($assistant->conversations($request->user()));
+    }
+
     public function history(Request $request, OperationsAssistantService $assistant): JsonResponse
     {
-        return response()->json($assistant->history($request->user()));
+        $data = $request->validate([
+            'conversation_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json($assistant->history($request->user(), $data['conversation_id'] ?? null));
     }
 }

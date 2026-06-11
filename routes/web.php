@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('assistant/message', [OperationsAssistantController::class, 'message'])->name('assistant.message');
     Route::post('assistant/conversation', [OperationsAssistantController::class, 'conversation'])->name('assistant.conversation');
+    Route::get('assistant/conversations', [OperationsAssistantController::class, 'conversations'])->name('assistant.conversations');
     Route::get('assistant/history', [OperationsAssistantController::class, 'history'])->name('assistant.history');
 
     Route::middleware('role:'.User::ROLE_SUPER_ADMIN.','.User::ROLE_RECEPTION)->group(function (): void {

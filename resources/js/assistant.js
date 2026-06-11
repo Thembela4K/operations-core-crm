@@ -11,8 +11,12 @@ const assistantElements = () => {
         shell,
         messageUrl: shell.dataset.assistantMessageUrl,
         newUrl: shell.dataset.assistantNewUrl,
+        conversationsUrl: shell.dataset.assistantConversationsUrl,
         historyUrl: shell.dataset.assistantHistoryUrl,
+        welcome: shell.dataset.assistantWelcome || 'Hi, how can I assist you today?',
         messages: shell.querySelector('[data-assistant-messages]'),
+        historyPanel: shell.querySelector('[data-assistant-history-panel]'),
+        historyList: shell.querySelector('[data-assistant-history-list]'),
         form: shell.querySelector('[data-assistant-form]'),
         input: shell.querySelector('[data-assistant-input]'),
         status: shell.querySelector('[data-assistant-status]'),
@@ -30,7 +34,7 @@ const renderAssistantWelcome = (elements) => {
     appendAssistantMessage(
         elements,
         'bot',
-        'Tell me what you want to find. I can open filtered CRM pages for tenders, quotation requests, requisitions, documents, invoices, tasks, approvals, and notifications.',
+        elements.welcome,
     );
 };
 
@@ -48,6 +52,7 @@ const appendAssistantMessage = (elements, role, text) => {
 
 const renderAssistantHistory = (elements, messages) => {
     if (! Array.isArray(messages) || messages.length === 0) {
+        renderAssistantWelcome(elements);
         return;
     }
 
@@ -63,6 +68,120 @@ const setAssistantBusy = (elements, busy) => {
     elements.status.textContent = busy ? 'Reading the CRM and preparing the next step...' : 'Read-only. I can find and open records, not change them.';
 };
 
+const formatAssistantDate = (value) => {
+    if (! value) {
+        return 'No activity yet';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+};
+
+const renderConversationList = (elements, conversations) => {
+    if (! elements.historyList) {
+        return;
+    }
+
+    elements.historyList.replaceChildren();
+
+    if (! Array.isArray(conversations) || conversations.length === 0) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No previous MIS conversations yet.';
+        elements.historyList.appendChild(empty);
+        return;
+    }
+
+    conversations.forEach((conversation) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.assistantConversation = conversation.id;
+
+        const title = document.createElement('strong');
+        title.textContent = conversation.title || 'MIS conversation';
+
+        const meta = document.createElement('span');
+        meta.textContent = `${conversation.message_count || 0} messages - ${formatAssistantDate(conversation.updated_at)}`;
+
+        button.append(title, meta);
+        elements.historyList.appendChild(button);
+    });
+};
+
+const loadConversationList = async (elements) => {
+    if (! elements.conversationsUrl || ! elements.historyList) {
+        return;
+    }
+
+    elements.historyList.replaceChildren();
+    const loading = document.createElement('p');
+    loading.textContent = 'Loading conversations...';
+    elements.historyList.appendChild(loading);
+
+    try {
+        const response = await fetch(elements.conversationsUrl, { headers: { Accept: 'application/json' } });
+
+        if (! response.ok) {
+            throw new Error('Conversation list failed.');
+        }
+
+        const data = await response.json();
+        renderConversationList(elements, data.conversations);
+    } catch {
+        elements.historyList.replaceChildren();
+        const error = document.createElement('p');
+        error.textContent = 'Conversation history could not be loaded.';
+        elements.historyList.appendChild(error);
+    }
+};
+
+const toggleAssistantHistory = async () => {
+    const elements = assistantElements();
+
+    if (! elements?.historyPanel) {
+        return;
+    }
+
+    const shouldOpen = elements.historyPanel.hidden;
+    elements.historyPanel.hidden = ! shouldOpen;
+
+    if (shouldOpen) {
+        await loadConversationList(elements);
+    }
+};
+
+const loadAssistantConversation = async (conversationId) => {
+    const elements = assistantElements();
+
+    if (! elements?.historyUrl || ! conversationId) {
+        return;
+    }
+
+    const url = new URL(elements.historyUrl, window.location.origin);
+    url.searchParams.set('conversation_id', conversationId);
+    elements.status.textContent = 'Loading previous MIS conversation...';
+
+    try {
+        const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+
+        if (! response.ok) {
+            throw new Error('Conversation load failed.');
+        }
+
+        const data = await response.json();
+        assistantConversationId = data.conversation_id || null;
+        renderAssistantHistory(elements, data.messages);
+        elements.historyPanel.hidden = true;
+        elements.status.textContent = 'Previous MIS conversation loaded.';
+        elements.input.focus();
+    } catch {
+        elements.status.textContent = 'That MIS conversation could not be loaded.';
+    }
+};
+
 const startAssistantConversation = async () => {
     const elements = assistantElements();
 
@@ -74,6 +193,9 @@ const startAssistantConversation = async () => {
     renderAssistantWelcome(elements);
     elements.status.textContent = 'New MIS chat ready.';
     elements.input.value = '';
+    if (elements.historyPanel) {
+        elements.historyPanel.hidden = true;
+    }
     elements.input.focus();
 
     if (! elements.newUrl) {
@@ -198,6 +320,17 @@ document.addEventListener('click', (event) => {
     if (event.target.closest('[data-assistant-new]')) {
         startAssistantConversation();
         return;
+    }
+
+    if (event.target.closest('[data-assistant-history-toggle]')) {
+        toggleAssistantHistory();
+        return;
+    }
+
+    const conversation = event.target.closest('[data-assistant-conversation]');
+
+    if (conversation) {
+        loadAssistantConversation(conversation.dataset.assistantConversation);
     }
 });
 

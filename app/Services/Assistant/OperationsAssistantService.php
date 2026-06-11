@@ -70,12 +70,42 @@ class OperationsAssistantService
         ];
     }
 
-    public function history(User $user): array
+    public function conversations(User $user): array
     {
-        $conversation = AiConversation::query()
-            ->where('user_id', $user->id)
-            ->latest('updated_at')
-            ->first();
+        return [
+            'conversations' => AiConversation::query()
+                ->where('user_id', $user->id)
+                ->with('latestMessage')
+                ->withCount('messages')
+                ->latest('updated_at')
+                ->limit(20)
+                ->get()
+                ->map(function (AiConversation $conversation): array {
+                    $latestMessage = $conversation->latestMessage;
+                    $title = $conversation->title;
+
+                    if ($latestMessage && $title === 'New MIS chat') {
+                        $title = Str::limit($latestMessage->content, 70);
+                    }
+
+                    return [
+                        'id' => $conversation->id,
+                        'title' => $title,
+                        'message_count' => $conversation->messages_count,
+                        'latest_message' => $latestMessage?->content,
+                        'updated_at' => $conversation->updated_at?->toIso8601String(),
+                    ];
+                })
+                ->all(),
+        ];
+    }
+
+    public function history(User $user, ?int $conversationId = null): array
+    {
+        $query = AiConversation::query()->where('user_id', $user->id);
+        $conversation = $conversationId
+            ? $query->find($conversationId)
+            : $query->latest('updated_at')->first();
 
         if (! $conversation) {
             return [
