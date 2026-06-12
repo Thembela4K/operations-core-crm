@@ -30,7 +30,7 @@ class OperationsAssistantService
             $this->contextForMessage($user, $message),
         );
 
-        $result = $this->assistantResult($completion);
+        $result = $this->assistantResult($completion, $message);
 
         $conversation->messages()->create([
             'role' => 'assistant',
@@ -180,7 +180,7 @@ class OperationsAssistantService
             ->all();
     }
 
-    private function assistantResult(array $completion): array
+    private function assistantResult(array $completion, string $message): array
     {
         if (! ($completion['ok'] ?? false)) {
             return [
@@ -192,7 +192,10 @@ class OperationsAssistantService
             ];
         }
 
-        $action = $this->actionExecutor->execute($completion['action'] ?? null);
+        $requestedNavigation = $this->allowsNavigation($message);
+        $action = $requestedNavigation
+            ? $this->actionExecutor->execute($completion['action'] ?? null)
+            : null;
 
         return [
             'intent' => $action ? 'ai_action' : 'ai_answer',
@@ -201,6 +204,36 @@ class OperationsAssistantService
             'filters' => is_array($completion['action']['filters'] ?? null) ? $completion['action']['filters'] : [],
             'assistant_mode' => 'remote_ai',
         ];
+    }
+
+    private function allowsNavigation(string $message): bool
+    {
+        $text = Str::of($message)->lower()->squish()->toString();
+
+        if ($this->isAnalysisQuestion($text)) {
+            return false;
+        }
+
+        if ((bool) preg_match('/\b(open|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text)) {
+            return true;
+        }
+
+        if (! (bool) preg_match('/\b(show|list|view)\b/i', $text)) {
+            return false;
+        }
+
+        return (bool) preg_match(
+            '/\b(tender|proposal|quotation request|request quotation|rfq|requisition|task|document|file|invoice|sales quotation|quote|client|customer|supplier|approval|attendance|report|notification|overdue|pending|submitted|unpaid|paid|due|approved|rejected|draft|finished|active|inactive|last month|this month|today|tomorrow|yesterday)\b/i',
+            $text,
+        );
+    }
+
+    private function isAnalysisQuestion(string $text): bool
+    {
+        return (bool) preg_match(
+            '/\b(how are|how is|how do|how did|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|explain|what is|what are|what should|what can)\b/i',
+            $text,
+        );
     }
 
     private function contextForMessage(User $user, string $message): array

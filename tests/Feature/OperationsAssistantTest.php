@@ -229,6 +229,27 @@ class OperationsAssistantTest extends TestCase
         $this->assertStringContainsString('payment_state=unpaid', $response->json('action.url'));
     }
 
+    public function test_assistant_does_not_navigate_for_analysis_questions(): void
+    {
+        $this->configureAi([
+            'reply' => 'Sales are strong in quotation volume, but conversion is weak because only one invoice has been generated.',
+            'action' => [
+                'type' => 'navigate',
+                'module' => 'sales_quotations',
+                'filters' => [],
+                'auto' => true,
+            ],
+        ]);
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'how are our sales? where are we falling short?',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Sales are strong in quotation volume, but conversion is weak because only one invoice has been generated.');
+        $response->assertJsonPath('action', null);
+    }
+
     public function test_assistant_history_returns_latest_conversation_messages(): void
     {
         $this->configureAi([

@@ -1,5 +1,40 @@
 let assistantConversationId = null;
 
+const assistantOpenStorageKey = 'datamatics-mis-assistant-open';
+const assistantConversationStorageKey = 'datamatics-mis-assistant-conversation-id';
+
+const readAssistantStorage = (key) => {
+    try {
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
+const writeAssistantStorage = (key, value) => {
+    try {
+        if (value === null || value === undefined || value === '') {
+            window.localStorage.removeItem(key);
+            return;
+        }
+
+        window.localStorage.setItem(key, String(value));
+    } catch {
+        // Browser storage can be disabled; the assistant still works without persistence.
+    }
+};
+
+const rememberAssistantOpen = (open) => {
+    writeAssistantStorage(assistantOpenStorageKey, open ? '1' : null);
+};
+
+const rememberAssistantConversation = (conversationId) => {
+    assistantConversationId = conversationId || null;
+    writeAssistantStorage(assistantConversationStorageKey, assistantConversationId);
+};
+
+const storedAssistantConversation = () => readAssistantStorage(assistantConversationStorageKey);
+
 const assistantElements = () => {
     const shell = document.querySelector('[data-assistant]');
 
@@ -189,7 +224,7 @@ const loadAssistantConversation = async (conversationId) => {
         }
 
         const data = await response.json();
-        assistantConversationId = data.conversation_id || null;
+        rememberAssistantConversation(data.conversation_id || null);
         renderAssistantHistory(elements, data.messages);
         elements.historyPanel.hidden = true;
         elements.status.textContent = 'Previous MIS conversation loaded.';
@@ -206,7 +241,7 @@ const startAssistantConversation = async () => {
         return;
     }
 
-    assistantConversationId = null;
+    rememberAssistantConversation(null);
     renderAssistantWelcome(elements);
     elements.status.textContent = 'New MIS chat ready.';
     elements.input.value = '';
@@ -234,9 +269,9 @@ const startAssistantConversation = async () => {
         }
 
         const data = await response.json();
-        assistantConversationId = data.conversation_id || null;
+        rememberAssistantConversation(data.conversation_id || null);
     } catch {
-        assistantConversationId = null;
+        rememberAssistantConversation(null);
     }
 };
 
@@ -249,13 +284,24 @@ const openAssistant = async () => {
 
     elements.shell.hidden = false;
     document.body.classList.add('assistant-open');
+    rememberAssistantOpen(true);
     setTimeout(() => elements.input?.focus(), 50);
+
+    if (! assistantConversationId) {
+        assistantConversationId = storedAssistantConversation();
+    }
 
     if (! elements.shell.dataset.historyLoaded && elements.historyUrl) {
         try {
-            const response = await fetch(elements.historyUrl, { headers: { Accept: 'application/json' } });
+            const url = new URL(elements.historyUrl, window.location.origin);
+
+            if (assistantConversationId) {
+                url.searchParams.set('conversation_id', assistantConversationId);
+            }
+
+            const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
             const data = await response.json();
-            assistantConversationId = data.conversation_id || assistantConversationId;
+            rememberAssistantConversation(data.conversation_id || assistantConversationId);
             renderAssistantHistory(elements, data.messages);
             elements.shell.dataset.historyLoaded = '1';
         } catch {
@@ -273,6 +319,7 @@ const closeAssistant = () => {
 
     elements.shell.hidden = true;
     document.body.classList.remove('assistant-open');
+    rememberAssistantOpen(false);
 };
 
 const submitAssistantMessage = async (prompt = null) => {
@@ -307,12 +354,14 @@ const submitAssistantMessage = async (prompt = null) => {
         }
 
         const data = await response.json();
-        assistantConversationId = data.conversation_id || assistantConversationId;
+        rememberAssistantConversation(data.conversation_id || assistantConversationId);
         removeAssistantTyping(typingMessage);
         appendAssistantMessage(elements, 'bot', data.reply || 'I found a matching CRM action.');
 
         if (data.action?.type === 'navigate' && data.action.url && data.action.auto) {
             elements.status.textContent = 'Opening the filtered CRM page...';
+            rememberAssistantOpen(true);
+            rememberAssistantConversation(assistantConversationId);
             setTimeout(() => {
                 window.location.href = data.action.url;
             }, 850);
@@ -351,6 +400,12 @@ document.addEventListener('click', (event) => {
 
     if (conversation) {
         loadAssistantConversation(conversation.dataset.assistantConversation);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (readAssistantStorage(assistantOpenStorageKey) === '1') {
+        openAssistant();
     }
 });
 
