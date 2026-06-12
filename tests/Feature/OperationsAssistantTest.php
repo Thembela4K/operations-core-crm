@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\AiConversation;
 use App\Models\Client;
+use App\Models\CrmTask;
 use App\Models\Invoice;
 use App\Models\SalesQuotation;
 use App\Models\Supplier;
@@ -41,16 +42,16 @@ class OperationsAssistantTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_assistant_returns_clear_message_when_ai_is_not_configured(): void
+    public function test_assistant_returns_clear_message_when_ai_is_not_configured_for_open_ended_prompt(): void
     {
         $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'hi',
+            'message' => 'help me think through a better follow-up process',
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $response->assertJsonPath('reply', "I'm here, Thembela. What would you like to check?");
+        $this->assertStringContainsString('MIS is having trouble reaching the live AI service', $response->json('reply'));
     }
 
     public function test_assistant_returns_quota_message_when_provider_rate_limits(): void
@@ -59,7 +60,7 @@ class OperationsAssistantTest extends TestCase
         $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'hi',
+            'message' => 'help me think through a better follow-up process',
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
@@ -98,7 +99,7 @@ class OperationsAssistantTest extends TestCase
         $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'hi',
+            'message' => 'draft a professional greeting',
         ])->assertOk();
 
         $response->assertJsonPath('reply', 'Hello Temnotfo Malinga! How can I assist you today?');
@@ -128,19 +129,16 @@ class OperationsAssistantTest extends TestCase
         $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'hi',
+            'message' => 'draft a short greeting',
         ])->assertOk();
 
         $response->assertJsonPath('reply', "Hello Temnotfo\nHow can I assist?");
         $response->assertJsonPath('action', null);
     }
 
-    public function test_assistant_answers_count_questions_from_light_ai_context_without_navigation(): void
+    public function test_assistant_answers_count_questions_locally_without_navigation(): void
     {
-        $this->configureAi([
-            'reply' => 'We have 2 suppliers in the CRM.',
-            'action' => null,
-        ]);
+        $this->configureAiTimeout();
         $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
 
         Supplier::query()->create([
@@ -159,11 +157,8 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertSame('We have 2 suppliers in the CRM.', $response->json('reply'));
-
-        Http::assertSent(fn ($request): bool => str_contains($request->body(), '\\"context_mode\\":\\"light\\"')
-            && ! str_contains($request->body(), 'Alpha Supplies')
-            && str_contains($request->body(), '\\"suppliers\\":2'));
+        $this->assertSame('There are 2 suppliers in the CRM.', $response->json('reply'));
+        Http::assertNothingSent();
     }
 
     public function test_assistant_uses_light_context_for_identity_questions(): void
@@ -225,10 +220,62 @@ class OperationsAssistantTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_assistant_answers_open_task_question_without_navigating(): void
+    {
+        $this->configureAiTimeout();
+        $department = $this->department('MIS Department');
+        $user = $this->user('Thembela Mthimkhulu', User::ROLE_DEPARTMENT_USER, $department);
+        CrmTask::query()->create([
+            'department_id' => $department->id,
+            'assigned_to' => $user->id,
+            'created_by' => $user->id,
+            'task_number' => 'TSK-001',
+            'title' => 'Prepare client report',
+            'status' => CrmTask::STATUS_TO_DO,
+            'priority' => 'Medium',
+            'due_date' => now()->addDay()->toDateString(),
+        ]);
+        CrmTask::query()->create([
+            'department_id' => $department->id,
+            'assigned_to' => $user->id,
+            'created_by' => $user->id,
+            'task_number' => 'TSK-002',
+            'title' => 'Completed work',
+            'status' => CrmTask::STATUS_DONE,
+            'priority' => 'Medium',
+            'due_date' => now()->toDateString(),
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'do i have open tasks or pending work to do',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('Yes, you have 1 open task', $response->json('reply'));
+        $this->assertStringContainsString('TSK-001 - Prepare client report', $response->json('reply'));
+        Http::assertNothingSent();
+    }
+
+    public function test_assistant_uses_valid_task_status_when_opening_pending_tasks(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'open pending tasks',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Opening Tasks.');
+        $response->assertJsonPath('action.type', 'navigate');
+        $this->assertStringContainsString('/tasks?', $response->json('action.url'));
+        $this->assertStringContainsString('status=To%20Do', $response->json('action.url'));
+        Http::assertNothingSent();
+    }
+
     public function test_assistant_does_not_navigate_for_analysis_questions(): void
     {
         $this->configureAi([
-            'reply' => 'Sales are strong in quotation volume, but conversion is weak because only one invoice has been generated.',
+            'reply' => 'Finance needs attention around quotation conversion and invoice follow-through.',
             'action' => [
                 'type' => 'navigate',
                 'module' => 'sales_quotations',
@@ -239,10 +286,10 @@ class OperationsAssistantTest extends TestCase
         $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
-            'message' => 'how are our sales? where are we falling short?',
+            'message' => 'what should I inspect in finance?',
         ])->assertOk();
 
-        $response->assertJsonPath('reply', 'Sales are strong in quotation volume, but conversion is weak because only one invoice has been generated.');
+        $response->assertJsonPath('reply', 'Finance needs attention around quotation conversion and invoice follow-through.');
         $response->assertJsonPath('action', null);
     }
 

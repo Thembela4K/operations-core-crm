@@ -30,6 +30,10 @@ class OperationsAssistantService
         $result = $this->localAssistantResponder->navigation($user, $message, $history);
 
         if (! $result) {
+            $result = $this->localAssistantResponder->answer($user, $message, $crmContext, $history);
+        }
+
+        if (! $result) {
             $completion = $this->remoteAssistantProvider->complete(
                 $user,
                 $history,

@@ -2,6 +2,7 @@
 
 namespace App\Services\Assistant;
 
+use App\Models\CrmTask;
 use App\Models\Invoice;
 use App\Models\SalesQuotation;
 use App\Models\User;
@@ -53,6 +54,10 @@ class LocalAssistantResponder
     {
         $text = $this->normalize($message);
 
+        if ($this->asksTaskWorkloadQuestion($text)) {
+            return $this->taskWorkloadResult($user);
+        }
+
         if ($this->looksLikeNavigationFollowUp($text)) {
             return null;
         }
@@ -95,6 +100,10 @@ class LocalAssistantResponder
     private function requestedNavigationModule(string $message, array $history): ?string
     {
         $text = $this->normalize($message);
+
+        if ($this->asksTaskWorkloadQuestion($text)) {
+            return null;
+        }
 
         if ($this->isAnalysisQuestion($text)) {
             return null;
@@ -237,11 +246,80 @@ class LocalAssistantResponder
             return $status ? ['status' => $status] : [];
         }
 
-        if (in_array($module, ['tasks', 'requisitions'], true) && str_contains($text, 'pending')) {
-            return ['status' => 'Pending'];
+        if ($module === 'tasks') {
+            if (str_contains($text, 'pending') || str_contains($text, 'to do') || str_contains($text, 'todo')) {
+                return ['status' => CrmTask::STATUS_TO_DO];
+            }
+
+            if (str_contains($text, 'progress')) {
+                return ['status' => CrmTask::STATUS_IN_PROGRESS];
+            }
+
+            if (str_contains($text, 'blocked')) {
+                return ['status' => CrmTask::STATUS_BLOCKED];
+            }
+        }
+
+        if ($module === 'requisitions' && str_contains($text, 'pending')) {
+            return ['status' => 'Submitted'];
         }
 
         return [];
+    }
+
+    private function taskWorkloadResult(User $user): array
+    {
+        $openStatuses = [
+            CrmTask::STATUS_TO_DO,
+            CrmTask::STATUS_IN_PROGRESS,
+            CrmTask::STATUS_BLOCKED,
+        ];
+        $openQuery = CrmTask::query()
+            ->visibleTo($user)
+            ->whereIn('status', $openStatuses);
+        $openCount = (clone $openQuery)->count();
+        $overdueCount = (clone $openQuery)
+            ->whereDate('due_date', '<', now()->toDateString())
+            ->count();
+        $openTasks = (clone $openQuery)
+            ->with(['assignee:id,name', 'department:id,name'])
+            ->orderByRaw('due_date is null, due_date asc')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        if ($openCount === 0) {
+            return [
+                'intent' => 'local_task_answer',
+                'reply' => 'No, I do not see any open tasks or pending work in your task list right now.',
+                'action' => null,
+                'filters' => [],
+                'assistant_mode' => 'local_fallback',
+            ];
+        }
+
+        $examples = $openTasks
+            ->map(fn (CrmTask $task): string => trim($task->task_number.' - '.$task->title))
+            ->implode('; ');
+        $reply = "Yes, you have {$openCount} open {$this->plural('task', $openCount)}";
+
+        if ($overdueCount > 0) {
+            $reply .= ", including {$overdueCount} overdue";
+        }
+
+        $reply .= '.';
+
+        if ($examples !== '') {
+            $reply .= ' Nearest items: '.$examples.'.';
+        }
+
+        return [
+            'intent' => 'local_task_answer',
+            'reply' => $reply,
+            'action' => null,
+            'filters' => [],
+            'assistant_mode' => 'local_fallback',
+        ];
     }
 
     private function moduleLabel(string $module): string
@@ -277,6 +355,12 @@ class LocalAssistantResponder
     private function asksDocumentCount(string $text): bool
     {
         return $this->isCountQuestion($text) && (str_contains($text, 'document') || str_contains($text, 'file'));
+    }
+
+    private function asksTaskWorkloadQuestion(string $text): bool
+    {
+        return (bool) preg_match('/\b(do i have|do we have|have i got|any|are there|what)\b/i', $text)
+            && (bool) preg_match('/\b(open task|open tasks|pending task|pending tasks|pending work|work to do|todo|to do|assigned task|assigned tasks)\b/i', $text);
     }
 
     private function asksSalesHealth(string $text): bool
