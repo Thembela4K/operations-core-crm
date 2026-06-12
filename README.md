@@ -123,11 +123,15 @@ Set the AI values privately in `.env`; never commit the real key:
 ```env
 AI_PROVIDER=nvidia
 AI_REMOTE_ENABLED=true
+AI_HTTP_VERIFY=true
 NVIDIA_API_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
 NVIDIA_AI_MODEL=deepseek-ai/deepseek-v4-pro
+AI_TIMEOUT_SECONDS=60
 AI_CONTEXT_RECORD_LIMIT=500
 ```
+
+Use `AI_HTTP_VERIFY=false` only on a local development machine when PHP cURL is configured with a broken certificate path. Keep it `true` on Hostinger/production.
 
 If the API key is missing, the API is unavailable, or quota is exceeded, MIS shows a clear retry-later message instead of falling back to hard-coded answers.
 

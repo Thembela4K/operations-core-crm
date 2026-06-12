@@ -16,10 +16,18 @@ class RemoteAssistantProvider
             && filled(config('services.assistant_ai.nvidia.api_key'));
     }
 
-    public function unavailableReply(?int $status = null): string
+    public function unavailableReply(?int $status = null, ?string $reason = null): string
     {
         if ($status === 429) {
             return 'MIS AI quota has been exceeded. Please try again later.';
+        }
+
+        if (in_array($status, [401, 403], true)) {
+            return 'MIS AI could not authenticate with the configured API key. Please check the NVIDIA API key and try again.';
+        }
+
+        if (is_string($reason) && str_contains(strtolower($reason), 'timed out')) {
+            return 'MIS AI request timed out. The NVIDIA service may be busy or quota-limited. Please try again later.';
         }
 
         return 'MIS AI service is unavailable right now, or the quota may be exceeded. Please try again later.';
@@ -42,6 +50,9 @@ class RemoteAssistantProvider
             $response = Http::withToken(config('services.assistant_ai.nvidia.api_key'))
                 ->acceptJson()
                 ->timeout(config('services.assistant_ai.nvidia.timeout'))
+                ->withOptions([
+                    'verify' => $this->verifyOption(),
+                ])
                 ->post(rtrim(config('services.assistant_ai.nvidia.base_url'), '/').'/chat/completions', [
                     'model' => config('services.assistant_ai.nvidia.model'),
                     'messages' => $this->messages($user, $history, $crmContext),
@@ -93,6 +104,27 @@ class RemoteAssistantProvider
                 'status' => null,
             ];
         }
+    }
+
+    private function verifyOption(): bool|string
+    {
+        $verify = config('services.assistant_ai.nvidia.verify', true);
+
+        if (is_bool($verify)) {
+            return $verify;
+        }
+
+        if (! is_string($verify)) {
+            return true;
+        }
+
+        $normalized = strtolower(trim($verify));
+
+        return match ($normalized) {
+            'false', '0', 'off', 'no' => false,
+            'true', '1', 'on', 'yes', '' => true,
+            default => $verify,
+        };
     }
 
     /**

@@ -15,6 +15,13 @@ class OperationsAssistantTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('services.assistant_ai.nvidia.api_key', null);
+    }
+
     protected function tearDown(): void
     {
         Carbon::setTestNow();
