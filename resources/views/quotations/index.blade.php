@@ -11,8 +11,8 @@
         @endif
     </div>
 
-    <form method="GET" class="panel mt-6 grid gap-3 xl:grid-cols-[1.2fr_160px_160px_190px_165px_165px_150px_150px_auto]">
-        <input class="input" name="search" placeholder="Search quotation requests" value="{{ request('search') }}">
+    <form method="GET" class="panel filter-panel">
+        <input class="input filter-search" name="search" placeholder="Search quotation requests" value="{{ request('search') }}">
         <select class="input" name="status">
             <option value="">All statuses</option>
             @foreach($statuses as $status)
@@ -53,7 +53,7 @@
         </select>
         <input class="input" type="date" name="date_from" value="{{ request('date_from') }}">
         <input class="input" type="date" name="date_to" value="{{ request('date_to') }}">
-        <div class="flex gap-2">
+        <div class="filter-actions">
             <button class="btn-secondary" type="submit">Filter</button>
             <a class="btn-secondary" href="{{ route('quotations.index') }}">Reset</a>
         </div>

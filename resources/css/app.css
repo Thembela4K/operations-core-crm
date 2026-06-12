@@ -685,6 +685,33 @@
         @apply w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[#087aa5] focus:ring-4 focus:ring-sky-100;
     }
 
+    .filter-panel {
+        @apply mt-6 grid items-end gap-3;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    }
+
+    .filter-panel > * {
+        min-width: 0;
+    }
+
+    .filter-search {
+        @apply min-w-0;
+    }
+
+    .filter-actions {
+        @apply flex min-w-0 flex-wrap gap-2;
+    }
+
+    .filter-actions .btn-secondary {
+        @apply flex-1 whitespace-nowrap sm:flex-none;
+    }
+
+    @media (min-width: 1280px) {
+        .filter-search {
+            grid-column: span 2;
+        }
+    }
+
     .btn-primary {
         @apply inline-flex items-center justify-center rounded-lg bg-[#087aa5] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(8,122,165,0.18)] transition hover:-translate-y-0.5 hover:bg-[#075f82] hover:shadow-[0_14px_26px_rgba(8,122,165,0.24)];
     }
