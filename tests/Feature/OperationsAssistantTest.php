@@ -78,7 +78,7 @@ class OperationsAssistantTest extends TestCase
         $this->assertSame('Yes, I know of ChatGPT. I am MIS, focused on helping with this portal.', $response->json('reply'));
 
         Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer testing-key')
-            && $request['model'] === 'deepseek-ai/deepseek-v4-pro'
+            && $request['model'] === 'nvidia/llama-3.3-nemotron-super-49b-v1'
             && $request['stream'] === false);
     }
 
@@ -185,7 +185,7 @@ class OperationsAssistantTest extends TestCase
         config()->set('services.assistant_ai.remote_enabled', true);
         config()->set('services.assistant_ai.nvidia.api_key', 'testing-key');
         config()->set('services.assistant_ai.nvidia.base_url', 'https://integrate.api.nvidia.com/v1');
-        config()->set('services.assistant_ai.nvidia.model', 'deepseek-ai/deepseek-v4-pro');
+        config()->set('services.assistant_ai.nvidia.model', 'nvidia/llama-3.3-nemotron-super-49b-v1');
 
         Http::fake([
             'https://integrate.api.nvidia.com/v1/chat/completions' => Http::response(

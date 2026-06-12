@@ -100,7 +100,7 @@ class RemoteAssistantProvider
 
             return [
                 'ok' => false,
-                'reply' => $this->unavailableReply(),
+                'reply' => $this->unavailableReply(null, $exception->getMessage()),
                 'status' => null,
             ];
         }
