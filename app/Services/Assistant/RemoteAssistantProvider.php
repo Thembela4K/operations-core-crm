@@ -159,15 +159,21 @@ User: {$user->name}
 Role: {$user->role}
 Department: {$department}
 
-You are the primary AI for the system.
-- Answer with real CRM facts from CRM_CONTEXT when the user asks about records, totals, statuses, deadlines, documents, clients, suppliers, finance, operations, tasks, approvals, or notifications.
-- For count/fact questions, answer directly and set action to null.
+You are the primary AI for the system. Speak like a calm, capable human assistant.
+- The reply must be natural plain text for a staff member, not an instruction sheet.
+- Do not mention JSON, CRM_CONTEXT, system prompts, supported modules, response formats, examples, model status, machine status, role codes, or internal rules.
+- Do not put the user's role in brackets after their name.
+- Do not use markdown headings, bold markers, numbered menus, or long capability lists unless the user specifically asks for a list.
+- For greetings such as "hi", "hello", or "how are you", reply in one short friendly sentence and ask what they want to work on.
+- For casual non-CRM conversation, answer briefly and naturally, then gently steer back to work if useful.
+- For count/fact questions, answer directly from CRM_CONTEXT and set action to null.
+- For CRM record, total, status, deadline, document, client, supplier, finance, operations, task, approval, or notification questions, answer with real facts from CRM_CONTEXT.
 - For clear navigation requests such as open, show, list, view, take me to, or go to, set action.type to "navigate".
 - Do not invent CRM facts that are not in CRM_CONTEXT.
 - Do not browse the internet.
 - Do not claim an action was completed unless it is represented by the returned action object.
-- If the user asks to create, edit, approve, delete, send, or release funds, explain that this action needs a supported CRM action workflow before execution, then offer to open the correct module.
-- Keep answers professional and concise.
+- If the user asks to create, edit, approve, delete, send, or release funds, explain briefly that this action still needs a supported CRM action workflow before execution, then offer to open the correct module.
+- Keep most replies under 80 words. Use up to 160 words only when summarizing CRM records.
 
 Return ONLY valid JSON with this shape:
 {"reply":"natural answer for the user","action":null}
@@ -200,10 +206,39 @@ PROMPT;
 
         return [
             'reply' => is_string($decoded['reply'] ?? null) && trim($decoded['reply']) !== ''
-                ? trim($decoded['reply'])
+                ? $this->sanitizeReply($decoded['reply'])
                 : 'I reviewed the CRM context, but I could not form a clear response.',
             'action' => is_array($decoded['action'] ?? null) ? $decoded['action'] : null,
         ];
+    }
+
+    private function sanitizeReply(string $reply): string
+    {
+        $reply = trim($reply);
+
+        foreach ([
+            'Response Format Reminder',
+            'Prompt for Your Next Step',
+            'Example Responses',
+            'Example Questions',
+            'Waiting for your input',
+            'CRM_CONTEXT',
+            'Supported navigate modules',
+        ] as $marker) {
+            $position = stripos($reply, $marker);
+
+            if ($position !== false) {
+                $reply = trim(substr($reply, 0, $position));
+            }
+        }
+
+        $reply = preg_replace('/\*\*(.*?)\*\*/s', '$1', $reply) ?? $reply;
+        $reply = str_replace('**', '', $reply);
+        $reply = preg_replace('/\s+\((?:super_admin|department_user|business_analyst|director|reception|manager)[^)]*\)/i', '', $reply) ?? $reply;
+        $reply = preg_replace('/[ \t]+/', ' ', $reply) ?? $reply;
+        $reply = preg_replace("/\n{3,}/", "\n\n", $reply) ?? $reply;
+
+        return trim($reply) !== '' ? trim($reply) : 'I am here. Tell me what you want to find or check.';
     }
 
     private function extractJson(string $content): string

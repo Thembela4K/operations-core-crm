@@ -131,7 +131,7 @@ AI_TEMPERATURE=0.2
 AI_TOP_P=0.7
 AI_MAX_TOKENS=1024
 AI_TIMEOUT_SECONDS=60
-AI_CONTEXT_RECORD_LIMIT=500
+AI_CONTEXT_RECORD_LIMIT=120
 ```
 
 Use `AI_HTTP_VERIFY=false` only on a local development machine when PHP cURL is configured with a broken certificate path. Keep it `true` on Hostinger/production.

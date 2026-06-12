@@ -42,7 +42,7 @@ return [
     'assistant_ai' => [
         'provider' => env('AI_PROVIDER', 'nvidia'),
         'remote_enabled' => filter_var(env('AI_REMOTE_ENABLED', true), FILTER_VALIDATE_BOOL),
-        'context_record_limit' => (int) env('AI_CONTEXT_RECORD_LIMIT', 500),
+        'context_record_limit' => (int) env('AI_CONTEXT_RECORD_LIMIT', 120),
         'nvidia' => [
             'base_url' => env('NVIDIA_API_BASE_URL', 'https://integrate.api.nvidia.com/v1'),
             'api_key' => env('NVIDIA_API_KEY'),

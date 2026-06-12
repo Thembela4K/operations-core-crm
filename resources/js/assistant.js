@@ -50,6 +50,23 @@ const appendAssistantMessage = (elements, role, text) => {
     scrollAssistant(elements);
 };
 
+const appendAssistantTyping = (elements) => {
+    const message = document.createElement('div');
+    message.className = 'assistant-message assistant-message-bot assistant-message-typing';
+    message.dataset.assistantTyping = 'true';
+    message.innerHTML = '<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M8 3h8M6 8h12a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3ZM8.5 13h.01M15.5 13h.01M9 17h6" /></svg>MIS</span><div class="assistant-typing" aria-label="MIS is typing"><i></i><i></i><i></i></div>';
+    elements.messages.appendChild(message);
+    scrollAssistant(elements);
+
+    return message;
+};
+
+const removeAssistantTyping = (typingMessage) => {
+    if (typingMessage?.isConnected) {
+        typingMessage.remove();
+    }
+};
+
 const renderAssistantHistory = (elements, messages) => {
     if (! Array.isArray(messages) || messages.length === 0) {
         renderAssistantWelcome(elements);
@@ -269,6 +286,7 @@ const submitAssistantMessage = async (prompt = null) => {
     appendAssistantMessage(elements, 'user', message);
     elements.input.value = '';
     setAssistantBusy(elements, true);
+    const typingMessage = appendAssistantTyping(elements);
 
     try {
         const response = await fetch(elements.messageUrl, {
@@ -290,6 +308,7 @@ const submitAssistantMessage = async (prompt = null) => {
 
         const data = await response.json();
         assistantConversationId = data.conversation_id || assistantConversationId;
+        removeAssistantTyping(typingMessage);
         appendAssistantMessage(elements, 'bot', data.reply || 'I found a matching CRM action.');
 
         if (data.action?.type === 'navigate' && data.action.url && data.action.auto) {
@@ -301,6 +320,7 @@ const submitAssistantMessage = async (prompt = null) => {
             setAssistantBusy(elements, false);
         }
     } catch {
+        removeAssistantTyping(typingMessage);
         appendAssistantMessage(elements, 'bot', 'I could not complete that request. Try a specific module, record type, or date range.');
         setAssistantBusy(elements, false);
     }

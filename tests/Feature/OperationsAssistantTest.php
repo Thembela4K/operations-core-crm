@@ -82,6 +82,23 @@ class OperationsAssistantTest extends TestCase
             && $request['stream'] === false);
     }
 
+    public function test_assistant_cleans_model_meta_text_from_replies(): void
+    {
+        $this->configureAi([
+            'reply' => 'Hello Temnotfo Malinga (super_admin, Admin - Reception)! How can I assist you today? **Response Format Reminder:** tell me what to do next.',
+            'action' => null,
+        ]);
+
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'hi',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Hello Temnotfo Malinga! How can I assist you today?');
+        $response->assertJsonPath('action', null);
+    }
+
     public function test_assistant_answers_count_questions_from_ai_context_without_navigation(): void
     {
         $this->configureAi([
