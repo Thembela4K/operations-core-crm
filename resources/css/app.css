@@ -14,6 +14,8 @@
     :root {
         --brand-blue: #087aa5;
         --brand-blue-dark: #075f82;
+        --brand-line: #c9e2ec;
+        --brand-line-soft: #e7f2f7;
         --brand-teal: #0f766e;
         --brand-ink: #1f2933;
     }
@@ -408,7 +410,7 @@
 
     .module-nav {
         @apply mt-4 flex gap-2 overflow-x-auto pb-1 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-2 lg:pr-1;
-        scrollbar-color: #9ca3af #f3f4f6;
+        scrollbar-color: var(--brand-blue) var(--brand-line-soft);
         scrollbar-gutter: stable;
         scrollbar-width: thin;
     }
@@ -419,18 +421,18 @@
     }
 
     .module-nav::-webkit-scrollbar-track {
-        background: #f3f4f6;
+        background: var(--brand-line-soft);
         border-radius: 999px;
     }
 
     .module-nav::-webkit-scrollbar-thumb {
-        background: #9ca3af;
-        border: 2px solid #f3f4f6;
+        background: var(--brand-blue);
+        border: 2px solid var(--brand-line-soft);
         border-radius: 999px;
     }
 
     .module-nav::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
+        background: var(--brand-blue-dark);
     }
 
     .module-nav-link {
@@ -1300,5 +1302,67 @@
 
     .password-toggle {
         @apply absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-[#087aa5] focus:outline-none focus:ring-2 focus:ring-[#087aa5]/20;
+    }
+
+    :is(
+        .app-header,
+        .global-header,
+        .global-user,
+        .assistant-drawer,
+        .assistant-header,
+        .assistant-history-panel,
+        .assistant-history-heading,
+        .assistant-form,
+        .app-sidebar,
+        .sidebar-head,
+        .sidebar-toggle,
+        .sidebar-footer,
+        .module-header,
+        .module-subnav,
+        .primary-nav,
+        .brand-logo,
+        .user-panel,
+        .panel,
+        .metric,
+        .metric-card,
+        .input,
+        .btn-secondary,
+        .data-table th,
+        .data-table td,
+        .date-label,
+        .finance-lines,
+        .finance-total-box,
+        .finance-total-box div,
+        .status-pill,
+        .correction-panel summary,
+        .correction-panel form,
+        .panel-heading,
+        .deadline-banner,
+        .deadline-countdown,
+        .deadline-countdown-grid em,
+        .workflow-grid div,
+        .trend-chart,
+        .trend-month,
+        .progress-row,
+        .compact-kpi,
+        .document-list-row,
+        .document-preview-note,
+        .document-preview-dialog,
+        .document-preview-header,
+        .login-card,
+        .login-brand-panel,
+        .login-access-note,
+        .document-preview-frame
+    ) {
+        border-color: var(--brand-line);
+    }
+
+    :is(
+        .data-table td,
+        .finance-total-box div,
+        .panel-heading,
+        .assistant-history-heading
+    ) {
+        border-color: var(--brand-line-soft);
     }
 }
