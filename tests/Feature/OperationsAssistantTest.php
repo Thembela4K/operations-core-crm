@@ -407,6 +407,37 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
     }
 
+    public function test_assistant_blocks_remote_navigation_for_explanation_and_no_navigation_prompts(): void
+    {
+        $this->configureAi([
+            'reply' => 'Here is the explanation without opening a page.',
+            'action' => [
+                'type' => 'navigate',
+                'module' => 'sales_quotations',
+                'filters' => [],
+                'auto' => true,
+            ],
+        ]);
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $prompts = [
+            'summarise sales quotations without navigating',
+            'before we open anything, explain invoices',
+            'show me how to use requisitions',
+            'guide me through documents',
+            'what should we improve in finance?',
+            'what can I do about sales quotations?',
+        ];
+
+        foreach ($prompts as $prompt) {
+            $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+                'message' => $prompt,
+            ])->assertOk();
+
+            $response->assertJsonPath('reply', 'Here is the explanation without opening a page.');
+            $response->assertJsonPath('action', null);
+        }
+    }
+
     public function test_assistant_answers_capability_questions_without_reusing_previous_navigation_target(): void
     {
         $this->configureAiTimeout();
