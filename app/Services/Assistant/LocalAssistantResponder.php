@@ -70,11 +70,21 @@ class LocalAssistantResponder
 
         $reply = match (true) {
             $this->asksDateOrTime($text) => $this->dateTimeReply(),
+            $this->asksVatQuestion($text) => 'VAT is fixed at 15% in this CRM.',
             $this->isGreeting($text) => "I'm here, {$this->firstName($user)}. What would you like to check?",
+            $this->asksGenericQuotationCount($text) => $this->quotationCountReply($crmContext),
             $this->asksSupplierCount($text) => $this->countReply('suppliers', 'supplier', $crmContext),
             $this->asksClientCount($text) => $this->countReply('clients', 'client', $crmContext),
+            $this->asksTenderCount($text) => $this->countReply('tender_proposals', 'tender proposal', $crmContext),
+            $this->asksQuotationRequestCount($text) => $this->countReply('quotation_requests', 'quotation request', $crmContext),
+            $this->asksSalesQuotationCount($text) => $this->countReply('sales_quotations', 'sales quotation', $crmContext),
+            $this->asksInvoiceCount($text) => $this->countReply('invoices', 'invoice', $crmContext),
+            $this->asksUnpaidInvoiceCount($text) => $this->countReply('unpaid_invoices', 'unpaid invoice', $crmContext),
+            $this->asksRequisitionCount($text) => $this->countReply('requisitions', 'requisition', $crmContext),
             $this->asksTaskCount($text) => $this->countReply('tasks', 'task', $crmContext),
             $this->asksDocumentCount($text) => $this->countReply('documents', 'document', $crmContext),
+            $this->asksUnreadNotificationCount($text) => $this->countReply('unread_notifications', 'unread notification', $crmContext),
+            $this->asksPendingApprovalCount($text) => $this->countReply('pending_approvals', 'pending approval', $crmContext),
             $this->asksInvoiceGeneration($conversationText) => $this->invoiceGenerationReply($user),
             $this->asksSalesHealth($conversationText) => $this->salesHealthReply($user),
             default => null,
@@ -113,6 +123,10 @@ class LocalAssistantResponder
             return null;
         }
 
+        if ($this->blocksNavigation($text)) {
+            return null;
+        }
+
         if ($this->isAnalysisQuestion($text)) {
             return null;
         }
@@ -138,7 +152,7 @@ class LocalAssistantResponder
 
     private function isAffirmativeNavigation(string $text): bool
     {
-        return (bool) preg_match('/\b(yes|yeah|yebo|ok|okay|please|go ahead|do that|show me|sow me|open it|view it|that one)\b/i', $text);
+        return (bool) preg_match('/^(yes|yeah|yebo|ok|okay|please|go ahead|do that|show me|sow me|open it|view it|that one)$/i', trim($text));
     }
 
     private function looksLikeNavigationFollowUp(string $text): bool
@@ -149,19 +163,23 @@ class LocalAssistantResponder
     private function isAnalysisQuestion(string $text): bool
     {
         return (bool) preg_match(
-            '/\b(how are|how is|how do|how did|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|explain|what is|what are|what should|what can)\b/i',
+            '/\b(how are|how is|how do|how did|how to|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|summarise|explain|guide me|teach me|walk me through|steps|procedure|process|what is|what are|what should|what can)\b/i',
+            $text,
+        );
+    }
+
+    private function blocksNavigation(string $text): bool
+    {
+        return (bool) preg_match(
+            "/\\b(without opening|without open|without navigating|without navigate|without taking me|before we open|before opening|don't open|do not open|dont open|don't navigate|do not navigate|dont navigate|not open|not navigate|no navigation|stay here)\\b/i",
             $text,
         );
     }
 
     private function asksCapabilityQuestion(string $text): bool
     {
-        if ((bool) preg_match('/\b(open|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text)) {
-            return false;
-        }
-
         return (bool) preg_match(
-            "/\\b(what can you do|what can'?t you do|what can you not do|things you can do|things you can'?t do|list of things you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update)\\b/i",
+            "/\\b(what can you do|what you can do|what u can do|what can'?t you do|what you can'?t do|what you cannot do|what are you capable of|things you can do|things you can'?t do|list of things you can|list of what you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update|do you support)\\b/i",
             $text,
         );
     }
@@ -389,9 +407,69 @@ class LocalAssistantResponder
         return $this->isCountQuestion($text) && str_contains($text, 'task');
     }
 
+    private function asksTenderCount(string $text): bool
+    {
+        return $this->isCountQuestion($text) && (str_contains($text, 'tender') || str_contains($text, 'proposal'));
+    }
+
+    private function asksQuotationRequestCount(string $text): bool
+    {
+        return $this->isCountQuestion($text)
+            && (str_contains($text, 'quotation request') || str_contains($text, 'quote request') || str_contains($text, 'rfq'));
+    }
+
+    private function asksSalesQuotationCount(string $text): bool
+    {
+        return $this->isCountQuestion($text)
+            && (str_contains($text, 'sales quotation') || str_contains($text, 'client quotation') || str_contains($text, 'estimate'));
+    }
+
+    private function asksGenericQuotationCount(string $text): bool
+    {
+        return $this->isCountQuestion($text)
+            && (str_contains($text, 'quotation') || str_contains($text, 'quote'))
+            && ! $this->asksQuotationRequestCount($text)
+            && ! $this->asksSalesQuotationCount($text);
+    }
+
+    private function asksInvoiceCount(string $text): bool
+    {
+        return $this->isCountQuestion($text)
+            && str_contains($text, 'invoice')
+            && ! str_contains($text, 'unpaid');
+    }
+
+    private function asksUnpaidInvoiceCount(string $text): bool
+    {
+        return $this->isCountQuestion($text) && str_contains($text, 'unpaid') && str_contains($text, 'invoice');
+    }
+
+    private function asksRequisitionCount(string $text): bool
+    {
+        return $this->isCountQuestion($text) && (str_contains($text, 'requisition') || str_contains($text, 'fund request'));
+    }
+
     private function asksDocumentCount(string $text): bool
     {
         return $this->isCountQuestion($text) && (str_contains($text, 'document') || str_contains($text, 'file'));
+    }
+
+    private function asksUnreadNotificationCount(string $text): bool
+    {
+        return $this->isCountQuestion($text)
+            && str_contains($text, 'unread')
+            && (str_contains($text, 'notification') || str_contains($text, 'alert'));
+    }
+
+    private function asksPendingApprovalCount(string $text): bool
+    {
+        return $this->isCountQuestion($text) && str_contains($text, 'pending') && str_contains($text, 'approval');
+    }
+
+    private function asksVatQuestion(string $text): bool
+    {
+        return (bool) preg_match('/\b(vat|tax rate|tax percentage)\b/i', $text)
+            && (bool) preg_match('/\b(what|how much|rate|percentage|percent)\b/i', $text);
     }
 
     private function asksTaskWorkloadQuestion(string $text): bool
@@ -428,6 +506,14 @@ class LocalAssistantResponder
         $label = Str::plural($singular, $count);
 
         return "There ".($count === 1 ? 'is' : 'are')." {$count} {$label} in the CRM.";
+    }
+
+    private function quotationCountReply(array $crmContext): string
+    {
+        $salesQuotations = (int) Arr::get($crmContext, 'counts.sales_quotations', 0);
+        $quotationRequests = (int) Arr::get($crmContext, 'counts.quotation_requests', 0);
+
+        return "There are {$salesQuotations} sales {$this->plural('quotation', $salesQuotations)} and {$quotationRequests} quotation {$this->plural('request', $quotationRequests)} in the CRM.";
     }
 
     private function salesHealthReply(User $user): string

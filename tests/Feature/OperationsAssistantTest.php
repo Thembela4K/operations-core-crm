@@ -5,11 +5,17 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\AiConversation;
 use App\Models\Client;
+use App\Models\CrmNotification;
 use App\Models\CrmTask;
+use App\Models\Document;
 use App\Models\Invoice;
+use App\Models\Quotation;
+use App\Models\Requisition;
 use App\Models\SalesQuotation;
 use App\Models\Supplier;
+use App\Models\TenderProposal;
 use App\Models\User;
+use App\Services\Assistant\LocalAssistantResponder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
@@ -158,6 +164,114 @@ class OperationsAssistantTest extends TestCase
 
         $response->assertJsonPath('action', null);
         $this->assertSame('There are 2 suppliers in the CRM.', $response->json('reply'));
+        Http::assertNothingSent();
+    }
+
+    public function test_assistant_answers_core_count_questions_locally(): void
+    {
+        $this->configureAiTimeout();
+        $department = $this->department('MIS Department');
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN, $department);
+        $client = Client::query()->create([
+            'client_code' => 'CLT-001',
+            'name' => 'Acme Client',
+            'is_active' => true,
+        ]);
+        $tender = TenderProposal::query()->create([
+            'tender_reference' => 'TEN-001',
+            'title' => 'Infrastructure Tender',
+            'owner' => 'Admin User',
+            'status' => 'Draft',
+            'priority' => 'Medium',
+            'risk' => 'Low',
+            'received_date' => now()->toDateString(),
+            'closing_date' => now()->addMonth()->toDateString(),
+            'created_by' => $user->id,
+        ]);
+        Quotation::query()->create([
+            'quotation_code' => 'QR-001',
+            'client' => 'Acme Client',
+            'opportunity' => 'Support request',
+            'owner' => 'Admin User',
+            'status' => 'Draft',
+            'priority' => 'Medium',
+            'risk' => 'Low',
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addMonth()->toDateString(),
+            'created_by' => $user->id,
+        ]);
+        SalesQuotation::query()->create([
+            'client_id' => $client->id,
+            'department_id' => $department->id,
+            'created_by' => $user->id,
+            'quotation_number' => 'QUO-2026-0001',
+            'title' => 'Client Quote',
+            'status' => SalesQuotation::STATUS_DRAFT,
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addMonth()->toDateString(),
+            'total' => 1500,
+        ]);
+        Invoice::query()->create([
+            'client_id' => $client->id,
+            'department_id' => $department->id,
+            'created_by' => $user->id,
+            'invoice_number' => 'INV-2026-0001',
+            'status' => Invoice::STATUS_SENT,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addMonth()->toDateString(),
+            'total' => 1500,
+            'balance_due' => 1500,
+        ]);
+        Requisition::query()->create([
+            'department_id' => $department->id,
+            'requested_by' => $user->id,
+            'requisition_number' => 'REQ-2026-0001',
+            'addressed_to' => 'Directors',
+            'title' => 'Office supplies',
+            'category' => 'Office',
+            'priority' => 'Medium',
+            'status' => Requisition::STATUS_SUBMITTED,
+            'estimated_total' => 500,
+        ]);
+        $tender->documents()->create([
+            'category' => Document::CATEGORY_ORIGINAL_TENDER,
+            'original_name' => 'Tender.pdf',
+            'stored_name' => 'tender.pdf',
+            'path' => 'documents/tender.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 100,
+            'uploaded_by' => $user->id,
+        ]);
+        CrmNotification::query()->create([
+            'user_id' => $user->id,
+            'type' => 'test',
+            'title' => 'Unread item',
+            'body' => 'Needs attention',
+        ]);
+
+        $cases = [
+            'how many tender proposals do we have?' => 'There is 1 tender proposal in the CRM.',
+            'how many quotation requests do we have?' => 'There is 1 quotation request in the CRM.',
+            'how many sales quotations do we have?' => 'There is 1 sales quotation in the CRM.',
+            'how many quotations do we have?' => 'There are 1 sales quotation and 1 quotation request in the CRM.',
+            'how many invoices do we have?' => 'There is 1 invoice in the CRM.',
+            'how many unpaid invoices are there?' => 'There is 1 unpaid invoice in the CRM.',
+            'how many requisitions do we have?' => 'There is 1 requisition in the CRM.',
+            'how many documents do we have?' => 'There is 1 document in the CRM.',
+            'how many unread notifications do I have?' => 'There is 1 unread notification in the CRM.',
+            'how many pending approvals are there?' => 'There is 1 pending approval in the CRM.',
+            'what is the VAT rate?' => 'VAT is fixed at 15% in this CRM.',
+        ];
+
+        foreach ($cases as $message => $expectedReply) {
+            $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+                'message' => $message,
+            ])->assertOk();
+
+            $response->assertJsonPath('reply', $expectedReply);
+            $response->assertJsonPath('action', null);
+        }
+
         Http::assertNothingSent();
     }
 
@@ -330,6 +444,120 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
         $this->assertStringContainsString('Yes, I can help draft a quotation in text', $response->json('reply'));
         $this->assertStringContainsString('I cannot create or save the official quotation directly yet', $response->json('reply'));
+        Http::assertNothingSent();
+    }
+
+    public function test_local_navigation_guard_simulates_many_non_navigation_prompts(): void
+    {
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $assistant = app(LocalAssistantResponder::class);
+        $history = [[
+            'role' => 'assistant',
+            'content' => 'I can open Sales Quotations so you can review statuses.',
+        ]];
+        $subjects = [
+            'sales quotations',
+            'quotation requests',
+            'tender proposals',
+            'invoices',
+            'requisitions',
+            'tasks',
+            'documents',
+            'clients',
+            'suppliers',
+            'approvals',
+            'notifications',
+            'attendance',
+            'reports',
+            'dashboard',
+            'finance',
+            'operations',
+            'sales pipeline',
+        ];
+        $templates = [
+            'how are our %s doing',
+            'why are %s falling short',
+            'what should we improve in %s',
+            'explain the status of %s',
+            'summarize %s without opening anything',
+            'summarise %s without navigating',
+            'analyse %s for the directors',
+            'analyze %s for the directors',
+            'what is weak in %s',
+            'where are we struggling with %s',
+            'show me how to use %s',
+            'teach me how to handle %s',
+            'guide me through %s',
+            'walk me through %s',
+            'what are the steps for %s',
+            'explain the process for %s',
+            'what can I do about %s',
+            'can you create %s for me',
+            'can you update %s directly',
+            'can you approve %s',
+            'can you delete %s',
+            'can you send %s',
+            'are you able to manage %s',
+            'show me what you can do with %s',
+            'list your limitations around %s',
+            'give me a list of what you can do with %s',
+            'what are you capable of with %s',
+        ];
+        $prefixes = [
+            '',
+            'please ',
+            'MIS, ',
+            'quick question, ',
+            'before we open anything, ',
+            'for the presentation, ',
+            'without changing records, ',
+            'without taking me anywhere, ',
+        ];
+        $prompts = [];
+
+        foreach ($subjects as $subject) {
+            foreach ($templates as $template) {
+                foreach ($prefixes as $prefix) {
+                    $prompts[] = $prefix.sprintf($template, $subject);
+                }
+            }
+        }
+
+        $this->assertGreaterThan(1000, count($prompts));
+
+        foreach ($prompts as $prompt) {
+            $this->assertNull(
+                $assistant->navigation($user, $prompt, $history),
+                "Unexpected navigation for prompt: {$prompt}",
+            );
+        }
+    }
+
+    public function test_assistant_still_navigates_for_clear_navigation_prompts_after_guarding_analysis(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $cases = [
+            'open sales quotations' => '/sales-quotations',
+            'show tender proposals' => '/tender-proposals',
+            'view quotation requests' => '/quotations',
+            'list requisitions' => '/requisitions',
+            'take me to documents' => '/documents',
+            'go to approvals' => '/approvals',
+            'bring up suppliers' => '/suppliers',
+            'pull up clients' => '/clients',
+            'open reports' => '/reports',
+        ];
+
+        foreach ($cases as $message => $urlPart) {
+            $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+                'message' => $message,
+            ])->assertOk();
+
+            $response->assertJsonPath('action.type', 'navigate');
+            $this->assertStringContainsString($urlPart, $response->json('action.url'));
+        }
+
         Http::assertNothingSent();
     }
 

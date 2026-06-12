@@ -247,6 +247,10 @@ class OperationsAssistantService
             return false;
         }
 
+        if ($this->blocksNavigation($text)) {
+            return false;
+        }
+
         if ($this->isAnalysisQuestion($text)) {
             return false;
         }
@@ -268,19 +272,23 @@ class OperationsAssistantService
     private function isAnalysisQuestion(string $text): bool
     {
         return (bool) preg_match(
-            '/\b(how are|how is|how do|how did|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|explain|what is|what are|what should|what can)\b/i',
+            '/\b(how are|how is|how do|how did|how to|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|summarise|explain|guide me|teach me|walk me through|steps|procedure|process|what is|what are|what should|what can)\b/i',
+            $text,
+        );
+    }
+
+    private function blocksNavigation(string $text): bool
+    {
+        return (bool) preg_match(
+            "/\\b(without opening|without open|without navigating|without navigate|without taking me|before we open|before opening|don't open|do not open|dont open|don't navigate|do not navigate|dont navigate|not open|not navigate|no navigation|stay here)\\b/i",
             $text,
         );
     }
 
     private function isCapabilityQuestion(string $text): bool
     {
-        if ((bool) preg_match('/\b(open|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text)) {
-            return false;
-        }
-
         return (bool) preg_match(
-            "/\\b(what can you do|what can'?t you do|what can you not do|things you can do|things you can'?t do|list of things you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update)\\b/i",
+            "/\\b(what can you do|what you can do|what u can do|what can'?t you do|what you can'?t do|what you cannot do|what are you capable of|things you can do|things you can'?t do|list of things you can|list of what you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update|do you support)\\b/i",
             $text,
         );
     }
