@@ -99,7 +99,7 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
     }
 
-    public function test_assistant_answers_count_questions_from_ai_context_without_navigation(): void
+    public function test_assistant_answers_count_questions_from_light_ai_context_without_navigation(): void
     {
         $this->configureAi([
             'reply' => 'We have 2 suppliers in the CRM.',
@@ -125,8 +125,52 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
         $this->assertSame('We have 2 suppliers in the CRM.', $response->json('reply'));
 
-        Http::assertSent(fn ($request): bool => str_contains($request->body(), 'Alpha Supplies')
+        Http::assertSent(fn ($request): bool => str_contains($request->body(), '\\"context_mode\\":\\"light\\"')
+            && ! str_contains($request->body(), 'Alpha Supplies')
             && str_contains($request->body(), '\\"suppliers\\":2'));
+    }
+
+    public function test_assistant_uses_light_context_for_identity_questions(): void
+    {
+        $this->configureAi([
+            'reply' => 'I am MIS, the assistant for this portal. I help you find records, answer CRM questions, and open the right pages.',
+            'action' => null,
+        ]);
+
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'first tell me who you are',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+
+        Http::assertSent(fn ($request): bool => str_contains($request->body(), '\\"context_mode\\":\\"light\\"')
+            && str_contains($request->body(), 'first tell me who you are'));
+    }
+
+    public function test_assistant_scopes_record_context_for_record_search_questions(): void
+    {
+        $this->configureAi([
+            'reply' => 'I found Alpha Supplies in the supplier register.',
+            'action' => null,
+        ]);
+
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+
+        Supplier::query()->create([
+            'supplier_code' => 'SUP-001',
+            'name' => 'Alpha Supplies',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'find supplier Alpha Supplies',
+        ])->assertOk();
+
+        Http::assertSent(fn ($request): bool => str_contains($request->body(), '\\"context_mode\\":\\"scoped\\"')
+            && str_contains($request->body(), 'Alpha Supplies')
+            && str_contains($request->body(), '\\"suppliers\\":['));
     }
 
     public function test_assistant_validates_ai_navigation_action(): void

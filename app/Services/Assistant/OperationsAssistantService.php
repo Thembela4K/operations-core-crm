@@ -27,7 +27,7 @@ class OperationsAssistantService
         $completion = $this->remoteAssistantProvider->complete(
             $user,
             $this->conversationContext($conversation),
-            $this->crmContext->build($user),
+            $this->contextForMessage($user, $message),
         );
 
         $result = $this->assistantResult($completion);
@@ -201,5 +201,84 @@ class OperationsAssistantService
             'filters' => is_array($completion['action']['filters'] ?? null) ? $completion['action']['filters'] : [],
             'assistant_mode' => 'remote_ai',
         ];
+    }
+
+    private function contextForMessage(User $user, string $message): array
+    {
+        $sections = $this->recordSectionsForMessage($message);
+
+        if ($sections === []) {
+            return $this->crmContext->buildLight($user);
+        }
+
+        return $this->crmContext->buildScoped($user, $sections);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function recordSectionsForMessage(string $message): array
+    {
+        $text = Str::of($message)->lower()->squish()->toString();
+
+        if ($this->isLightAssistantQuestion($text)) {
+            return [];
+        }
+
+        $sections = [];
+        $map = [
+            'clients' => ['client', 'customer', 'contact'],
+            'suppliers' => ['supplier', 'vendor', 'procurement'],
+            'tender_proposals' => ['tender', 'proposal', 'sppra', 'esppra'],
+            'quotation_requests' => ['quotation request', 'request quotation', 'rfq', 'quote request'],
+            'sales_quotations' => ['sales quotation', 'estimate', 'quote', 'quotation'],
+            'invoices' => ['invoice', 'payment', 'paid', 'unpaid', 'overdue invoice'],
+            'requisitions' => ['requisition', 'funds', 'cash request', 'approval money'],
+            'tasks' => ['task', 'workload', 'assignment'],
+            'documents' => ['document', 'file', 'attachment', 'download', 'submitted document'],
+            'notifications' => ['notification', 'alert', 'unread'],
+        ];
+
+        foreach ($map as $section => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($text, $keyword)) {
+                    $sections[] = $section;
+                    break;
+                }
+            }
+        }
+
+        if (str_contains($text, 'approval') || str_contains($text, 'approve')) {
+            $sections[] = 'sales_quotations';
+            $sections[] = 'requisitions';
+        }
+
+        if (str_contains($text, 'submitted') || str_contains($text, 'submission')) {
+            $sections[] = 'documents';
+            $sections[] = 'tender_proposals';
+            $sections[] = 'quotation_requests';
+        }
+
+        if ($this->isCountQuestion($text) && ! $this->hasStatusModifier($text)) {
+            return [];
+        }
+
+        return array_values(array_unique($sections));
+    }
+
+    private function isLightAssistantQuestion(string $text): bool
+    {
+        return $text === 'help'
+            || (bool) preg_match('/\b(hi|hello|hey|how are you|who are you|what are you|your name|tell me who you are|what can you do|today|date|time)\b/i', $text);
+    }
+
+    private function isCountQuestion(string $text): bool
+    {
+        return (bool) preg_match('/\b(how many|count|total number|number of)\b/i', $text);
+    }
+
+    private function hasStatusModifier(string $text): bool
+    {
+        return (bool) preg_match('/\b(overdue|pending|submitted|unpaid|paid|due|approved|rejected|draft|finished|active|inactive|late|closed|open)\b/i', $text);
     }
 }

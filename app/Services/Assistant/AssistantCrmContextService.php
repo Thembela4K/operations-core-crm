@@ -16,14 +16,54 @@ use App\Models\User;
 
 class AssistantCrmContextService
 {
+    private const RECORD_SECTIONS = [
+        'clients',
+        'suppliers',
+        'tender_proposals',
+        'quotation_requests',
+        'sales_quotations',
+        'invoices',
+        'requisitions',
+        'tasks',
+        'documents',
+        'notifications',
+    ];
+
     public function __construct(private readonly AssistantAccessService $access)
     {
     }
 
     public function build(User $user): array
     {
-        $limit = (int) config('services.assistant_ai.context_record_limit', 500);
+        return $this->buildScoped($user, self::RECORD_SECTIONS, 'full');
+    }
 
+    /**
+     * @param  array<int, string>  $sections
+     */
+    public function buildScoped(User $user, array $sections, string $mode = 'scoped'): array
+    {
+        $limit = (int) config('services.assistant_ai.context_record_limit', 120);
+        $sections = array_values(array_intersect(self::RECORD_SECTIONS, array_unique($sections)));
+
+        return [
+            ...$this->baseContext($user),
+            'context_mode' => $mode,
+            'records' => $this->records($user, $sections, $limit),
+        ];
+    }
+
+    public function buildLight(User $user): array
+    {
+        return [
+            ...$this->baseContext($user),
+            'context_mode' => 'light',
+            'records' => [],
+        ];
+    }
+
+    private function baseContext(User $user): array
+    {
         return [
             'generated_at' => now()->toIso8601String(),
             'user' => [
@@ -58,7 +98,18 @@ class AssistantCrmContextService
                 ],
             ],
             'counts' => $this->counts($user),
-            'records' => [
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $sections
+     */
+    private function records(User $user, array $sections, int $limit): array
+    {
+        $records = [];
+
+        foreach ($sections as $section) {
+            $records[$section] = match ($section) {
                 'clients' => $this->clients($limit),
                 'suppliers' => $this->suppliers($user, $limit),
                 'tender_proposals' => $this->tenderProposals($user, $limit),
@@ -69,8 +120,10 @@ class AssistantCrmContextService
                 'tasks' => $this->tasks($user, $limit),
                 'documents' => $this->documents($user, $limit),
                 'notifications' => $this->notifications($user, $limit),
-            ],
-        ];
+            };
+        }
+
+        return $records;
     }
 
     private function counts(User $user): array

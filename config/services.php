@@ -51,7 +51,7 @@ return [
             'temperature' => (float) env('AI_TEMPERATURE', 0.2),
             'top_p' => (float) env('AI_TOP_P', 0.7),
             'max_tokens' => (int) env('AI_MAX_TOKENS', 1024),
-            'timeout' => (int) env('AI_TIMEOUT_SECONDS', 60),
+            'timeout' => (int) env('AI_TIMEOUT_SECONDS', 30),
         ],
     ],
 
