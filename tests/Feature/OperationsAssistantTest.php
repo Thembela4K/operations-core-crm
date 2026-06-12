@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
+use App\Models\Client;
+use App\Models\Invoice;
+use App\Models\SalesQuotation;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -45,7 +49,7 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('MIS AI service is unavailable', $response->json('reply'));
+        $response->assertJsonPath('reply', "I'm here, Thembela. What would you like to check?");
     }
 
     public function test_assistant_returns_quota_message_when_provider_rate_limits(): void
@@ -58,7 +62,7 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('action', null);
-        $this->assertStringContainsString('quota has been exceeded', $response->json('reply'));
+        $this->assertStringContainsString('quota is currently exhausted', $response->json('reply'));
     }
 
     public function test_assistant_uses_remote_ai_for_conversation(): void
@@ -250,6 +254,62 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
     }
 
+    public function test_assistant_uses_local_finance_answer_when_remote_ai_times_out(): void
+    {
+        $this->configureAiTimeout();
+        $department = $this->department('MIS Department');
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN, $department);
+        $client = Client::query()->create([
+            'client_code' => 'CLT-001',
+            'name' => 'Acme Client',
+            'is_active' => true,
+        ]);
+
+        SalesQuotation::query()->create([
+            'client_id' => $client->id,
+            'department_id' => $department->id,
+            'created_by' => $user->id,
+            'quotation_number' => 'QUO-2026-0001',
+            'title' => 'Draft Quote',
+            'status' => SalesQuotation::STATUS_DRAFT,
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addMonth()->toDateString(),
+            'total' => 1000,
+        ]);
+        $accepted = SalesQuotation::query()->create([
+            'client_id' => $client->id,
+            'department_id' => $department->id,
+            'created_by' => $user->id,
+            'quotation_number' => 'QUO-2026-0002',
+            'title' => 'Accepted Quote',
+            'status' => SalesQuotation::STATUS_ACCEPTED,
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addMonth()->toDateString(),
+            'total' => 2000,
+        ]);
+        Invoice::query()->create([
+            'client_id' => $client->id,
+            'sales_quotation_id' => $accepted->id,
+            'department_id' => $department->id,
+            'created_by' => $user->id,
+            'invoice_number' => 'INV-2026-0001',
+            'status' => Invoice::STATUS_SENT,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addMonth()->toDateString(),
+            'total' => 2000,
+            'balance_due' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'why are invoices not generated?',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('Invoices are low because quotation conversion is low', $response->json('reply'));
+        $this->assertStringContainsString('2 sales quotations', $response->json('reply'));
+        $this->assertStringContainsString('1 invoice', $response->json('reply'));
+    }
+
     public function test_assistant_history_returns_latest_conversation_messages(): void
     {
         $this->configureAi([
@@ -315,6 +375,18 @@ class OperationsAssistantTest extends TestCase
                     : ['error' => ['message' => 'quota exceeded']],
                 $status,
             ),
+        ]);
+    }
+
+    private function configureAiTimeout(): void
+    {
+        config()->set('services.assistant_ai.provider', 'nvidia');
+        config()->set('services.assistant_ai.remote_enabled', true);
+        config()->set('services.assistant_ai.nvidia.api_key', 'testing-key');
+        config()->set('services.assistant_ai.nvidia.base_url', 'https://integrate.api.nvidia.com/v1');
+
+        Http::fake([
+            'https://integrate.api.nvidia.com/v1/chat/completions' => fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
         ]);
     }
 }

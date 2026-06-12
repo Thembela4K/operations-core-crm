@@ -13,6 +13,7 @@ class OperationsAssistantService
         private readonly RemoteAssistantProvider $remoteAssistantProvider,
         private readonly AssistantCrmContextService $crmContext,
         private readonly AssistantActionExecutor $actionExecutor,
+        private readonly LocalAssistantResponder $localAssistantResponder,
     ) {
     }
 
@@ -24,13 +25,16 @@ class OperationsAssistantService
             'content' => $message,
         ]);
 
+        $history = $this->conversationContext($conversation);
+        $crmContext = $this->contextForMessage($user, $message);
+
         $completion = $this->remoteAssistantProvider->complete(
             $user,
-            $this->conversationContext($conversation),
-            $this->contextForMessage($user, $message),
+            $history,
+            $crmContext,
         );
 
-        $result = $this->assistantResult($completion, $message);
+        $result = $this->assistantResult($completion, $message, $user, $crmContext, $history);
 
         $conversation->messages()->create([
             'role' => 'assistant',
@@ -180,12 +184,21 @@ class OperationsAssistantService
             ->all();
     }
 
-    private function assistantResult(array $completion, string $message): array
+    /**
+     * @param  array<int, array{role: string, content: string}>  $history
+     */
+    private function assistantResult(array $completion, string $message, User $user, array $crmContext, array $history): array
     {
         if (! ($completion['ok'] ?? false)) {
+            $localFallback = $this->localAssistantResponder->answer($user, $message, $crmContext, $history);
+
+            if ($localFallback && ($completion['status'] ?? null) !== 429) {
+                return $localFallback;
+            }
+
             return [
                 'intent' => 'ai_unavailable',
-                'reply' => $completion['reply'],
+                'reply' => $this->friendlyUnavailableReply($completion),
                 'action' => null,
                 'filters' => [],
                 'assistant_mode' => 'remote_unavailable',
@@ -204,6 +217,19 @@ class OperationsAssistantService
             'filters' => is_array($completion['action']['filters'] ?? null) ? $completion['action']['filters'] : [],
             'assistant_mode' => 'remote_ai',
         ];
+    }
+
+    private function friendlyUnavailableReply(array $completion): string
+    {
+        if (($completion['status'] ?? null) === 429) {
+            return 'The live AI quota is currently exhausted. Please try again later.';
+        }
+
+        if (in_array($completion['status'] ?? null, [401, 403], true)) {
+            return 'MIS cannot connect to the configured AI key right now. Please check the AI settings.';
+        }
+
+        return 'MIS is having trouble reaching the live AI service right now. Please try again, or ask a specific CRM question I can answer from local records.';
     }
 
     private function allowsNavigation(string $message): bool

@@ -42,7 +42,7 @@ return [
     'assistant_ai' => [
         'provider' => env('AI_PROVIDER', 'nvidia'),
         'remote_enabled' => filter_var(env('AI_REMOTE_ENABLED', true), FILTER_VALIDATE_BOOL),
-        'context_record_limit' => (int) env('AI_CONTEXT_RECORD_LIMIT', 120),
+        'context_record_limit' => (int) env('AI_CONTEXT_RECORD_LIMIT', 60),
         'nvidia' => [
             'base_url' => env('NVIDIA_API_BASE_URL', 'https://integrate.api.nvidia.com/v1'),
             'api_key' => env('NVIDIA_API_KEY'),
@@ -50,8 +50,8 @@ return [
             'verify' => env('AI_HTTP_VERIFY', true),
             'temperature' => (float) env('AI_TEMPERATURE', 0.2),
             'top_p' => (float) env('AI_TOP_P', 0.7),
-            'max_tokens' => (int) env('AI_MAX_TOKENS', 1024),
-            'timeout' => (int) env('AI_TIMEOUT_SECONDS', 30),
+            'max_tokens' => (int) env('AI_MAX_TOKENS', 700),
+            'timeout' => (int) env('AI_TIMEOUT_SECONDS', 12),
         ],
     ],
 
