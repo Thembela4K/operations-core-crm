@@ -243,6 +243,10 @@ class OperationsAssistantService
     {
         $text = Str::of($message)->lower()->squish()->toString();
 
+        if ($this->isCapabilityQuestion($text)) {
+            return false;
+        }
+
         if ($this->isAnalysisQuestion($text)) {
             return false;
         }
@@ -265,6 +269,18 @@ class OperationsAssistantService
     {
         return (bool) preg_match(
             '/\b(how are|how is|how do|how did|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|explain|what is|what are|what should|what can)\b/i',
+            $text,
+        );
+    }
+
+    private function isCapabilityQuestion(string $text): bool
+    {
+        if ((bool) preg_match('/\b(open|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text)) {
+            return false;
+        }
+
+        return (bool) preg_match(
+            "/\\b(what can you do|what can'?t you do|what can you not do|things you can do|things you can'?t do|list of things you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update)\\b/i",
             $text,
         );
     }
@@ -335,6 +351,7 @@ class OperationsAssistantService
     private function isLightAssistantQuestion(string $text): bool
     {
         return $text === 'help'
+            || $this->isCapabilityQuestion($text)
             || (bool) preg_match('/\b(hi|hello|hey|how are you|who are you|what are you|your name|tell me who you are|what can you do|today|date|time)\b/i', $text);
     }
 

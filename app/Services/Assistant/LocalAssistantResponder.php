@@ -54,6 +54,10 @@ class LocalAssistantResponder
     {
         $text = $this->normalize($message);
 
+        if ($this->asksCapabilityQuestion($text)) {
+            return $this->capabilityResult($text);
+        }
+
         if ($this->asksTaskWorkloadQuestion($text)) {
             return $this->taskWorkloadResult($user);
         }
@@ -101,6 +105,10 @@ class LocalAssistantResponder
     {
         $text = $this->normalize($message);
 
+        if ($this->asksCapabilityQuestion($text)) {
+            return null;
+        }
+
         if ($this->asksTaskWorkloadQuestion($text)) {
             return null;
         }
@@ -144,6 +152,35 @@ class LocalAssistantResponder
             '/\b(how are|how is|how do|how did|why|where are we|where do we|falling short|fall short|improve|performance|doing|trend|trends|analyse|analyze|summary|summarize|explain|what is|what are|what should|what can)\b/i',
             $text,
         );
+    }
+
+    private function asksCapabilityQuestion(string $text): bool
+    {
+        if ((bool) preg_match('/\b(open|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text)) {
+            return false;
+        }
+
+        return (bool) preg_match(
+            "/\\b(what can you do|what can'?t you do|what can you not do|things you can do|things you can'?t do|list of things you can|your capabilities|your limitations|do you have (?:the )?capabilit|are you able to|can you draft|can you create|can you make|can you edit|can you approve|can you delete|can you send|can you release|can you change|can you update)\\b/i",
+            $text,
+        );
+    }
+
+    private function capabilityResult(string $text): array
+    {
+        $reply = 'I can answer questions from the CRM records you are allowed to see, count and summarize work, explain finance or operations gaps, find documents, and open filtered pages when you clearly ask me to. I can also help draft wording for quotations, requisitions, emails, notes, and follow-ups. I cannot save, edit, approve, delete, send, release funds, or change records on your behalf yet.';
+
+        if ((bool) preg_match('/\b(draft|quotation|quote|estimate)\b/i', $text)) {
+            $reply = 'Yes, I can help draft a quotation in text: structure the scope, line items, terms, VAT notes, and wording. I can also open the Sales Quotations page when you ask. I cannot create or save the official quotation directly yet; a staff member still needs to enter and submit it in the CRM.';
+        }
+
+        return [
+            'intent' => 'local_capability_answer',
+            'reply' => $reply,
+            'action' => null,
+            'filters' => [],
+            'assistant_mode' => 'local_fallback',
+        ];
     }
 
     private function moduleFromText(string $text): ?string

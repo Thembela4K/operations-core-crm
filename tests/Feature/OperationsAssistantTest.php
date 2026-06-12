@@ -293,6 +293,46 @@ class OperationsAssistantTest extends TestCase
         $response->assertJsonPath('action', null);
     }
 
+    public function test_assistant_answers_capability_questions_without_reusing_previous_navigation_target(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $conversation = AiConversation::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Quotation drafting',
+            'metadata' => [],
+        ]);
+        $conversation->messages()->create([
+            'role' => 'assistant',
+            'content' => 'I can guide you through drafting a quotation and open the Sales Quotations page when you ask.',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'how about you give me a list of things you can do and cant do',
+            'conversation_id' => $conversation->id,
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('I can answer questions from the CRM records', $response->json('reply'));
+        $this->assertStringContainsString('I cannot save, edit, approve, delete, send, release funds, or change records', $response->json('reply'));
+        Http::assertNothingSent();
+    }
+
+    public function test_assistant_explains_quotation_drafting_capability_without_creating_records(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'can you draft for me a quotation? do you have the capability?',
+        ])->assertOk();
+
+        $response->assertJsonPath('action', null);
+        $this->assertStringContainsString('Yes, I can help draft a quotation in text', $response->json('reply'));
+        $this->assertStringContainsString('I cannot create or save the official quotation directly yet', $response->json('reply'));
+        Http::assertNothingSent();
+    }
+
     public function test_assistant_uses_local_finance_answer_when_remote_ai_times_out(): void
     {
         $this->configureAiTimeout();
