@@ -27,14 +27,17 @@ class OperationsAssistantService
 
         $history = $this->conversationContext($conversation);
         $crmContext = $this->contextForMessage($user, $message);
+        $result = $this->localAssistantResponder->navigation($user, $message, $history);
 
-        $completion = $this->remoteAssistantProvider->complete(
-            $user,
-            $history,
-            $crmContext,
-        );
+        if (! $result) {
+            $completion = $this->remoteAssistantProvider->complete(
+                $user,
+                $history,
+                $crmContext,
+            );
 
-        $result = $this->assistantResult($completion, $message, $user, $crmContext, $history);
+            $result = $this->assistantResult($completion, $message, $user, $crmContext, $history);
+        }
 
         $conversation->messages()->create([
             'role' => 'assistant',
