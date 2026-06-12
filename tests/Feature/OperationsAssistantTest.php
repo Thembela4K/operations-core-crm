@@ -79,6 +79,7 @@ class OperationsAssistantTest extends TestCase
 
         Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer testing-key')
             && $request['model'] === 'nvidia/llama-3.3-nemotron-super-49b-v1'
+            && $request['response_format']['type'] === 'json_object'
             && $request['stream'] === false);
     }
 
@@ -96,6 +97,36 @@ class OperationsAssistantTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonPath('reply', 'Hello Temnotfo Malinga! How can I assist you today?');
+        $response->assertJsonPath('action', null);
+    }
+
+    public function test_assistant_strips_embedded_raw_json_from_mixed_model_output(): void
+    {
+        $this->configureAiRaw(
+            "A brief escape from work! Here is a short story for you.\n{\"reply\":\"A brief escape from work! Here is a short story for you.\\n\\nBack to work?\",\"action\":null}"
+        );
+
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'tell me a story',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'A brief escape from work! Here is a short story for you.');
+        $response->assertJsonPath('action', null);
+    }
+
+    public function test_assistant_recovers_reply_from_malformed_json_only_output(): void
+    {
+        $this->configureAiRaw("{\"reply\":\"Hello Temnotfo\nHow can I assist?\",\"action\":null}");
+
+        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'hi',
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', "Hello Temnotfo\nHow can I assist?");
         $response->assertJsonPath('action', null);
     }
 
@@ -242,6 +273,14 @@ class OperationsAssistantTest extends TestCase
 
     private function configureAi(?array $payload, int $status = 200): void
     {
+        $this->configureAiRaw(
+            $status === 200 ? json_encode($payload) : null,
+            $status,
+        );
+    }
+
+    private function configureAiRaw(?string $content, int $status = 200): void
+    {
         config()->set('services.assistant_ai.provider', 'nvidia');
         config()->set('services.assistant_ai.remote_enabled', true);
         config()->set('services.assistant_ai.nvidia.api_key', 'testing-key');
@@ -251,7 +290,7 @@ class OperationsAssistantTest extends TestCase
         Http::fake([
             'https://integrate.api.nvidia.com/v1/chat/completions' => Http::response(
                 $status === 200
-                    ? ['choices' => [['message' => ['content' => json_encode($payload)]]]]
+                    ? ['choices' => [['message' => ['content' => $content]]]]
                     : ['error' => ['message' => 'quota exceeded']],
                 $status,
             ),

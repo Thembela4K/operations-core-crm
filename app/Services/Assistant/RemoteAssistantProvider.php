@@ -56,6 +56,9 @@ class RemoteAssistantProvider
                 ->post(rtrim(config('services.assistant_ai.nvidia.base_url'), '/').'/chat/completions', [
                     'model' => config('services.assistant_ai.nvidia.model'),
                     'messages' => $this->messages($user, $history, $crmContext),
+                    'response_format' => [
+                        'type' => 'json_object',
+                    ],
                     'temperature' => config('services.assistant_ai.nvidia.temperature'),
                     'top_p' => config('services.assistant_ai.nvidia.top_p'),
                     'max_tokens' => config('services.assistant_ai.nvidia.max_tokens'),
@@ -166,6 +169,7 @@ You are the primary AI for the system. Speak like a calm, capable human assistan
 - Do not use markdown headings, bold markers, numbered menus, or long capability lists unless the user specifically asks for a list.
 - For greetings such as "hi", "hello", or "how are you", reply in one short friendly sentence and ask what they want to work on.
 - For casual non-CRM conversation, answer briefly and naturally, then gently steer back to work if useful.
+- If asked for a story, joke, or other casual diversion, keep it short: 3 to 5 sentences, workplace-neutral, no title formatting, then stop.
 - For count/fact questions, answer directly from CRM_CONTEXT and set action to null.
 - For CRM record, total, status, deadline, document, client, supplier, finance, operations, task, approval, or notification questions, answer with real facts from CRM_CONTEXT.
 - For clear navigation requests such as open, show, list, view, take me to, or go to, set action.type to "navigate".
@@ -194,12 +198,11 @@ PROMPT;
     private function parseContent(string $content): array
     {
         $content = trim($content);
-        $json = $this->extractJson($content);
-        $decoded = json_decode($json, true);
+        $decoded = $this->decodeResponse($content);
 
         if (! is_array($decoded)) {
             return [
-                'reply' => $content,
+                'reply' => $this->sanitizeReply($content),
                 'action' => null,
             ];
         }
@@ -215,6 +218,17 @@ PROMPT;
     private function sanitizeReply(string $reply): string
     {
         $reply = trim($reply);
+        $reply = str_replace(["\\r\\n", "\\n", "\\r"], "\n", $reply);
+
+        $jsonPosition = stripos($reply, '{"reply"');
+
+        if ($jsonPosition !== false) {
+            if ($jsonPosition === 0 && preg_match('/"reply"\s*:\s*"(.*?)"\s*,\s*"action"/s', $reply, $matches)) {
+                $reply = stripcslashes($matches[1]);
+            } else {
+                $reply = trim(substr($reply, 0, $jsonPosition));
+            }
+        }
 
         foreach ([
             'Response Format Reminder',
@@ -224,6 +238,7 @@ PROMPT;
             'Waiting for your input',
             'CRM_CONTEXT',
             'Supported navigate modules',
+            'Back to Work?',
         ] as $marker) {
             $position = stripos($reply, $marker);
 
@@ -241,23 +256,78 @@ PROMPT;
         return trim($reply) !== '' ? trim($reply) : 'I am here. Tell me what you want to find or check.';
     }
 
-    private function extractJson(string $content): string
+    private function decodeResponse(string $content): ?array
     {
+        foreach ($this->jsonCandidates($content) as $candidate) {
+            $decoded = json_decode($candidate, true);
+
+            if (is_array($decoded) && array_key_exists('reply', $decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function jsonCandidates(string $content): array
+    {
+        $candidates = [trim($content)];
+
         if (preg_match('/```json\s*(.*?)```/s', $content, $matches)) {
-            return trim($matches[1]);
+            $candidates[] = trim($matches[1]);
         }
 
         if (preg_match('/```\s*(.*?)```/s', $content, $matches)) {
-            return trim($matches[1]);
+            $candidates[] = trim($matches[1]);
         }
 
-        $start = strpos($content, '{');
-        $end = strrpos($content, '}');
+        $balanced = [];
+        $length = strlen($content);
 
-        if ($start !== false && $end !== false && $end > $start) {
-            return substr($content, $start, $end - $start + 1);
+        for ($start = 0; $start < $length; $start++) {
+            if ($content[$start] !== '{') {
+                continue;
+            }
+
+            $depth = 0;
+            $inString = false;
+            $escaped = false;
+
+            for ($index = $start; $index < $length; $index++) {
+                $char = $content[$index];
+
+                if ($inString) {
+                    if ($escaped) {
+                        $escaped = false;
+                    } elseif ($char === '\\') {
+                        $escaped = true;
+                    } elseif ($char === '"') {
+                        $inString = false;
+                    }
+
+                    continue;
+                }
+
+                if ($char === '"') {
+                    $inString = true;
+                } elseif ($char === '{') {
+                    $depth++;
+                } elseif ($char === '}') {
+                    $depth--;
+
+                    if ($depth === 0) {
+                        $balanced[] = substr($content, $start, $index - $start + 1);
+                        break;
+                    }
+                }
+            }
         }
 
-        return $content;
+        $candidates = array_merge($candidates, array_reverse($balanced));
+
+        return array_values(array_unique(array_filter($candidates)));
     }
 }

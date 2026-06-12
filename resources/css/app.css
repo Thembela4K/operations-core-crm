@@ -241,19 +241,24 @@
     }
 
     .assistant-messages {
-        @apply min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4;
+        @apply min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4;
+        background-image:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 250, 252, 0.84)),
+            url('../images/assistant-chat-bg.webp');
+        background-position: center;
+        background-size: cover;
     }
 
     .assistant-message {
-        @apply max-w-[92%] rounded-xl border px-4 py-3 text-sm shadow-sm;
+        @apply max-w-[78%] rounded-2xl border px-3 py-2 text-[13px] shadow-sm backdrop-blur-sm;
     }
 
     .assistant-message span {
-        @apply mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500;
+        @apply mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500;
     }
 
     .assistant-message span svg {
-        @apply h-3.5 w-3.5;
+        @apply h-3 w-3;
         fill: none;
         stroke: currentColor;
         stroke-width: 1.9;
@@ -262,15 +267,15 @@
     }
 
     .assistant-message p {
-        @apply leading-6 text-neutral-800;
+        @apply whitespace-pre-wrap leading-5 text-neutral-800;
     }
 
     .assistant-message-user {
-        @apply ml-auto border-[#087aa5]/20 bg-white;
+        @apply ml-auto rounded-br-md border-[#087aa5]/20 bg-[#e9f7fb]/95;
     }
 
     .assistant-message-bot {
-        @apply mr-auto border-neutral-200 bg-white;
+        @apply mr-auto rounded-bl-md border-white/80 bg-white/95;
     }
 
     .assistant-message-typing {
