@@ -352,6 +352,56 @@ class OperationsAssistantTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_assistant_handles_show_me_typo_as_navigation_follow_up(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $conversation = AiConversation::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Finance question',
+            'metadata' => [],
+        ]);
+        $conversation->messages()->create([
+            'role' => 'assistant',
+            'content' => 'I can open Sales Quotations so you can review statuses.',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'sow me',
+            'conversation_id' => $conversation->id,
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Opening Sales Quotations.');
+        $response->assertJsonPath('action.type', 'navigate');
+        $this->assertStringContainsString('/sales-quotations', $response->json('action.url'));
+        Http::assertNothingSent();
+    }
+
+    public function test_assistant_handles_lettered_choice_navigation_follow_up(): void
+    {
+        $this->configureAiTimeout();
+        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $conversation = AiConversation::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Finance question',
+            'metadata' => [],
+        ]);
+        $conversation->messages()->create([
+            'role' => 'assistant',
+            'content' => "Would you like to:\nA) Proceed with navigation to Sales Quotations page\nB) Review Departmental Tasks",
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant.message'), [
+            'message' => 'A',
+            'conversation_id' => $conversation->id,
+        ])->assertOk();
+
+        $response->assertJsonPath('reply', 'Opening Sales Quotations.');
+        $response->assertJsonPath('action.type', 'navigate');
+        $this->assertStringContainsString('/sales-quotations', $response->json('action.url'));
+        Http::assertNothingSent();
+    }
+
     public function test_assistant_history_returns_latest_conversation_messages(): void
     {
         $this->configureAi([

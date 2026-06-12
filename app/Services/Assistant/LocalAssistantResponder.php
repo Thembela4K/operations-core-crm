@@ -96,11 +96,17 @@ class LocalAssistantResponder
     {
         $text = $this->normalize($message);
 
-        if (! $this->hasNavigationIntent($text) && ! $this->isAffirmativeNavigation($text)) {
+        if ($this->isAnalysisQuestion($text)) {
             return null;
         }
 
-        if ($this->isAnalysisQuestion($text)) {
+        $choiceModule = $this->moduleFromChoice($text, $history);
+
+        if ($choiceModule) {
+            return $choiceModule;
+        }
+
+        if (! $this->hasNavigationIntent($text) && ! $this->isAffirmativeNavigation($text)) {
             return null;
         }
 
@@ -110,12 +116,12 @@ class LocalAssistantResponder
 
     private function hasNavigationIntent(string $text): bool
     {
-        return (bool) preg_match('/\b(open|view|show|list|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text);
+        return (bool) preg_match('/\b(open|view|show|sow|list|go to|navigate to|take me to|bring up|pull up|send me to)\b/i', $text);
     }
 
     private function isAffirmativeNavigation(string $text): bool
     {
-        return (bool) preg_match('/\b(yes|yeah|yebo|ok|okay|please|go ahead|do that|show me|open it|view it|that one)\b/i', $text);
+        return (bool) preg_match('/\b(yes|yeah|yebo|ok|okay|please|go ahead|do that|show me|sow me|open it|view it|that one)\b/i', $text);
     }
 
     private function looksLikeNavigationFollowUp(string $text): bool
@@ -175,6 +181,34 @@ class LocalAssistantResponder
         }
 
         return $this->moduleFromText($this->normalize($message['content'] ?? ''));
+    }
+
+    /**
+     * @param  array<int, array{role: string, content: string}>  $history
+     */
+    private function moduleFromChoice(string $text, array $history): ?string
+    {
+        if (! preg_match('/^(?:option\s*)?([abc])$/i', trim($text), $matches)) {
+            return null;
+        }
+
+        $assistantMessage = collect($history)
+            ->reverse()
+            ->first(fn (array $message): bool => ($message['role'] ?? null) === 'assistant');
+
+        if (! is_array($assistantMessage)) {
+            return null;
+        }
+
+        $choice = strtolower($matches[1]);
+        $content = (string) ($assistantMessage['content'] ?? '');
+        $pattern = '/(?:^|\n|\s)'.preg_quote($choice, '/').'\)\s*(.*?)(?=(?:\n|\s)[abc]\)|$)/is';
+
+        if (preg_match($pattern, $content, $optionMatches)) {
+            return $this->moduleFromText($this->normalize($optionMatches[1]));
+        }
+
+        return null;
     }
 
     private function navigationFilters(string $module, string $text): array

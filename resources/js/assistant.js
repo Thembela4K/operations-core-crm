@@ -35,6 +35,20 @@ const rememberAssistantConversation = (conversationId) => {
 
 const storedAssistantConversation = () => readAssistantStorage(assistantConversationStorageKey);
 
+const sameAssistantTarget = (targetUrl) => {
+    try {
+        const target = new URL(targetUrl, window.location.origin);
+        const current = new URL(window.location.href);
+
+        target.hash = '';
+        current.hash = '';
+
+        return target.toString() === current.toString();
+    } catch {
+        return false;
+    }
+};
+
 const assistantElements = () => {
     const shell = document.querySelector('[data-assistant]');
 
@@ -359,11 +373,19 @@ const submitAssistantMessage = async (prompt = null) => {
         appendAssistantMessage(elements, 'bot', data.reply || 'I found a matching CRM action.');
 
         if (data.action?.type === 'navigate' && data.action.url && data.action.auto) {
-            elements.status.textContent = 'Opening the filtered CRM page...';
             rememberAssistantOpen(true);
             rememberAssistantConversation(assistantConversationId);
+
+            if (sameAssistantTarget(data.action.url)) {
+                elements.status.textContent = 'That page is already open behind MIS.';
+                appendAssistantMessage(elements, 'bot', 'That page is already open behind this chat.');
+                setAssistantBusy(elements, false);
+                return;
+            }
+
+            elements.status.textContent = 'Opening the CRM page behind MIS...';
             setTimeout(() => {
-                window.location.href = data.action.url;
+                window.location.assign(data.action.url);
             }, 850);
         } else {
             setAssistantBusy(elements, false);
