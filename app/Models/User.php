@@ -40,6 +40,8 @@ class User extends Authenticatable
         'invited_by',
         'name',
         'username',
+        'employee_no',
+        'job_title',
         'email',
         'password',
         'role',

@@ -105,7 +105,7 @@
             <td style="width:50%">
                 <span class="label">Leave approved / declined by &mdash; immediate manager</span>
                 <div>Name: {{ $leave->decider?->name ?: '' }}</div>
-                <div>Job title: {{ $leave->decider?->role ? \App\Models\User::ROLES[$leave->decider->role] ?? '' : '' }}</div>
+                <div>Job title: {{ $leave->decider?->job_title ?: ($leave->decider ? (\App\Models\User::ROLES[$leave->decider->role] ?? '') : '') }}</div>
                 <div class="label" style="margin-top:12pt">Signature</div>
                 <div class="signline"></div>
             </td>

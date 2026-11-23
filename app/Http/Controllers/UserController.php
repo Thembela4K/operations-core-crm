@@ -38,10 +38,32 @@ class UserController extends Controller
         $data = $this->validatedForInvite($request);
         $data['name'] = ($data['name'] ?? null) ?: $this->nameFromEmail($data['email']);
         $data['username'] = ($data['username'] ?? null) ?: null;
-        $data['password'] = Str::password(24);
-        $data['is_active'] = false;
         $data['receives_submissions'] = $request->boolean('receives_submissions');
         $data['can_access_sppra'] = $request->boolean('can_access_sppra');
+
+        // Invitation onboarding stays the default. An administrator may instead
+        // hand over credentials directly, which is what makes local testing and
+        // staff without a mailbox workable.
+        if ($request->boolean('activate_now')) {
+            $activation = $request->validate([
+                'password' => ['required', 'string', 'min:8'],
+            ]);
+
+            User::query()->create($data + [
+                'password' => $activation['password'],
+                'is_active' => true,
+                'invited_by' => $request->user()->id,
+                'invited_at' => now(),
+                'invitation_accepted_at' => now(),
+            ])->forceFill(['email_verified_at' => now()])->save();
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'User created and activated with the password you set.');
+        }
+
+        $data['password'] = Str::password(24);
+        $data['is_active'] = false;
 
         $user = User::query()->create($data);
         $invitation = $invitations->invite($user, $request->user());
@@ -118,6 +140,8 @@ class UserController extends Controller
             'username' => ['required_without:email', 'nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user)],
             'email' => ['required_without:username', 'nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
+            'employee_no' => ['nullable', 'string', 'max:40'],
+            'job_title' => ['nullable', 'string', 'max:120'],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'department_id' => ['nullable', Rule::requiredIf($request->input('role') === User::ROLE_DEPARTMENT_USER), 'exists:departments,id'],
             'is_active' => ['nullable', 'boolean'],
@@ -136,6 +160,8 @@ class UserController extends Controller
             'name' => ['nullable', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'employee_no' => ['nullable', 'string', 'max:40'],
+            'job_title' => ['nullable', 'string', 'max:120'],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'department_id' => ['nullable', Rule::requiredIf($request->input('role') === User::ROLE_DEPARTMENT_USER), 'exists:departments,id'],
             'receives_submissions' => ['nullable', 'boolean'],
