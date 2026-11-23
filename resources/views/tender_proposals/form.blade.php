@@ -20,6 +20,58 @@
         <span class="label">Tender Document</span>
         <input class="input" type="file" name="tender_document" @required(! $tenderProposal->exists)>
     </label>
+
+    <label>
+        <span class="label">Received Date</span>
+        <input class="input" type="date" name="received_date" value="{{ old('received_date', $tenderProposal->received_date ? \Illuminate\Support\Carbon::parse($tenderProposal->received_date)->format('Y-m-d') : now()->format('Y-m-d')) }}">
+    </label>
+    <label>
+        <span class="label">Status</span>
+        <select class="input" name="status">
+            @foreach(\App\Models\TenderProposal::STATUSES as $status)
+                <option value="{{ $status }}" @selected(old('status', $tenderProposal->status) === $status)>{{ $status }}</option>
+            @endforeach
+        </select>
+    </label>
+    <label>
+        <span class="label">Priority</span>
+        <select class="input" name="priority">
+            @foreach(\App\Models\TenderProposal::PRIORITIES as $priority)
+                <option value="{{ $priority }}" @selected(old('priority', $tenderProposal->priority) === $priority)>{{ $priority }}</option>
+            @endforeach
+        </select>
+    </label>
+
+    <label>
+        <span class="label">Risk</span>
+        <select class="input" name="risk">
+            @foreach(\App\Models\TenderProposal::RISKS as $risk)
+                <option value="{{ $risk }}" @selected(old('risk', $tenderProposal->risk) === $risk)>{{ $risk }}</option>
+            @endforeach
+        </select>
+    </label>
+    <label>
+        <span class="label">Progress (%)</span>
+        <input class="input" type="number" name="progress_percent" min="0" max="100" step="1" value="{{ old('progress_percent', $tenderProposal->progress_percent ?? 0) }}">
+    </label>
+    <label>
+        <span class="label">Budget</span>
+        <input class="input" type="number" name="budget" min="0" step="0.01" value="{{ old('budget', $tenderProposal->budget ?? 0) }}">
+    </label>
+
+    <label>
+        <span class="label">Rating (0-5)</span>
+        <input class="input" type="number" name="rating" min="0" max="5" step="0.1" value="{{ old('rating', $tenderProposal->rating ?? 0) }}">
+    </label>
+    <label>
+        <span class="label">Owner</span>
+        <input class="input" name="owner" value="{{ old('owner', $tenderProposal->owner) }}">
+    </label>
+    <label>
+        <span class="label">Owner Email</span>
+        <input class="input" type="email" name="owner_email" value="{{ old('owner_email', $tenderProposal->owner_email) }}">
+    </label>
+
     <label class="lg:col-span-3">
         <span class="label">Brief Description</span>
         <textarea class="input min-h-32" name="brief">{{ old('brief', $tenderProposal->brief) }}</textarea>

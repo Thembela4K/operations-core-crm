@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Assignment;
 use App\Models\TenderProposal;
 use App\Services\Assistant\DocumentTextExtractor;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -146,6 +147,41 @@ class TenderProposalController extends Controller
             ->with('success', 'Tender proposal updated.');
     }
 
+    /**
+     * Lets the people actually doing the work keep progress current.
+     * Any user who can view the tender may update progress; only management
+     * (super admin / reception) may change the status.
+     */
+    public function updateProgress(Request $request, TenderProposal $tenderProposal, AuditLogService $audit): RedirectResponse
+    {
+        $this->authorizeTenderProposalAccess($request, $tenderProposal);
+
+        $data = $request->validate([
+            'progress_percent' => ['required', 'integer', 'min:0', 'max:100'],
+            'status' => ['nullable', Rule::in(TenderProposal::STATUSES)],
+        ]);
+
+        $updates = ['progress_percent' => (int) $data['progress_percent']];
+
+        if (filled($data['status'] ?? null)) {
+            if (! $request->user()->canManage()) {
+                abort(403);
+            }
+
+            $updates['status'] = $data['status'];
+        }
+
+        $tenderProposal->update($updates);
+
+        $audit->record(
+            'tender_progress_updated',
+            $tenderProposal,
+            "Tender progress set to {$updates['progress_percent']}% for {$tenderProposal->title}.",
+        );
+
+        return back()->with('success', 'Tender progress updated.');
+    }
+
     public function destroy(Request $request, TenderProposal $tenderProposal): RedirectResponse
     {
         if (! $request->user()->canManage()) {
@@ -172,6 +208,15 @@ class TenderProposalController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'closing_date' => ['required', 'date'],
             'brief' => ['nullable', 'string'],
+            'status' => ['nullable', Rule::in(TenderProposal::STATUSES)],
+            'priority' => ['nullable', Rule::in(TenderProposal::PRIORITIES)],
+            'risk' => ['nullable', Rule::in(TenderProposal::RISKS)],
+            'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
+            'progress_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'budget' => ['nullable', 'numeric', 'min:0'],
+            'owner' => ['nullable', 'string', 'max:255'],
+            'owner_email' => ['nullable', 'email', 'max:255'],
+            'received_date' => ['nullable', 'date'],
         ]);
     }
 

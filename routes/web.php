@@ -22,6 +22,7 @@ use App\Http\Controllers\OperationsAssistantController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PasswordResetOtpController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseRecordController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\RequisitionController;
@@ -145,7 +146,10 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::resource('tender-proposals', TenderProposalController::class)->except(['create', 'store', 'destroy']);
+    Route::post('tender-proposals/{tender_proposal}/progress', [TenderProposalController::class, 'updateProgress'])->name('tender-proposals.progress');
     Route::resource('quotations', QuotationController::class)->except(['create', 'store', 'destroy']);
+
+    Route::resource('projects', ProjectController::class);
 
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');

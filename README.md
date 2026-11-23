@@ -16,6 +16,7 @@ A Laravel + MySQL/MariaDB business operations portal for managing clients, sales
 - Finance: item catalog, sales quotations, director approval, invoices, manual payments, expenses, print-ready documents, and email notifications.
 - Operations: tender proposals, quotation requests, requisitions for funds approval, department assignments, documents, submissions, reminders, and SPPRA shortcut setting.
 - Leave: leave applications, annual working-day balance (12 days per calendar year), approval workflow, public holiday calendar, and the printable DATF025 leave application form.
+- Projects: employee-owned projects in the company weekly Report &amp; Plan format (Activity, Status, %, Comment, Date, By Whom, Time Frame); management sees every employee's projects grouped by employee.
 - Reports: finance totals, outstanding balances, sales quotation pipeline, expenses, department workload, and operations summaries.
 - Admin: users, departments, staff members, and private settings.
 

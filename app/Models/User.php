@@ -184,6 +184,25 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
+    /**
+     * Management and reporting roles may see every employee's projects.
+     * Everyone else only sees their own.
+     */
+    public function canViewAllProjects(): bool
+    {
+        return $this->hasRole(
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+        );
+    }
+
+    public function canAdministerProjects(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN);
+    }
+
     public function displayLogin(): string
     {
         return $this->username ?: (string) $this->email;

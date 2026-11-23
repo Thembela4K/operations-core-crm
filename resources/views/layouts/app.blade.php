@@ -28,6 +28,8 @@
                 $activeModule = 'operations';
             } elseif (request()->routeIs('tasks.*')) {
                 $activeModule = 'tasks';
+            } elseif (request()->routeIs('projects.*')) {
+                $activeModule = 'projects';
             } elseif (request()->routeIs('attendance.*') || request()->routeIs('leave.*')) {
                 $activeModule = 'attendance';
             } elseif (request()->routeIs('suppliers.*') || request()->routeIs('purchases.*')) {
@@ -75,6 +77,15 @@
                     'label' => 'Tasks',
                     'meta' => 'Work and deadlines',
                     'route' => route('tasks.index'),
+                    'visible' => true,
+                    'icon' => 'operations',
+                    'badge' => null,
+                ],
+                [
+                    'key' => 'projects',
+                    'label' => 'Projects',
+                    'meta' => 'Weekly report and plan',
+                    'route' => route('projects.index'),
                     'visible' => true,
                     'icon' => 'operations',
                     'badge' => null,
@@ -172,6 +183,10 @@
                 'tasks' => [
                     ['label' => 'Task Register', 'route' => route('tasks.index'), 'active' => request()->routeIs('tasks.index') || request()->routeIs('tasks.show'), 'visible' => true, 'badge' => null],
                     ['label' => 'New Task', 'route' => route('tasks.create'), 'active' => request()->routeIs('tasks.create'), 'visible' => true, 'badge' => null],
+                ],
+                'projects' => [
+                    ['label' => 'Project Register', 'route' => route('projects.index'), 'active' => request()->routeIs('projects.index') || request()->routeIs('projects.show'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Add Project', 'route' => route('projects.create'), 'active' => request()->routeIs('projects.create') || request()->routeIs('projects.edit'), 'visible' => true, 'badge' => null],
                 ],
                 'attendance' => [
                     ['label' => 'Attendance Register', 'route' => route('attendance.index'), 'active' => request()->routeIs('attendance.*'), 'visible' => true, 'badge' => null],
