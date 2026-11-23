@@ -9,7 +9,7 @@
 
     // Branding. Embedded as a data URI so the same markup renders in the
     // browser and inside Dompdf, which cannot read files outside its chroot.
-    $logoFile = public_path('images/datamatics-logo.png');
+    $logoFile = public_path('images/app-logo.png');
     $logoData = is_file($logoFile)
         ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoFile))
         : null;
