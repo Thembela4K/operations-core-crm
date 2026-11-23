@@ -224,6 +224,7 @@
 **Decision:** Module entry is governed by a single map, `User::MODULE_ACCESS`, enforced by the `module:` route middleware (`EnsureModuleAccess`) and mirrored in the sidebar and dashboard.
 
 - `finance` (invoices, payments, expenses, suppliers, purchases) and `approvals` are **closed to department users**.
+- `approvals` is director, super admin and business admin only. Reception does not see the approval queue, but keeps requisition funds release from the requisition screen.
 - `clients`, `operations`, `catalog` and `documents` remain open to department users, scoped to their department.
 - `business_admin` reads every gated module, may write only inside the `users` module, and cannot delete accounts or assign the super admin role.
 - `admin` (users, departments, settings) stays super-admin only.

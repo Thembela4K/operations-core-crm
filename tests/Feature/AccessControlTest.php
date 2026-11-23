@@ -69,7 +69,7 @@ class AccessControlTest extends TestCase
             '/purchases' => 200,
             '/requisitions' => 200,
             '/tender-proposals' => 200,
-            '/approvals' => 200,
+            '/approvals' => 403,
             '/reports' => 200,
             '/documents' => 200,
             '/projects' => 200,

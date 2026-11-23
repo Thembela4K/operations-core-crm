@@ -81,7 +81,6 @@ class User extends Authenticatable
         'approvals' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
-            self::ROLE_RECEPTION,
             self::ROLE_BUSINESS_ADMIN,
         ],
         'reports' => [
