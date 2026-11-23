@@ -52,7 +52,7 @@
     <table>
         <thead>
             <tr>
-                <th class="tick">&#10003;</th>
+                <th class="tick"></th>
                 <th style="width:30%">Leave type</th>
                 <th>From (first day)</th>
                 <th>To (last day)</th>
