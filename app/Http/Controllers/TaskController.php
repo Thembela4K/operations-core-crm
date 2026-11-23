@@ -7,6 +7,7 @@ use App\Models\CrmTask;
 use App\Models\Department;
 use App\Models\Expense;
 use App\Models\Invoice;
+use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\Requisition;
 use App\Models\SalesQuotation;
@@ -72,7 +73,7 @@ class TaskController extends Controller
     public function store(Request $request, FinanceNumberService $numbers, CrmNotificationService $notifications, AuditLogService $audit): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['task_number'] = $data['task_number'] ?: $numbers->taskNumber();
+        $data['task_number'] = ($data['task_number'] ?? null) ?: $numbers->taskNumber();
         $data['created_by'] = $request->user()->id;
         $data = $this->applyTaskable($data);
 
@@ -275,11 +276,32 @@ class TaskController extends Controller
 
     private function relatedRecords(Request $request): array
     {
-        if (! $request->user()->canViewReports() && ! $request->user()->canManage()) {
-            return [];
+        $user = $request->user();
+
+        // Projects are always offered: they are the week-plan activities an
+        // employee is working on. Anyone who assigns work (management or
+        // reception) sees every live project instead of only their own.
+        $projectQuery = Project::query()
+            ->where('status', Project::STATUS_IN_PROGRESS)
+            ->orderBy('title');
+
+        if (! ($user->canManage() || $user->canViewReports())) {
+            $projectQuery->where('user_id', $user->id);
         }
 
-        return [
+        $groups = [
+            'Projects in Progress' => $projectQuery->limit(80)->get()
+                ->map(fn (Project $project): array => [
+                    'value' => 'project:'.$project->id,
+                    'label' => $project->title,
+                ])->all(),
+        ];
+
+        if (! $user->canViewReports() && ! $user->canManage()) {
+            return $groups;
+        }
+
+        return $groups + [
             'Clients' => Client::query()->orderBy('name')->limit(80)->get()->map(fn (Client $record): array => ['value' => 'client:'.$record->id, 'label' => $record->client_code.' - '.$record->name])->all(),
             'Tender Proposals' => TenderProposal::query()->latest()->limit(80)->get()->map(fn (TenderProposal $record): array => ['value' => 'tender:'.$record->id, 'label' => $record->tender_reference.' - '.$record->title])->all(),
             'Quotation Requests' => Quotation::query()->latest()->limit(80)->get()->map(fn (Quotation $record): array => ['value' => 'quotation:'.$record->id, 'label' => $record->quotation_code.' - '.$record->opportunity])->all(),
@@ -296,6 +318,7 @@ class TaskController extends Controller
     private function taskableMap(): array
     {
         return [
+            'project' => Project::class,
             'client' => Client::class,
             'tender' => TenderProposal::class,
             'quotation' => Quotation::class,

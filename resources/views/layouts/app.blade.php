@@ -78,8 +78,8 @@
                 ],
                 [
                     'key' => 'tasks',
-                    'label' => 'Tasks',
-                    'meta' => 'Work and deadlines',
+                    'label' => 'Week Plan',
+                    'meta' => 'Weekly activities and deadlines',
                     'route' => route('tasks.index'),
                     'visible' => true,
                     'icon' => 'operations',
@@ -185,8 +185,8 @@
                     ['label' => 'Reminders', 'route' => route('reminders.index'), 'active' => request()->routeIs('reminders.*'), 'visible' => true, 'badge' => null],
                 ],
                 'tasks' => [
-                    ['label' => 'Task Register', 'route' => route('tasks.index'), 'active' => request()->routeIs('tasks.index') || request()->routeIs('tasks.show'), 'visible' => true, 'badge' => null],
-                    ['label' => 'New Task', 'route' => route('tasks.create'), 'active' => request()->routeIs('tasks.create'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Week Plan', 'route' => route('tasks.index'), 'active' => request()->routeIs('tasks.index') || request()->routeIs('tasks.show'), 'visible' => true, 'badge' => null],
+                    ['label' => 'New Entry', 'route' => route('tasks.create'), 'active' => request()->routeIs('tasks.create'), 'visible' => true, 'badge' => null],
                 ],
                 'projects' => [
                     ['label' => 'Project Register', 'route' => route('projects.index'), 'active' => request()->routeIs('projects.index') || request()->routeIs('projects.show'), 'visible' => true, 'badge' => null],

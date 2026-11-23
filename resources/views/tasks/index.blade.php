@@ -3,10 +3,10 @@
 @section('content')
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="page-title">Tasks</h1>
+            <h1 class="page-title">Week Plan</h1>
             <p class="page-subtitle">Department work, deadlines, comments, files, and accountability.</p>
         </div>
-        <a class="btn-primary" href="{{ route('tasks.create') }}">New Task</a>
+        <a class="btn-primary" href="{{ route('tasks.create') }}">New Entry</a>
     </div>
 
     <form class="panel mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_repeat(4,minmax(140px,180px))_auto]" method="GET">

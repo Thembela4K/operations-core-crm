@@ -2,6 +2,7 @@
     $relatedValue = old('related_record');
     if (! $relatedValue && $task->taskable_type && $task->taskable_id) {
         $map = [
+            \App\Models\Project::class => 'project',
             \App\Models\Client::class => 'client',
             \App\Models\TenderProposal::class => 'tender',
             \App\Models\Quotation::class => 'quotation',
