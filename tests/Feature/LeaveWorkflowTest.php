@@ -265,7 +265,7 @@ class LeaveWorkflowTest extends TestCase
             ->get(route('leave.print', $leave))
             ->assertOk()
             ->assertSee('LEAVE APPLICATION')
-            ->assertSee('DATAMATICS SWAZILAND CC')
+            ->assertSee('Datamatics Eswatini')
             ->assertSee('For payroll use only', false)
             ->assertSee('DATF025');
 

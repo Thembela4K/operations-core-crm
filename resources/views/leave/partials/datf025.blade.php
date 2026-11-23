@@ -6,6 +6,13 @@
     $firstNames = implode(' ', $nameParts);
 
     $types = \App\Models\LeaveApplication::TYPES;
+
+    // Branding. Embedded as a data URI so the same markup renders in the
+    // browser and inside Dompdf, which cannot read files outside its chroot.
+    $logoFile = public_path('images/datamatics-logo.png');
+    $logoData = is_file($logoFile)
+        ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoFile))
+        : null;
     $balanceNow = app(\App\Services\LeaveService::class)->balanceFor($leave->user, $leave->leave_year);
     $annualPrior = $balanceNow['remaining'] + ($leave->isApproved() && $leave->deductsFromBalance() ? $leave->working_days : 0);
     $fmtDays = fn ($value) => rtrim(rtrim(number_format((float) $value, 1, '.', ''), '0'), '.');
@@ -14,8 +21,13 @@
 @endphp
 
 <style>
-    .datf025 { font-family: Helvetica, Arial, sans-serif; font-size: 8.4pt; color: #111; }
-    .datf025 .company { text-align: center; font-size: 12pt; font-weight: bold; letter-spacing: 0.4pt; }
+    .datf025 { font-family: Helvetica, Arial, sans-serif; font-size: 8.4pt; color: #111; line-height: 1.5; }
+    .datf025 .header { width: 100%; border-collapse: collapse; margin-bottom: 6pt; }
+    .datf025 .header td { border: 0; padding: 0; vertical-align: middle; }
+    .datf025 .header-logo { width: 32mm; }
+    .datf025 .logo { width: 30mm; height: auto; }
+    .datf025 .header-text { padding-left: 6pt; }
+    .datf025 .company { text-align: left; font-size: 12pt; font-weight: bold; letter-spacing: 0.4pt; }
     .datf025 .doctitle { text-align: center; font-size: 10pt; font-weight: bold; margin: 2pt 0 8pt; }
     .datf025 table { width: 100%; border-collapse: collapse; }
     .datf025 th, .datf025 td { border: 0.6pt solid #777; padding: 2.4pt 3.2pt; vertical-align: top; }
@@ -32,7 +44,14 @@
 </style>
 
 <div class="datf025">
-    <div class="company">DATAMATICS SWAZILAND CC</div>
+    <table class="header">
+        <tr>
+            @if($logoData)
+                <td class="header-logo"><img class="logo" src="{{ $logoData }}" alt="Datamatics Eswatini"></td>
+            @endif
+            <td class="header-text"><div class="company">Datamatics Eswatini</div></td>
+        </tr>
+    </table>
     <div class="doctitle">LEAVE APPLICATION</div>
 
     <table>
@@ -147,7 +166,14 @@
 
     {{-- ---------- Page 2: guidance ---------- --}}
     <div class="page2">
-        <div class="company">DATAMATICS SWAZILAND CC</div>
+        <table class="header">
+            <tr>
+                @if($logoData)
+                    <td class="header-logo"><img class="logo" src="{{ $logoData }}" alt="Datamatics Eswatini"></td>
+                @endif
+                <td class="header-text"><div class="company">Datamatics Eswatini</div></td>
+            </tr>
+        </table>
         <div class="doctitle">COMPLETING A LEAVE APPLICATION</div>
 
         <table>

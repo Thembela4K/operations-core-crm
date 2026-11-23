@@ -30,6 +30,7 @@ __pycache__/
 /public/build
 /public/images/*
 !/public/images/.gitkeep
+!/public/images/datamatics-logo.png
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
