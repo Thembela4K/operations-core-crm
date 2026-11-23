@@ -32,6 +32,8 @@ Defined in [app/Models/User.php](app/Models/User.php):
 
 There is no `manager` role. Earlier plans removed it to match the business structure.
 
+Module access is centralised in `User::MODULE_ACCESS` and enforced by the `module:` middleware. Finance (invoices, payments, expenses, suppliers, purchases) and the approvals inbox are closed to `department_user`; clients, operations, catalog and documents stay open to them but are scoped to their own department. `business_analyst` reads every module but cannot mutate anything inside a gated module. `admin` remains super-admin only.
+
 ## Main Modules
 
 ### Dashboard

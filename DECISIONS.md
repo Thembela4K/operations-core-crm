@@ -219,8 +219,22 @@
 **Why:** The user explicitly requested commits after every change.
 
 **Tradeoffs:** Requires discipline to verify before committing and avoid bundling unrelated changes.
+## ADR-025: Module Access Control Map
 
-## Unconfirmed / Needs Verification
+**Decision:** Module entry is governed by a single map, `User::MODULE_ACCESS`, enforced by the `module:` route middleware (`EnsureModuleAccess`) and mirrored in the sidebar and dashboard.
+
+- `finance` (invoices, payments, expenses, suppliers, purchases) and `approvals` are **closed to department users**.
+- `clients`, `operations`, `catalog` and `documents` remain open to department users, scoped to their department.
+- `business_analyst` may read every gated module but is blocked from any non-GET request inside them.
+- `admin` (users, departments, settings) stays super-admin only.
+
+**Why:** A department-level user could previously read the whole client register, the company approval queue and every document title, and the dashboard showed company finance to every role. Access was enforced only by coarse route groups and a handful of controller checks.
+
+**Tradeoffs:** Two policy axes now exist — `role` for capability and department scope for reach. Any new module must be added to `MODULE_ACCESS` (or deliberately left out for personal modules) or it inherits "open to everyone". Client billing fields (VAT/tax, billing mailbox) and invoice sections are also hidden from department users.
+
+**Related:** ADR-009 still stands — there is no `manager` role. Department heads are a future *level*, not a sixth role.
+
+
 
 - Whether production should keep remote MIS AI enabled long term.
 - Whether DomPDF should replace current `SimplePdfService`.

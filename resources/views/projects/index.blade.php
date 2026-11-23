@@ -118,7 +118,7 @@
         {{-- Employee view: own projects only --}}
         <section class="panel mt-6 overflow-hidden p-0">
             <div class="px-4 py-4 sm:px-5">
-                <h2 class="section-title">My Projects</h2>
+                <h2 class="section-title">{{ auth()->user()->department_id ? 'Department Projects' : 'My Projects' }}</h2>
             </div>
             <div class="overflow-x-auto">
                 <table class="data-table">

@@ -89,11 +89,17 @@ class Project extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->canViewAllProjects()) {
+        if ($user->seesAllDepartments()) {
             return $query;
         }
 
-        return $query->where('user_id', $user->id);
+        return $query->where(function (Builder $inner) use ($user): void {
+            $inner->where('user_id', $user->id);
+
+            if ($user->department_id !== null) {
+                $inner->orWhere('department_id', $user->department_id);
+            }
+        });
     }
 
     public function scopeOpen(Builder $query): Builder

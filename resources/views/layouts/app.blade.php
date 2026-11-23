@@ -22,7 +22,9 @@
                 $activeModule = 'clients';
             } elseif (request()->routeIs('client-activities.*')) {
                 $activeModule = 'clients';
-            } elseif (request()->routeIs('sales-quotations.*') || request()->routeIs('job-cards.*') || request()->routeIs('delivery-notes.*') || request()->routeIs('invoices.*') || request()->routeIs('payments.*') || request()->routeIs('expenses.*') || request()->routeIs('catalog-items.*')) {
+            } elseif (request()->routeIs('sales-quotations.*') || request()->routeIs('job-cards.*') || request()->routeIs('delivery-notes.*')) {
+                $activeModule = 'operations';
+            } elseif (request()->routeIs('invoices.*') || request()->routeIs('payments.*') || request()->routeIs('expenses.*') || request()->routeIs('catalog-items.*')) {
                 $activeModule = 'finance';
             } elseif (request()->routeIs('tender-proposals.*') || request()->routeIs('quotations.*') || request()->routeIs('assignments.*') || request()->routeIs('submissions.*') || request()->routeIs('reminders.*') || request()->routeIs('requisitions.*')) {
                 $activeModule = 'operations';
@@ -36,8 +38,10 @@
                 $activeModule = 'suppliers';
             } elseif (request()->routeIs('documents.*')) {
                 $activeModule = 'documents';
-            } elseif (request()->routeIs('approvals.*') || request()->routeIs('notifications.*')) {
+            } elseif (request()->routeIs('approvals.*')) {
                 $activeModule = 'approvals';
+            } elseif (request()->routeIs('notifications.*')) {
+                $activeModule = 'dashboard';
             } elseif (request()->routeIs('reports.*')) {
                 $activeModule = 'reports';
             } elseif (request()->routeIs('users.*') || request()->routeIs('departments.*') || request()->routeIs('settings.*')) {
@@ -59,7 +63,7 @@
                     'label' => 'Clients',
                     'meta' => 'Accounts and contacts',
                     'route' => route('clients.index'),
-                    'visible' => true,
+                    'visible' => $user->canAccessModule('clients'),
                     'icon' => 'clients',
                     'badge' => null,
                 ],
@@ -67,8 +71,8 @@
                     'key' => 'finance',
                     'label' => 'Finance',
                     'meta' => 'Quotations, invoices, payments',
-                    'route' => route('sales-quotations.index'),
-                    'visible' => true,
+                    'route' => route('invoices.index'),
+                    'visible' => $user->canAccessModule('finance'),
                     'icon' => 'finance',
                     'badge' => null,
                 ],
@@ -104,7 +108,7 @@
                     'label' => 'Suppliers',
                     'meta' => 'Procurement tracking',
                     'route' => route('suppliers.index'),
-                    'visible' => true,
+                    'visible' => $user->canAccessModule('finance'),
                     'icon' => 'clients',
                     'badge' => null,
                 ],
@@ -113,7 +117,7 @@
                     'label' => 'Documents',
                     'meta' => 'Central registry',
                     'route' => route('documents.index'),
-                    'visible' => true,
+                    'visible' => $user->canAccessModule('documents'),
                     'icon' => 'reports',
                     'badge' => null,
                 ],
@@ -122,7 +126,7 @@
                     'label' => 'Approvals',
                     'meta' => 'Inbox and alerts',
                     'route' => route('approvals.index'),
-                    'visible' => true,
+                    'visible' => $user->canAccessModule('approvals'),
                     'icon' => 'admin',
                     'badge' => $unreadCrmNotifications ?: null,
                 ],
@@ -131,7 +135,7 @@
                     'label' => 'Operations',
                     'meta' => 'Tender and request workflow',
                     'route' => $layoutNextUnreadTenderUrl ?? route('tender-proposals.index'),
-                    'visible' => true,
+                    'visible' => $user->canAccessModule('operations'),
                     'icon' => 'operations',
                     'badge' => $unreadOperationsCount ?: null,
                 ],
@@ -140,7 +144,7 @@
                     'label' => 'Reports',
                     'meta' => 'Performance and workload',
                     'route' => route('reports.index'),
-                    'visible' => $user->canViewReports(),
+                    'visible' => $user->canAccessModule('reports'),
                     'icon' => 'reports',
                     'badge' => null,
                 ],
@@ -149,7 +153,7 @@
                     'label' => 'Admin',
                     'meta' => 'Users, departments, settings',
                     'route' => route('users.index'),
-                    'visible' => $user->isSuperAdmin(),
+                    'visible' => $user->canAccessModule('admin'),
                     'icon' => 'admin',
                     'badge' => null,
                 ],
@@ -165,14 +169,14 @@
                     ['label' => 'Follow-ups', 'route' => route('client-activities.index'), 'active' => request()->routeIs('client-activities.*'), 'visible' => true, 'badge' => null],
                 ],
                 'finance' => [
-                    ['label' => 'Sales Quotations', 'route' => route('sales-quotations.index'), 'active' => request()->routeIs('sales-quotations.*'), 'visible' => true, 'badge' => null],
-                    ['label' => 'Job Cards', 'route' => route('job-cards.index'), 'active' => request()->routeIs('job-cards.*'), 'visible' => true, 'badge' => null],
-                    ['label' => 'Delivery Notes', 'route' => route('delivery-notes.index'), 'active' => request()->routeIs('delivery-notes.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Invoices', 'route' => route('invoices.index'), 'active' => request()->routeIs('invoices.*') || request()->routeIs('payments.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Expenses', 'route' => route('expenses.index'), 'active' => request()->routeIs('expenses.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Item Catalog', 'route' => route('catalog-items.index'), 'active' => request()->routeIs('catalog-items.*'), 'visible' => true, 'badge' => null],
                 ],
                 'operations' => [
+                    ['label' => 'Sales Quotations', 'route' => route('sales-quotations.index'), 'active' => request()->routeIs('sales-quotations.*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Job Cards', 'route' => route('job-cards.index'), 'active' => request()->routeIs('job-cards.*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Delivery Notes', 'route' => route('delivery-notes.index'), 'active' => request()->routeIs('delivery-notes.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Tender Proposals', 'route' => $layoutNextUnreadTenderUrl ?? route('tender-proposals.index'), 'active' => request()->routeIs('tender-proposals.*'), 'visible' => true, 'badge' => $unreadTenderCount ?: null],
                     ['label' => 'Quotation Requests', 'route' => $layoutNextUnreadQuotationUrl ?? route('quotations.index'), 'active' => request()->routeIs('quotations.*'), 'visible' => true, 'badge' => $unreadQuotationCount ?: null],
                     ['label' => 'Assignments', 'route' => route('assignments.index'), 'active' => request()->routeIs('assignments.*'), 'visible' => $user->canManage(), 'badge' => null],
@@ -200,8 +204,7 @@
                     ['label' => 'Document Registry', 'route' => route('documents.index'), 'active' => request()->routeIs('documents.*'), 'visible' => true, 'badge' => null],
                 ],
                 'approvals' => [
-                    ['label' => 'Approval Inbox', 'route' => route('approvals.index'), 'active' => request()->routeIs('approvals.*'), 'visible' => $user->canViewReports(), 'badge' => null],
-                    ['label' => 'Notifications', 'route' => route('notifications.index'), 'active' => request()->routeIs('notifications.*'), 'visible' => true, 'badge' => $unreadCrmNotifications ?: null],
+                    ['label' => 'Approval Inbox', 'route' => route('approvals.index'), 'active' => request()->routeIs('approvals.*'), 'visible' => $user->canAccessModule('approvals'), 'badge' => null],
                 ],
                 'reports' => [
                     ['label' => 'Company Reports', 'route' => route('reports.index'), 'active' => request()->routeIs('reports.*'), 'visible' => $user->canViewReports(), 'badge' => null],
@@ -213,6 +216,7 @@
                 ],
                 default => [
                     ['label' => 'Overview', 'route' => route('dashboard'), 'active' => request()->routeIs('dashboard'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Notifications', 'route' => route('notifications.index'), 'active' => request()->routeIs('notifications.*'), 'visible' => true, 'badge' => $unreadCrmNotifications ?: null],
                 ],
             };
         @endphp

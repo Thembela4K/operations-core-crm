@@ -22,11 +22,14 @@
     </div>
 
     <div class="dashboard-metrics">
+        @if($showClients)
         <div class="metric-card stat-tooltip" data-tooltip="{{ $clientCount }} active and inactive clients in the CRM" tabindex="0">
             <span>Clients</span>
             <strong>{{ $clientCount }}</strong>
             <div class="metric-foot">Client register</div>
         </div>
+        @endif
+        @if($showFinance)
         <div class="metric-card stat-tooltip" data-tooltip="Sales quotation pipeline total: E{{ number_format($salesQuotationPipeline, 2) }}" tabindex="0">
             <span>Sales Pipeline</span>
             <strong>E{{ number_format($salesQuotationPipeline, 0) }}</strong>
@@ -47,11 +50,14 @@
             <strong>E{{ number_format($expenseTotal, 0) }}</strong>
             <div class="metric-foot">Company costs</div>
         </div>
+        @endif
+        @if($showOperations)
         <div class="metric-card stat-tooltip" data-tooltip="{{ $pendingRequisitionApprovals }} requisitions waiting for review or approval" tabindex="0">
             <span>Requisitions</span>
             <strong>{{ $requisitionCount }}</strong>
             <div class="metric-foot">{{ $openRequisitions }} open requests</div>
         </div>
+        @endif
         <div class="metric-card stat-tooltip" data-tooltip="{{ $overdueTaskCount }} overdue open tasks" tabindex="0">
             <span>Tasks</span>
             <strong>{{ $taskCount }}</strong>
@@ -70,11 +76,18 @@
         <div class="metric-card stat-tooltip" data-tooltip="{{ $unreadCrmNotifications }} unread CRM notifications" tabindex="0">
             <span>Notifications</span>
             <strong>{{ $unreadCrmNotifications }}</strong>
-            <div class="metric-foot">{{ $documentCount }} documents | {{ $supplierCount }} suppliers</div>
+            <div class="metric-foot">
+                @if($showFinance && $showCompany)
+                    {{ $documentCount }} documents | {{ $supplierCount }} suppliers
+                @else
+                    Unread alerts
+                @endif
+            </div>
         </div>
     </div>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
+        @if($showFinance)
         <section class="panel chart-panel">
             <div class="panel-heading">
                 <h2 class="section-title">Finance Workflow</h2>
@@ -111,7 +124,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if($showOperations)
         <section class="panel chart-panel">
             <div class="panel-heading">
                 <h2 class="section-title">Operations Snapshot</h2>
@@ -145,6 +160,7 @@
                 </div>
             </div>
         </section>
+        @endif
     </div>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-3">

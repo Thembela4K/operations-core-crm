@@ -99,4 +99,22 @@ class Document extends Model
     {
         return in_array($this->mime_type, self::PREVIEWABLE_MIME_TYPES, true);
     }
+
+    /**
+     * Department staff only see documents uploaded from their own department.
+     * Company-wide roles see the whole registry.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->seesAllDepartments()) {
+            return $query;
+        }
+
+        return $query->whereIn(
+            'uploaded_by',
+            User::query()
+                ->where('department_id', $user->department_id)
+                ->select('id'),
+        );
+    }
 }

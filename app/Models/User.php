@@ -34,6 +34,67 @@ class User extends Authenticatable
         self::ROLE_BUSINESS_ANALYST => 'Business Analyst',
     ];
 
+    /**
+     * Which roles may enter each module.
+     *
+     * Modules absent from this map are personal (tasks, projects, attendance,
+     * leave, notifications) and open to every active user.
+     *
+     * finance and approvals are deliberately closed to department users: money
+     * and the approval queue belong to reception, direction and analysis.
+     */
+    public const MODULE_ACCESS = [
+        'clients' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_DEPARTMENT_USER,
+        ],
+        'catalog' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_DEPARTMENT_USER,
+        ],
+        'operations' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_DEPARTMENT_USER,
+        ],
+        'documents' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_DEPARTMENT_USER,
+        ],
+        'finance' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+        ],
+        'approvals' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+        ],
+        'reports' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+        ],
+        'admin' => [
+            self::ROLE_SUPER_ADMIN,
+        ],
+    ];
+
     protected $fillable = [
         'staff_member_id',
         'department_id',
@@ -165,6 +226,58 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(self::ROLE_SUPER_ADMIN);
+    }
+
+    public function isBusinessAnalyst(): bool
+    {
+        return $this->hasRole(self::ROLE_BUSINESS_ANALYST);
+    }
+
+    /**
+     * Central module gate. Modules not listed in MODULE_ACCESS are personal
+     * and open to every active user.
+     */
+    public function canAccessModule(string $module): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $roles = self::MODULE_ACCESS[$module] ?? null;
+
+        return $roles === null || in_array($this->role, $roles, true);
+    }
+
+    /**
+     * Roles that may see every department's records.
+     */
+    public function seesAllDepartments(): bool
+    {
+        return $this->hasRole(
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ANALYST,
+        );
+    }
+
+    /**
+     * Everyone who works inside a department and should read that department's
+     * operational records, even when they may only edit their own.
+     */
+    public function canViewDepartmentRecords(): bool
+    {
+        return $this->seesAllDepartments() || $this->hasRole(self::ROLE_DEPARTMENT_USER);
+    }
+
+    /**
+     * Billing secrets (VAT/tax number, billing mailbox) and money totals are
+     * for company-scope roles only. Department staff see the client for work
+     * context, not the commercial detail.
+     */
+    public function canViewClientFinancials(): bool
+    {
+        return $this->seesAllDepartments();
     }
 
     public function canManageAttendance(): bool

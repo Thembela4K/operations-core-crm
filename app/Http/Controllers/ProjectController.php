@@ -239,7 +239,15 @@ class ProjectController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->canViewAllProjects() || $project->user_id === $user->id, 403);
+        $sameDepartment = $user->department_id !== null
+            && $project->department_id === $user->department_id;
+
+        abort_unless(
+            $user->seesAllDepartments()
+            || $project->user_id === $user->id
+            || ($user->canViewDepartmentRecords() && $sameDepartment),
+            403,
+        );
     }
 
     private function authorizeEdit(Request $request, Project $project): void

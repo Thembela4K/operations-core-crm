@@ -78,10 +78,20 @@ class DashboardController extends Controller
             ->values();
         $maxDepartmentWorkload = max(1, $departmentWorkload->max('count') ?? 0);
 
+        // Module visibility drives which cards and sections render at all.
+        $showClients = $user->canAccessModule('clients');
+        $showFinance = $user->canAccessModule('finance');
+        $showOperations = $user->canAccessModule('operations');
+        $showCompany = $user->seesAllDepartments();
+
         return view('dashboard', [
+            'showClients' => $showClients,
+            'showFinance' => $showFinance,
+            'showOperations' => $showOperations,
+            'showCompany' => $showCompany,
             'tenderCount' => $tenderProposals->count(),
             'quotationCount' => $quotations->count(),
-            'clientCount' => Client::query()->count(),
+            'clientCount' => $showClients ? Client::query()->count() : 0,
             'salesQuotationCount' => $salesQuotations->count(),
             'salesQuotationPipeline' => $salesQuotations->sum(fn (SalesQuotation $quotation): float => (float) $quotation->total),
             'approvedSalesQuotationPipeline' => $salesQuotations->whereIn('status', [SalesQuotation::STATUS_APPROVED, SalesQuotation::STATUS_SENT, SalesQuotation::STATUS_ACCEPTED, SalesQuotation::STATUS_CONVERTED])->sum(fn (SalesQuotation $quotation): float => (float) $quotation->total),
@@ -98,8 +108,8 @@ class DashboardController extends Controller
             'openTaskCount' => $tasks->whereNotIn('status', [CrmTask::STATUS_DONE, CrmTask::STATUS_CANCELLED])->count(),
             'overdueTaskCount' => $tasks->whereNotIn('status', [CrmTask::STATUS_DONE, CrmTask::STATUS_CANCELLED])->where('due_date', '<', now()->startOfDay())->count(),
             'attendanceHours' => round($attendance->sum('total_minutes') / 60, 1),
-            'supplierCount' => Supplier::query()->count(),
-            'documentCount' => Document::query()->count(),
+            'supplierCount' => $showFinance ? Supplier::query()->count() : 0,
+            'documentCount' => $user->canAccessModule('documents') ? Document::query()->count() : 0,
             'unreadCrmNotifications' => CrmNotification::query()->where('user_id', $user->id)->whereNull('read_at')->count(),
             'openFollowUps' => $clientActivities->where('status', 'Open')->count(),
             'overdueFollowUps' => $clientActivities->where('status', 'Open')->where('next_follow_up_date', '<', now()->startOfDay())->count(),

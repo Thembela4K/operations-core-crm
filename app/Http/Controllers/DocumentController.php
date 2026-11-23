@@ -26,6 +26,7 @@ class DocumentController extends Controller
     public function index(Request $request): View
     {
         $documents = Document::query()
+            ->visibleTo($request->user())
             ->with(['uploader', 'documentable', 'textIndex'])
             ->when($request->filled('search'), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();

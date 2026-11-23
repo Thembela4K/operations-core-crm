@@ -15,8 +15,10 @@
         <section class="panel xl:col-span-2">
             <h2 class="section-title">Billing Details</h2>
             <dl class="mt-4 grid gap-4 md:grid-cols-2">
-                <div><dt class="label">Billing Email</dt><dd>{{ $client->billing_email ?: 'Not set' }}</dd></div>
-                <div><dt class="label">VAT / Tax Number</dt><dd>{{ $client->vat_number ?: 'Not set' }}</dd></div>
+                @if(auth()->user()->canViewClientFinancials())
+                    <div><dt class="label">Billing Email</dt><dd>{{ $client->billing_email ?: 'Not set' }}</dd></div>
+                    <div><dt class="label">VAT / Tax Number</dt><dd>{{ $client->vat_number ?: 'Not set' }}</dd></div>
+                @endif
                 <div class="md:col-span-2"><dt class="label">Address</dt><dd class="whitespace-pre-line">{{ $client->address ?: 'No address captured.' }}</dd></div>
                 <div class="md:col-span-2"><dt class="label">Notes</dt><dd class="whitespace-pre-line">{{ $client->notes ?: 'No notes.' }}</dd></div>
             </dl>
@@ -51,6 +53,7 @@
                 @endforelse
             </div>
         </section>
+        @if(auth()->user()->canAccessModule('finance'))
         <section class="panel">
             <h2 class="section-title">Invoices</h2>
             <div class="mt-4 divide-y divide-neutral-100">
@@ -64,6 +67,7 @@
                 @endforelse
             </div>
         </section>
+        @endif
     </div>
 
     <section class="panel mt-6">
