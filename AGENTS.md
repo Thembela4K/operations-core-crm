@@ -138,7 +138,7 @@ Roles are defined in [app/Models/User.php](app/Models/User.php):
 - `director`: approval authority and company-wide dashboards/reports.
 - `reception`: client/finance operation, invoices, payments, expenses, operations intake and assignment.
 - `department_user`: department quotation drafts, job cards, assigned operations work, own/department records.
-- `business_analyst`: read-only operational/reporting visibility.
+- `business_admin`: business administrator. Sees all users and can add staff accounts (but cannot delete accounts, touch a super admin, or assign the super admin role). Read-only everywhere else: company-wide operational and reporting visibility.
 
 There is intentionally no `manager` role.
 

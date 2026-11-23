@@ -153,7 +153,7 @@
                     'label' => 'Admin',
                     'meta' => 'Users, departments, settings',
                     'route' => route('users.index'),
-                    'visible' => $user->canAccessModule('admin'),
+                    'visible' => $user->canAccessModule('admin') || $user->canAccessModule('users'),
                     'icon' => 'admin',
                     'badge' => null,
                 ],
@@ -210,9 +210,9 @@
                     ['label' => 'Company Reports', 'route' => route('reports.index'), 'active' => request()->routeIs('reports.*'), 'visible' => $user->canViewReports(), 'badge' => null],
                 ],
                 'admin' => [
-                    ['label' => 'Users', 'route' => route('users.index'), 'active' => request()->routeIs('users.*'), 'visible' => $user->isSuperAdmin(), 'badge' => null],
-                    ['label' => 'Departments', 'route' => route('departments.index'), 'active' => request()->routeIs('departments.*'), 'visible' => $user->isSuperAdmin(), 'badge' => null],
-                    ['label' => 'Settings', 'route' => route('settings.index'), 'active' => request()->routeIs('settings.*'), 'visible' => $user->isSuperAdmin(), 'badge' => null],
+                    ['label' => 'Users', 'route' => route('users.index'), 'active' => request()->routeIs('users.*'), 'visible' => $user->canAccessModule('users'), 'badge' => null],
+                    ['label' => 'Departments', 'route' => route('departments.index'), 'active' => request()->routeIs('departments.*'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
+                    ['label' => 'Settings', 'route' => route('settings.index'), 'active' => request()->routeIs('settings.*'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
                 ],
                 default => [
                     ['label' => 'Overview', 'route' => route('dashboard'), 'active' => request()->routeIs('dashboard'), 'visible' => true, 'badge' => null],

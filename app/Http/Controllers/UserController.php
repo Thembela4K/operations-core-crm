@@ -24,18 +24,19 @@ class UserController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('admin.users.create', [
             'user' => new User(['role' => User::ROLE_DEPARTMENT_USER, 'is_active' => true]),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'roles' => User::ROLES,
+            'roles' => $request->user()->assignableRoles(),
         ]);
     }
 
     public function store(Request $request, UserInvitationService $invitations): RedirectResponse
     {
         $data = $this->validatedForInvite($request);
+        $this->guardAssignableRole($request, (string) $data['role']);
         $data['name'] = ($data['name'] ?? null) ?: $this->nameFromEmail($data['email']);
         $data['username'] = ($data['username'] ?? null) ?: null;
         $data['receives_submissions'] = $request->boolean('receives_submissions');
@@ -80,18 +81,23 @@ class UserController extends Controller
         return redirect()->route('users.edit', $user);
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
+        $this->guardManagedUser($request, $user);
+
         return view('admin.users.edit', [
             'user' => $user,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'roles' => User::ROLES,
+            'roles' => $request->user()->assignableRoles(),
         ]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        $this->guardManagedUser($request, $user);
+
         $data = $this->validated($request, $user);
+        $this->guardAssignableRole($request, (string) $data['role']);
 
         if (! $data['password']) {
             unset($data['password']);
@@ -104,6 +110,8 @@ class UserController extends Controller
 
     public function resendInvitation(Request $request, User $user, UserInvitationService $invitations): RedirectResponse
     {
+        $this->guardManagedUser($request, $user);
+
         if (! $user->email) {
             return back()->with('warning', 'This user has no email address to invite.');
         }
@@ -124,6 +132,12 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
+        $this->guardManagedUser($request, $user);
+
+        if (! $request->user()->canDeleteUsers()) {
+            abort(403);
+        }
+
         if ($request->user()->is($user)) {
             return back()->with('warning', 'You cannot delete your own account.');
         }
@@ -131,6 +145,34 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'User deleted.');
+    }
+
+    /**
+     * Only staff administrators may manage accounts, and only a super admin
+     * may act on another super admin.
+     */
+    private function guardManagedUser(Request $request, ?User $target = null): void
+    {
+        $actor = $request->user();
+
+        if (! $actor->canManageUsers()) {
+            abort(403);
+        }
+
+        if ($target !== null && $target->isSuperAdmin() && ! $actor->isSuperAdmin()) {
+            abort(403, 'Only a super admin may manage a super admin account.');
+        }
+    }
+
+    /**
+     * Blocks privilege escalation: an actor may only assign roles they are
+     * allowed to hand out (business admins cannot create super admins).
+     */
+    private function guardAssignableRole(Request $request, string $role): void
+    {
+        if (! array_key_exists($role, $request->user()->assignableRoles())) {
+            abort(403, 'You are not allowed to assign that role.');
+        }
     }
 
     private function validated(Request $request, ?User $user = null): array

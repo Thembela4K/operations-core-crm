@@ -24,14 +24,14 @@ class User extends Authenticatable
 
     public const ROLE_DEPARTMENT_USER = 'department_user';
 
-    public const ROLE_BUSINESS_ANALYST = 'business_analyst';
+    public const ROLE_BUSINESS_ADMIN = 'business_admin';
 
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
         self::ROLE_DIRECTOR => 'Director',
         self::ROLE_RECEPTION => 'Reception',
         self::ROLE_DEPARTMENT_USER => 'Department User',
-        self::ROLE_BUSINESS_ANALYST => 'Business Analyst',
+        self::ROLE_BUSINESS_ADMIN => 'Business Admin',
     ];
 
     /**
@@ -48,47 +48,51 @@ class User extends Authenticatable
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'catalog' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'operations' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'documents' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'finance' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
         ],
         'approvals' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
         ],
         'reports' => [
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
+        ],
+        'users' => [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
         ],
         'admin' => [
             self::ROLE_SUPER_ADMIN,
@@ -183,12 +187,12 @@ class User extends Authenticatable
 
     public function canViewReports(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ANALYST);
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ADMIN);
     }
 
     public function canViewRequisitions(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ANALYST);
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ADMIN);
     }
 
     public function canApproveRequisitions(): bool
@@ -220,7 +224,7 @@ class User extends Authenticatable
 
     public function canViewPortfolio(): bool
     {
-        return $this->canManage() || $this->canReviewSubmissions() || $this->hasRole(self::ROLE_BUSINESS_ANALYST);
+        return $this->canManage() || $this->canReviewSubmissions() || $this->hasRole(self::ROLE_BUSINESS_ADMIN);
     }
 
     public function isSuperAdmin(): bool
@@ -228,9 +232,40 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_SUPER_ADMIN);
     }
 
-    public function isBusinessAnalyst(): bool
+    public function isBusinessAdmin(): bool
     {
-        return $this->hasRole(self::ROLE_BUSINESS_ANALYST);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN);
+    }
+
+    /**
+     * Business admins administer staff accounts (see and add users) but are
+     * not technical super admins: they cannot delete accounts or touch a
+     * super admin, and every other module stays read-only for them.
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_BUSINESS_ADMIN);
+    }
+
+    public function canDeleteUsers(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    /**
+     * Roles this actor may assign when creating or editing a user.
+     *
+     * @return array<string, string>
+     */
+    public function assignableRoles(): array
+    {
+        $roles = self::ROLES;
+
+        if (! $this->isSuperAdmin()) {
+            unset($roles[self::ROLE_SUPER_ADMIN]);
+        }
+
+        return $roles;
     }
 
     /**
@@ -257,7 +292,7 @@ class User extends Authenticatable
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
         );
     }
 
@@ -309,7 +344,7 @@ class User extends Authenticatable
             self::ROLE_SUPER_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ANALYST,
+            self::ROLE_BUSINESS_ADMIN,
         );
     }
 

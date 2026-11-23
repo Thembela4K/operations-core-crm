@@ -9,9 +9,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Guards a whole module against the central role map on User::MODULE_ACCESS.
  *
- * Read-only roles (business_analyst) may read gated modules but never mutate
- * them. Personal modules (tasks, projects, leave, attendance) are not gated
- * here, because every employee uses those for their own work.
+ * Business admins are read-only everywhere except staff administration, where
+ * they may see and add users. Personal modules (tasks, projects, leave,
+ * attendance) are not gated here, because every employee uses those for their
+ * own work.
  */
 class EnsureModuleAccess
 {
@@ -26,7 +27,9 @@ class EnsureModuleAccess
             abort(403);
         }
 
-        if ($user->isBusinessAnalyst() && ! $request->isMethodSafe()) {
+        $readOnlyException = $module === 'users' && $user->canManageUsers();
+
+        if ($user->isBusinessAdmin() && ! $readOnlyException && ! $request->isMethodSafe()) {
             abort(403, 'This role has read-only access.');
         }
 

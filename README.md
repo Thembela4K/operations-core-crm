@@ -28,7 +28,7 @@ VAT is fixed at 15% in V1. This is stored as an internal setting/default for mai
 - `director`: approve/reject sales quotations and view company-wide dashboards/reports.
 - `reception`: create clients, issue invoices, record payments/expenses, and manage operations intake/assignments.
 - `department_user`: create department sales quotation drafts and work on assigned operations records.
-- `business_analyst`: read-only company and operations reporting visibility.
+- `business_admin`: business administrator — sees and adds staff accounts, and has read-only company and operations reporting visibility.
 
 There is no `manager` role in the CRM permission model.
 

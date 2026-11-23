@@ -80,7 +80,7 @@
 
 ## ADR-009: Roles Without Manager
 
-**Decision:** Supported roles are `super_admin`, `director`, `reception`, `department_user`, and `business_analyst`. No `manager`.
+**Decision:** Supported roles are `super_admin`, `director`, `reception`, `department_user`, and `business_admin`. No `manager`.
 
 **Why:** The business clarified there is no manager/operational management role needed.
 
@@ -225,7 +225,7 @@
 
 - `finance` (invoices, payments, expenses, suppliers, purchases) and `approvals` are **closed to department users**.
 - `clients`, `operations`, `catalog` and `documents` remain open to department users, scoped to their department.
-- `business_analyst` may read every gated module but is blocked from any non-GET request inside them.
+- `business_admin` reads every gated module, may write only inside the `users` module, and cannot delete accounts or assign the super admin role.
 - `admin` (users, departments, settings) stays super-admin only.
 
 **Why:** A department-level user could previously read the whole client register, the company approval queue and every document title, and the dashboard showed company finance to every role. Access was enforced only by coarse route groups and a handful of controller checks.
@@ -234,7 +234,17 @@
 
 **Related:** ADR-009 still stands — there is no `manager` role. Department heads are a future *level*, not a sixth role.
 
+## ADR-026: Business Analyst Renamed To Business Admin
 
+**Decision:** The role `business_analyst` was renamed to `business_admin`. A migration renames existing rows. The role gained a `users` module grant: business admins can **see all users and add staff accounts**.
+
+**Why:** The business clarified that this seat administers staff accounts; it was never a pure reporting analyst. The old name implied read-only analytics and the role was given no account rights.
+
+**Constraints kept:** business admins cannot delete accounts (deletion stays super-admin only), cannot view or edit a super admin account, and cannot assign the `super_admin` role — adding staff must not become a privilege-escalation path. Every other gated module stays read-only for them.
+
+**Tradeoffs:** Two rename touchpoints: the stored `users.role` value and the `ROLE_*` constant. Any external report or export filtering on `business_analyst` must be updated. ADR-009's "no manager role" is unaffected.
+
+## Unconfirmed / Needs Verification
 
 - Whether production should keep remote MIS AI enabled long term.
 - Whether DomPDF should replace current `SimplePdfService`.

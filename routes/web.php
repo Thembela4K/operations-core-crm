@@ -240,10 +240,20 @@ Route::middleware('auth')->group(function (): void {
     | Administration
     |--------------------------------------------------------------------------
     */
-    Route::middleware('module:admin')->group(function (): void {
-        Route::resource('departments', DepartmentController::class);
+    /*
+    |--------------------------------------------------------------------------
+    | Staff administration — business admins may see and add users
+    |--------------------------------------------------------------------------
+    | Deletion and the technical admin area stay with the super admin.
+    */
+    Route::middleware('module:users')->group(function (): void {
         Route::post('users/{user}/resend-invitation', [UserController::class, 'resendInvitation'])->name('users.resend-invitation');
-        Route::resource('users', UserController::class);
+        Route::resource('users', UserController::class)->except(['destroy']);
+    });
+
+    Route::middleware('module:admin')->group(function (): void {
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::resource('departments', DepartmentController::class);
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
     });
