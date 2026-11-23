@@ -28,7 +28,7 @@
                 $activeModule = 'operations';
             } elseif (request()->routeIs('tasks.*')) {
                 $activeModule = 'tasks';
-            } elseif (request()->routeIs('attendance.*')) {
+            } elseif (request()->routeIs('attendance.*') || request()->routeIs('leave.*')) {
                 $activeModule = 'attendance';
             } elseif (request()->routeIs('suppliers.*') || request()->routeIs('purchases.*')) {
                 $activeModule = 'suppliers';
@@ -175,6 +175,7 @@
                 ],
                 'attendance' => [
                     ['label' => 'Attendance Register', 'route' => route('attendance.index'), 'active' => request()->routeIs('attendance.*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Leave', 'route' => route('leave.index'), 'active' => request()->routeIs('leave.*'), 'visible' => true, 'badge' => null],
                 ],
                 'suppliers' => [
                     ['label' => 'Supplier Register', 'route' => route('suppliers.index'), 'active' => request()->routeIs('suppliers.*'), 'visible' => true, 'badge' => null],

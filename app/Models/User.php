@@ -170,6 +170,20 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
     }
 
+    /**
+     * Leave is approved by management, not by reception, so approval is kept
+     * separate from attendance administration.
+     */
+    public function canApproveLeave(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+    }
+
+    public function canViewAllLeave(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+    }
+
     public function displayLogin(): string
     {
         return $this->username ?: (string) $this->email;

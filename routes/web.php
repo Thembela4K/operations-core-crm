@@ -12,6 +12,7 @@ use App\Http\Controllers\DeliveryNoteController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JobCardController;
@@ -107,6 +108,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
     Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
     Route::patch('attendance/{attendanceRecord}/correct', [AttendanceController::class, 'correct'])->name('attendance.correct');
+
+    Route::get('attendance/leave', [LeaveController::class, 'index'])->name('leave.index');
+    Route::get('attendance/leave/create', [LeaveController::class, 'create'])->name('leave.create');
+    Route::post('attendance/leave', [LeaveController::class, 'store'])->name('leave.store');
+    Route::post('attendance/leave/holidays', [LeaveController::class, 'storeHoliday'])->name('leave.holidays.store');
+    Route::delete('attendance/leave/holidays/{holiday}', [LeaveController::class, 'destroyHoliday'])->name('leave.holidays.destroy');
+    Route::get('attendance/leave/{leave}', [LeaveController::class, 'show'])->name('leave.show');
+    Route::get('attendance/leave/{leave}/print', [LeaveController::class, 'print'])->name('leave.print');
+    Route::get('attendance/leave/{leave}/pdf', [LeaveController::class, 'pdf'])->name('leave.pdf');
+    Route::get('attendance/leave/{leave}/attachment', [LeaveController::class, 'attachment'])->name('leave.attachment');
+    Route::post('attendance/leave/{leave}/approve', [LeaveController::class, 'approve'])->name('leave.approve');
+    Route::post('attendance/leave/{leave}/reject', [LeaveController::class, 'reject'])->name('leave.reject');
+    Route::post('attendance/leave/{leave}/cancel', [LeaveController::class, 'cancel'])->name('leave.cancel');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
