@@ -205,7 +205,7 @@ Recent completed work preserved in this repo includes:
 - Hostinger deployment target is Custom PHP/HTML website.
 - Users should be invited rather than self-registering.
 - Business operations should be easy to filter and track.
-- The app should replace some QuickBooks-style operational work, but not become full accounting.
+- The app replaces QuickBooks Desktop: operational work plus full accounting (chart of accounts, double-entry ledger, VAT return, bank reconciliation, financial statements) per ADR-027. Payroll, inventory and multi-currency remain out of scope.
 
 ## Unconfirmed / Needs Verification
 

@@ -142,6 +142,10 @@
 
 **Do not expand into full accounting without a new plan.**
 
+> **Amended by ADR-027.** The out-of-scope list above no longer applies: chart of accounts,
+> the ledger, VAT filing and financial statements are now in scope. Payroll, inventory and
+> multi-currency remain excluded.
+
 ## ADR-016: Departments Own Client Quotations; Reception Owns Invoices
 
 **Decision:** Departments create/download client sales quotations and send via their own email outside CRM. Reception creates invoices from quotations/job cards.
@@ -244,6 +248,27 @@
 **Constraints kept:** business admins cannot delete accounts (deletion stays super-admin only), cannot view or edit a super admin account, and cannot assign the `super_admin` role — adding staff must not become a privilege-escalation path. Every other gated module stays read-only for them.
 
 **Tradeoffs:** Two rename touchpoints: the stored `users.role` value and the `ROLE_*` constant. Any external report or export filtering on `business_analyst` must be updated. ADR-009's "no manager role" is unaffected.
+
+## ADR-027: Full Accounting In Scope
+
+**Decision:** The portal becomes the company's accounting system. Chart of accounts, a double-entry ledger, VAT return generation, bank reconciliation, trial balance, P&L and balance sheet are **in scope**. QuickBooks Desktop data will be migrated in and QuickBooks then retired and uninstalled.
+
+**Why:** The business confirmed that once the CRM is live and the data migrated, QuickBooks will be "rendered useless and possibly uninstalled". VAT returns are prepared and filed internally, so an operational-only system cannot replace QuickBooks.
+
+**Scope boundaries still excluded:** payroll, inventory/stock, fixed assets and depreciation, multi-currency. None has been confirmed as in use; each is a large addition requiring its own decision.
+
+**Supersedes:** the out-of-scope list in ADR-015 (chart of accounts, journals, ledgers, tax filing, trial balance).
+
+**Non-negotiables this creates:**
+- Every posted journal entry balances; posted entries are immutable and corrected by reversal.
+- A document posts exactly once (idempotent by source).
+- VAT figures on the return are read from the ledger, not recomputed from invoices.
+- Periods are locked after a VAT return is filed.
+- Historical periods are locked after migration.
+
+**Tradeoffs:** This is a system build, not a feature. Ledger and VAT correctness carry legal exposure; the first generated VAT return must be reviewed by whoever signs the filing. The design is specified separately and must be approved before implementation.
+
+**Related:** ADR-014 (VAT fixed at 15%), ADR-015 (amended), ADR-026 (business admin).
 
 ## Unconfirmed / Needs Verification
 

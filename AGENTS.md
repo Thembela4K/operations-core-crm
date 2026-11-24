@@ -299,7 +299,7 @@ The user may export the local database via phpMyAdmin and import it to Hostinger
 - Do not expose public registration.
 - Do not remove the local Mailpit mirror without replacing the demo email strategy.
 - Do not change VAT away from 15% unless the business rule changes.
-- Do not turn the app into full accounting with ledgers/journals/payroll/tax filing without a new scope decision.
+- Full accounting is now in scope per ADR-027: chart of accounts, double-entry ledger, VAT return, bank reconciliation, trial balance and financial statements. Payroll, inventory/stock, fixed assets and multi-currency remain out of scope until separately decided.
 - Do not make departments send emails to clients from CRM; current rule is departments download documents and send through their own email.
 - Do not let reception send client quotations; departments own client quotation sending outside CRM.
 - Do not make departments create invoices; departments create job cards, reception creates invoices.
