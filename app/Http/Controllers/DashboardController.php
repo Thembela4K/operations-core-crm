@@ -61,21 +61,41 @@ class DashboardController extends Controller
             ->when(! ($user->canReviewSubmissions() || $user->canManage()), fn ($query) => $query->where('department_id', $user->department_id))
             ->count();
 
-        // Deadline pressure is personal + departmental. Only the company-wide
-        // roles (admin, director, business admin) see other departments' work.
+        // Deadline pressure is a personal list.
+        //  - Director / admin / business admin: strictly their own, never a
+        //    colleague's (not even another director's).
+        //  - Department staff and reception: their own plus their department's.
+        // Workload is separate and stays company-wide for the management roles.
         $companyWideDeadlines = $user->canSeeCompanyDeadlines();
+        $personalDeadlinesOnly = $user->deadlinesArePersonalOnly();
 
-        if (! $companyWideDeadlines) {
-            $upcomingItems = $upcomingItems
-                ->filter(fn (array $item): bool => ($item['assignment']->department_id ?? null) === $user->department_id)
-                ->values();
-        }
+        $upcomingItems = $upcomingItems
+            ->filter(function (array $item) use ($user, $personalDeadlinesOnly, $companyWideDeadlines): bool {
+                $assignment = $item['assignment'] ?? null;
+
+                if ($personalDeadlinesOnly) {
+                    return $assignment !== null && (int) $assignment->assigned_user_id === $user->id;
+                }
+
+                if ($companyWideDeadlines) {
+                    return true;
+                }
+
+                return ($assignment->department_id ?? null) === $user->department_id;
+            })
+            ->values();
         // Week Plan entries (tasks) carry due dates but are not Assignment
         // records, so upcomingItems() never sees them. Scoped the same way.
-        $deadlineTasks = $companyWideDeadlines
-            ? $tasks
-            : $tasks->filter(fn (CrmTask $task): bool => $task->department_id === $user->department_id
-                || $task->assigned_to === $user->id);
+        $deadlineTasks = match (true) {
+            $personalDeadlinesOnly => $tasks->filter(
+                fn (CrmTask $task): bool => $task->assigned_to === $user->id || $task->created_by === $user->id
+            ),
+            $companyWideDeadlines => $tasks,
+            default => $tasks->filter(
+                fn (CrmTask $task): bool => $task->department_id === $user->department_id
+                    || $task->assigned_to === $user->id
+            ),
+        };
 
         $taskDeadlines = $deadlineTasks
             ->reject(fn (CrmTask $task): bool => $task->isClosed())

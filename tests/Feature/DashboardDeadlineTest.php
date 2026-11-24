@@ -103,7 +103,7 @@ class DashboardDeadlineTest extends TestCase
             ->assertDontSee('MIS Department');
     }
 
-    public function test_director_sees_every_departments_deadlines(): void
+    public function test_director_sees_only_their_own_deadlines_but_everyones_workload(): void
     {
         $mis = $this->department('MIS Department');
 
@@ -111,13 +111,32 @@ class DashboardDeadlineTest extends TestCase
         $director = $this->user('Director', 'director@example.com', User::ROLE_DIRECTOR);
 
         $this->task($misUser, $mis, 'MIS only deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
+        $this->task($director, null, 'Director own deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
 
-        $this->actingAs($director)->get('/')
-            ->assertOk()
-            ->assertSee('MIS only deadline');
+        $response = $this->actingAs($director)->get('/');
+
+        $response->assertOk()
+            ->assertSee('Director own deadline')
+            ->assertDontSee('MIS only deadline')
+            // Workload still spans the company.
+            ->assertSee('MIS Department');
     }
 
-    private function task(User $assignee, Department $department, string $title, string $status, string $dueDate): CrmTask
+    public function test_one_director_does_not_see_another_directors_deadline(): void
+    {
+        $directorA = $this->user('Director A', 'director.a@example.com', User::ROLE_DIRECTOR);
+        $directorB = $this->user('Director B', 'director.b@example.com', User::ROLE_DIRECTOR);
+
+        $this->task($directorA, null, 'A private deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
+        $this->task($directorB, null, 'B private deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
+
+        $this->actingAs($directorA)->get('/')
+            ->assertOk()
+            ->assertSee('A private deadline')
+            ->assertDontSee('B private deadline');
+    }
+
+    private function task(User $assignee, ?Department $department, string $title, string $status, string $dueDate): CrmTask
     {
         static $counter = 0;
         $counter++;
@@ -127,7 +146,7 @@ class DashboardDeadlineTest extends TestCase
             'title' => $title,
             'status' => $status,
             'priority' => 'High',
-            'department_id' => $department->id,
+            'department_id' => $department?->id,
             'assigned_to' => $assignee->id,
             'created_by' => $assignee->id,
             'due_date' => $dueDate,

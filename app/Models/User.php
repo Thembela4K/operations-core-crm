@@ -298,10 +298,23 @@ class User extends Authenticatable
     /**
      * Who may see deadline pressure and workload across the whole company.
      *
-     * Everyone else (department staff, reception) is limited to their own and
-     * their department's work — never another department's.
+     * This drives the *workload* aggregate only. Deadline pressure itself is a
+     * personal list — see deadlinesArePersonalOnly().
      */
     public function canSeeCompanyDeadlines(): bool
+    {
+        return $this->hasRole(
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_BUSINESS_ADMIN,
+        );
+    }
+
+    /**
+     * Management roles only ever see their own deadlines — never a colleague's,
+     * including another director's. They still see everyone's workload.
+     */
+    public function deadlinesArePersonalOnly(): bool
     {
         return $this->hasRole(
             self::ROLE_SUPER_ADMIN,
