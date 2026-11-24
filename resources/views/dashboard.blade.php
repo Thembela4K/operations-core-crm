@@ -254,13 +254,21 @@
             </div>
             <div class="mt-4 divide-y divide-neutral-100">
                 @forelse($upcomingItems as $item)
-                    <div class="list-row">
+                    <a class="list-row" href="{{ $item['portal_url'] ?? '#' }}">
                         <span>
                             <strong>{{ $item['reference'] }}</strong>
-                            <small>{{ $item['title'] }}</small>
+                            <small>{{ $item['type'] ?? 'Deadline' }} &middot; {{ $item['title'] }}</small>
                         </span>
-                        <em>{{ $item['days_left'] }} days</em>
-                    </div>
+                        <em>
+                            @if($item['days_left'] < 0)
+                                {{ abs($item['days_left']) }}d overdue
+                            @elseif($item['days_left'] === 0)
+                                Today
+                            @else
+                                {{ $item['days_left'] }} {{ $item['days_left'] === 1 ? 'day' : 'days' }}
+                            @endif
+                        </em>
+                    </a>
                 @empty
                     <p class="empty">No urgent deadlines.</p>
                 @endforelse

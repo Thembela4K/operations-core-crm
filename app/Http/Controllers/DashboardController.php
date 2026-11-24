@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $invoices = Invoice::query()->visibleTo($user)->get();
         $expenses = Expense::query()->visibleTo($user)->get();
         $requisitions = Requisition::query()->visibleTo($user)->get();
-        $tasks = CrmTask::query()->visibleTo($user)->get();
+        $tasks = CrmTask::query()->visibleTo($user)->with(['department', 'assignee'])->get();
         $attendance = AttendanceRecord::query()->visibleTo($user)->get();
         $clientActivities = ClientActivity::query()->visibleTo($user)->get();
         $tenderProposals = TenderProposal::query()->visibleTo($user)->with('latestAssignment.department')->get();
@@ -61,20 +61,62 @@ class DashboardController extends Controller
             ->when(! ($user->canReviewSubmissions() || $user->canManage()), fn ($query) => $query->where('department_id', $user->department_id))
             ->count();
 
+        // Week Plan entries (tasks) carry due dates but are not Assignment
+        // records, so upcomingItems() never sees them. Build their deadline
+        // rows from the already permission-scoped task collection.
+        $taskDeadlines = $tasks
+            ->reject(fn (CrmTask $task): bool => $task->isClosed())
+            ->filter(fn (CrmTask $task): bool => $task->due_date !== null)
+            ->filter(fn (CrmTask $task): bool => $task->due_date->copy()->startOfDay()
+                ->lessThanOrEqualTo(now()->addDays(ReminderService::DASHBOARD_WINDOW_DAYS)->startOfDay()))
+            ->map(function (CrmTask $task): array {
+                $dueOn = $task->due_date->copy()->startOfDay();
+                $daysLeft = (int) now()->startOfDay()->diffInDays($dueOn, false);
+
+                return [
+                    'type' => 'Week Plan Entry',
+                    'model' => $task,
+                    'reference' => $task->task_number,
+                    'title' => $task->title,
+                    'department' => $task->department?->name ?? 'Unassigned',
+                    'owner' => $task->assignee?->name ?? 'Unassigned',
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'due_label' => 'Task Due Date',
+                    'due_on' => $dueOn,
+                    'days_left' => $daysLeft,
+                    'portal_url' => route('tasks.show', $task),
+                ];
+            })
+            ->values();
+
+        $upcomingItems = $upcomingItems
+            ->concat($taskDeadlines)
+            ->sortBy('days_left')
+            ->values();
+
         $deadlineBands = collect([
             'Overdue' => $upcomingItems->where('days_left', '<', 0)->count(),
             'Today' => $upcomingItems->where('days_left', 0)->count(),
             'Next 5 Days' => $upcomingItems->filter(fn (array $item): bool => $item['days_left'] > 0)->count(),
         ]);
 
+        // Workload counts assignment-based work (tenders/quotations) and open
+        // week-plan entries, so a busy department is not understated.
         $departmentWorkload = $assignments
-            ->groupBy(fn (Assignment $assignment): string => $assignment->department?->name ?? 'Unassigned')
-            ->map(fn ($items, string $department): array => [
-                'department' => $department,
-                'count' => $items->count(),
-            ])
-            ->sortByDesc('count')
+            ->map(fn (Assignment $assignment): string => $assignment->department?->name ?? 'Unassigned')
+            ->concat(
+                $tasks
+                    ->reject(fn (CrmTask $task): bool => $task->isClosed())
+                    ->map(fn (CrmTask $task): string => $task->department?->name ?? 'Unassigned')
+            )
+            ->countBy()
+            ->sortDesc()
             ->take(6)
+            ->map(fn (int $count, string $department): array => [
+                'department' => $department,
+                'count' => $count,
+            ])
             ->values();
         $maxDepartmentWorkload = max(1, $departmentWorkload->max('count') ?? 0);
 
