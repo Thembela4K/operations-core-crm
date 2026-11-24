@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CatalogItem;
 use App\Models\Department;
 use App\Models\PurchaseRecord;
 use App\Models\Requisition;
@@ -59,13 +60,21 @@ class PurchaseRecordController extends Controller
         $this->authorizeManage($request);
 
         $data = $this->validated($request);
+        $items = $this->validatedItems($request);
         $data['purchase_number'] = ($data['purchase_number'] ?? null) ?: $numbers->purchaseNumber();
         $data['created_by'] = $request->user()->id;
+        $data['amount'] = $items === [] ? ($data['amount'] ?? 0) : 0;
+
         $purchase = PurchaseRecord::query()->create($data);
+
+        if ($items !== []) {
+            $purchase->syncItems($items);
+        }
+
         $audit->record('created', $purchase, "Purchase {$purchase->purchase_number} created.");
 
         // Purchase records are treated as expenses (decision A1).
-        $accounting->postPurchase($purchase, $request->user());
+        $accounting->postPurchase($purchase->fresh(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('success', 'Purchase record created.');
     }
@@ -75,7 +84,16 @@ class PurchaseRecordController extends Controller
         $this->authorizeView($request, $purchase);
 
         return view('purchases.show', [
-            'purchase' => $purchase->load(['supplier', 'requisition', 'department', 'creator']),
+            'purchase' => $purchase->load(['supplier', 'requisition', 'department', 'creator', 'items.catalogItem']),
+        ]);
+    }
+
+    public function print(Request $request, PurchaseRecord $purchase): View
+    {
+        $this->authorizeView($request, $purchase);
+
+        return view('purchases.print', [
+            'purchase' => $purchase->load(['supplier', 'department', 'items.catalogItem']),
         ]);
     }
 
@@ -84,7 +102,7 @@ class PurchaseRecordController extends Controller
         $this->authorizeManage($request);
 
         return view('purchases.edit', [
-            'purchase' => $purchase,
+            'purchase' => $purchase->load('items'),
             ...$this->formData($request),
         ]);
     }
@@ -93,8 +111,15 @@ class PurchaseRecordController extends Controller
     {
         $this->authorizeManage($request);
 
+        $items = $this->validatedItems($request);
         $before = $purchase->only(['status', 'amount', 'supplier_id']);
         $purchase->update($this->validated($request, $purchase));
+
+        if ($items !== []) {
+            $purchase->syncItems($items);
+        }
+
+        $purchase->refresh();
         $audit->record('updated', $purchase, "Purchase {$purchase->purchase_number} updated.", $before, $purchase->only(['status', 'amount', 'supplier_id']));
 
         return redirect()->route('purchases.show', $purchase)->with('success', 'Purchase record updated.');
@@ -119,9 +144,31 @@ class PurchaseRecordController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::in(PurchaseRecord::STATUSES)],
             'purchase_date' => ['nullable', 'date'],
-            'amount' => ['required', 'numeric', 'min:0'],
+            'ship_to' => ['nullable', 'string'],
+            'terms' => ['nullable', 'string', 'max:60'],
+            'expected_date' => ['nullable', 'date'],
+            'amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ]);
+    }
+
+    /**
+     * QuickBooks-style PO lines: qty x rate = amount.
+     */
+    private function validatedItems(Request $request): array
+    {
+        $data = $request->validate([
+            'items' => ['nullable', 'array'],
+            'items.*.catalog_item_id' => ['nullable', 'exists:catalog_items,id'],
+            'items.*.description' => ['required_with:items', 'nullable', 'string'],
+            'items.*.quantity' => ['nullable', 'numeric', 'min:0.01'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        return collect($data['items'] ?? [])
+            ->filter(fn (array $item): bool => trim((string) ($item['description'] ?? '')) !== '')
+            ->values()
+            ->all();
     }
 
     private function formData(Request $request): array
@@ -131,6 +178,8 @@ class PurchaseRecordController extends Controller
             'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
             'requisitions' => Requisition::query()->visibleTo($request->user())->orderByDesc('created_at')->limit(100)->get(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'catalogItems' => CatalogItem::query()->where('is_active', true)->with('department')->orderBy('name')->get(),
+            'paymentTerms' => PurchaseRecord::PAYMENT_TERMS,
         ];
     }
 

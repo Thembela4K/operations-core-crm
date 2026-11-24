@@ -187,6 +187,7 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('expenses', ExpenseController::class)->except(['show']);
         Route::resource('suppliers', SupplierController::class);
         Route::resource('purchases', PurchaseRecordController::class);
+        Route::get('purchases/{purchase}/print', [PurchaseRecordController::class, 'print'])->name('purchases.print');
     });
 
     /*
