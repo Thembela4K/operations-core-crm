@@ -129,7 +129,7 @@ class PurchaseOrderTest extends TestCase
             [
                 'name' => 'PO Admin',
                 'password' => 'password',
-                'role' => User::ROLE_SUPER_ADMIN,
+                'role' => User::ROLE_BUSINESS_ADMIN,
                 'is_active' => true,
             ],
         );

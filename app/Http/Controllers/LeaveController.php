@@ -74,7 +74,7 @@ class LeaveController extends Controller
             'users' => $user->canViewAllLeave()
                 ? User::query()->where('is_active', true)->orderBy('name')->get()
                 : collect(),
-            'canApplyForOthers' => $user->isSuperAdmin(),
+            'canApplyForOthers' => $user->isBusinessAdmin(),
         ]);
     }
 
@@ -96,7 +96,7 @@ class LeaveController extends Controller
         $subject = $actor;
 
         if (! empty($data['user_id']) && (int) $data['user_id'] !== $actor->id) {
-            if (! $actor->isSuperAdmin()) {
+            if (! $actor->isBusinessAdmin()) {
                 abort(403);
             }
 

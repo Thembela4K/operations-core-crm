@@ -234,7 +234,7 @@ class JobCardController extends Controller
         $notifications->notifyUsers(
             User::query()
                 ->where('is_active', true)
-                ->whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_RECEPTION])
+                ->whereIn('role', [User::ROLE_BUSINESS_ADMIN, User::ROLE_RECEPTION])
                 ->get(),
             'job_card_ready_for_invoice',
             "Job card {$jobCard->job_card_number} is ready for invoice",

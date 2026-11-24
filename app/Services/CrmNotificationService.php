@@ -59,7 +59,7 @@ class CrmNotificationService
         return $this->notifyUsers(
             User::query()
                 ->where('is_active', true)
-                ->whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_DIRECTOR])
+                ->whereIn('role', [User::ROLE_BUSINESS_ADMIN, User::ROLE_DIRECTOR])
                 ->get(),
             $type,
             $title,

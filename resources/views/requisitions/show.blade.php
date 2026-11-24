@@ -29,7 +29,7 @@
             @if($canCancel)
                 <form method="POST" action="{{ route('requisitions.cancel', $requisition) }}">@csrf<button class="btn-secondary" type="submit">Cancel</button></form>
             @endif
-            @if($user->isSuperAdmin())
+            @if($user->isBusinessAdmin())
                 <form method="POST" action="{{ route('requisitions.destroy', $requisition) }}" onsubmit="return confirm('Delete this requisition?')">
                     @csrf
                     @method('DELETE')

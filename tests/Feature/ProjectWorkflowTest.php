@@ -142,7 +142,7 @@ class ProjectWorkflowTest extends TestCase
 
     public function test_super_admin_can_create_a_project_for_another_employee(): void
     {
-        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
         $employee = $this->user('Samkelo', 'samkelo@example.com', User::ROLE_DEPARTMENT_USER);
 
         $this->actingAs($admin)->post(route('projects.store'), [

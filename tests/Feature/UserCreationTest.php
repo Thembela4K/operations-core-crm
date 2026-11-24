@@ -16,7 +16,7 @@ class UserCreationTest extends TestCase
 
     public function test_admin_can_create_an_activated_user_with_a_password(): void
     {
-        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
         $department = $this->department('MIS Department');
 
         $this->actingAs($admin)->post(route('users.store'), [
@@ -54,7 +54,7 @@ class UserCreationTest extends TestCase
 
     public function test_default_path_creates_an_inactive_user_and_sends_an_invitation(): void
     {
-        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
         $department = $this->department('MIS Department');
 
         $this->actingAs($admin)->post(route('users.store'), [
@@ -76,7 +76,7 @@ class UserCreationTest extends TestCase
 
     public function test_activate_now_requires_a_password(): void
     {
-        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
         $department = $this->department('MIS Department');
 
         $this->actingAs($admin)->post(route('users.store'), [
@@ -92,7 +92,7 @@ class UserCreationTest extends TestCase
 
     public function test_department_user_role_still_requires_a_department(): void
     {
-        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
 
         $this->actingAs($admin)->post(route('users.store'), [
             'name' => 'No Department',

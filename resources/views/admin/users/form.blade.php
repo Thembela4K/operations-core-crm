@@ -41,6 +41,16 @@
             @endforeach
         </select>
     </label>
+    <label>
+        <span class="label">Level</span>
+        <select class="input" name="level">
+            <option value="">No level</option>
+            @foreach($levels ?? \App\Models\User::LEVELS as $level)
+                <option value="{{ $level }}" @selected(old('level', $user->level) === $level)>{{ $level }}</option>
+            @endforeach
+        </select>
+        <span class="mt-1 block text-xs text-neutral-500">Seniority inside the department (Trainee, Intern, Officer, Head).</span>
+    </label>
 
     @if(! $user->exists)
         <div class="md:col-span-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">

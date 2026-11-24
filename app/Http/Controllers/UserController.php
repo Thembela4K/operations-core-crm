@@ -26,21 +26,63 @@ class UserController extends Controller
 
     public function create(Request $request): View
     {
+        $actor = $request->user();
+
+        abort_unless($actor->canCreateTeamMembers(), 403);
+
+        // Officers and heads only ever add juniors to their own department.
+        $restricted = ! $actor->canManageUsers();
+
         return view('admin.users.create', [
-            'user' => new User(['role' => User::ROLE_DEPARTMENT_USER, 'is_active' => true]),
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'roles' => $request->user()->assignableRoles(),
+            'user' => new User([
+                'role' => User::ROLE_DEPARTMENT_USER,
+                'level' => $restricted ? User::LEVEL_TRAINEE : null,
+                'department_id' => $restricted ? $actor->department_id : null,
+                'is_active' => true,
+            ]),
+            'departments' => $restricted
+                ? Department::query()->whereKey($actor->department_id)->get()
+                : Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'roles' => $actor->assignableRoles(),
+            'levels' => $actor->assignableLevels(),
+            'restricted' => $restricted,
         ]);
     }
 
     public function store(Request $request, UserInvitationService $invitations): RedirectResponse
     {
+        $actor = $request->user();
+
+        abort_unless($actor->canCreateTeamMembers(), 403);
+
         $data = $this->validatedForInvite($request);
         $this->guardAssignableRole($request, (string) $data['role']);
+
+        // A departmental officer may only create trainees/interns in their own
+        // department, regardless of what the form sends.
+        if (! $actor->canManageUsers()) {
+            if ($actor->department_id === null) {
+                return back()->withInput()->withErrors([
+                    'department_id' => 'Your account is not linked to a department, so you cannot add team members.',
+                ]);
+            }
+
+            if (! in_array($data['level'] ?? null, User::JUNIOR_LEVELS, true)) {
+                return back()->withInput()->withErrors([
+                    'level' => 'You may only add trainees and interns.',
+                ]);
+            }
+
+            $data['role'] = User::ROLE_DEPARTMENT_USER;
+            $data['department_id'] = $actor->department_id;
+        }
+
         $data['name'] = ($data['name'] ?? null) ?: $this->nameFromEmail($data['email']);
         $data['username'] = ($data['username'] ?? null) ?: null;
         $data['receives_submissions'] = $request->boolean('receives_submissions');
         $data['can_access_sppra'] = $request->boolean('can_access_sppra');
+
+        $landing = $actor->canManageUsers() ? route('users.index') : route('team.create');
 
         // Invitation onboarding stays the default. An administrator may instead
         // hand over credentials directly, which is what makes local testing and
@@ -53,13 +95,12 @@ class UserController extends Controller
             User::query()->create($data + [
                 'password' => $activation['password'],
                 'is_active' => true,
-                'invited_by' => $request->user()->id,
+                'invited_by' => $actor->id,
                 'invited_at' => now(),
                 'invitation_accepted_at' => now(),
             ])->forceFill(['email_verified_at' => now()])->save();
 
-            return redirect()
-                ->route('users.index')
+            return redirect($landing)
                 ->with('success', 'User created and activated with the password you set.');
         }
 
@@ -67,13 +108,13 @@ class UserController extends Controller
         $data['is_active'] = false;
 
         $user = User::query()->create($data);
-        $invitation = $invitations->invite($user, $request->user());
+        $invitation = $invitations->invite($user, $actor);
 
         $message = $invitation->status === UserInvitation::STATUS_EMAIL_FAILED
             ? 'User invitation was created, but the email could not be sent. Check SMTP settings and resend.'
             : 'Invitation sent.';
 
-        return redirect()->route('users.index')->with($invitation->status === UserInvitation::STATUS_EMAIL_FAILED ? 'warning' : 'success', $message);
+        return redirect($landing)->with($invitation->status === UserInvitation::STATUS_EMAIL_FAILED ? 'warning' : 'success', $message);
     }
 
     public function show(User $user): RedirectResponse
@@ -89,6 +130,7 @@ class UserController extends Controller
             'user' => $user,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'roles' => $request->user()->assignableRoles(),
+            'levels' => User::LEVELS,
         ]);
     }
 
@@ -159,7 +201,7 @@ class UserController extends Controller
             abort(403);
         }
 
-        if ($target !== null && $target->isSuperAdmin() && ! $actor->isSuperAdmin()) {
+        if ($target !== null && $target->isBusinessAdmin() && ! $actor->isBusinessAdmin()) {
             abort(403, 'Only a super admin may manage a super admin account.');
         }
     }
@@ -185,6 +227,7 @@ class UserController extends Controller
             'employee_no' => ['nullable', 'string', 'max:40'],
             'job_title' => ['nullable', 'string', 'max:120'],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
+            'level' => ['nullable', Rule::in(User::LEVELS)],
             'department_id' => ['nullable', Rule::requiredIf($request->input('role') === User::ROLE_DEPARTMENT_USER), 'exists:departments,id'],
             'is_active' => ['nullable', 'boolean'],
             'receives_submissions' => ['nullable', 'boolean'],
@@ -205,6 +248,7 @@ class UserController extends Controller
             'employee_no' => ['nullable', 'string', 'max:40'],
             'job_title' => ['nullable', 'string', 'max:120'],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
+            'level' => ['nullable', Rule::in(User::LEVELS)],
             'department_id' => ['nullable', Rule::requiredIf($request->input('role') === User::ROLE_DEPARTMENT_USER), 'exists:departments,id'],
             'receives_submissions' => ['nullable', 'boolean'],
             'can_access_sppra' => ['nullable', 'boolean'],

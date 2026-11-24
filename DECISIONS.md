@@ -288,6 +288,25 @@
 
 **Related:** ADR-016 (relaxed), ADR-014 (VAT), ADR-027 (accounting in scope).
 
+## ADR-029: One administrator role, and department levels
+
+**Status:** Accepted — 2026-11-24
+
+**Context:** Two administrator roles existed (`super_admin` and `business_admin`) with overlapping intent, and the business admin was read-only everywhere except staff accounts. Staff also needed a way to record seniority inside a department, and departmental officers needed to onboard their own trainees without an administrator doing it for them.
+
+**Decision:**
+
+1. **Merge the administrator roles.** `super_admin` is removed; `business_admin` becomes the single top role with full control. Existing super admin accounts were migrated to `business_admin`.
+2. **The business admin is no longer read-only** — the module middleware no longer blocks its writes.
+3. **Role labels:** `business_admin` = "Business Admin", `reception` = "Front Desk Admin".
+4. **Department levels:** `department_user` carries a `level` of `Trainee`, `Intern`, `Officer` or `Head`.
+5. **Officers and heads add juniors:** a department user at Officer or Head level may create `department_user` accounts at Trainee/Intern level in **their own department only**, via the "My Team" page. They cannot create officers, heads, admins, or users in another department; the server forces role and department regardless of the submitted form.
+6. Trainees and interns cannot add users.
+
+**Consequences:** There is no longer a separate technical owner account, so anyone who held `super_admin` now holds full administrator rights. Responsibility for keeping that list short is operational, not enforced by the schema.
+
+**Related:** ADR-009 (roles without manager), ADR-026 (business admin rename).
+
 ## Unconfirmed / Needs Verification
 
 - Whether production should keep remote MIS AI enabled long term.

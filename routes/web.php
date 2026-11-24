@@ -221,7 +221,7 @@ Route::middleware('auth')->group(function (): void {
     | Operations intake — reception and admin only
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:'.User::ROLE_SUPER_ADMIN.','.User::ROLE_RECEPTION)->group(function (): void {
+    Route::middleware('role:'.User::ROLE_BUSINESS_ADMIN.','.User::ROLE_RECEPTION)->group(function (): void {
         Route::get('tender-proposals/create', [TenderProposalController::class, 'create'])->name('tender-proposals.create');
         Route::post('tender-proposals', [TenderProposalController::class, 'store'])->name('tender-proposals.store');
         Route::delete('tender-proposals/{tender_proposal}', [TenderProposalController::class, 'destroy'])->name('tender-proposals.destroy');
@@ -251,6 +251,17 @@ Route::middleware('auth')->group(function (): void {
         Route::post('users/{user}/resend-invitation', [UserController::class, 'resendInvitation'])->name('users.resend-invitation');
         Route::resource('users', UserController::class)->except(['destroy']);
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Team intake
+    |--------------------------------------------------------------------------
+    |
+    | Departmental officers and heads add trainees and interns to their own
+    | department without full user-administration access.
+    */
+    Route::get('team/create', [UserController::class, 'create'])->name('team.create');
+    Route::post('team', [UserController::class, 'store'])->name('team.store');
 
     Route::middleware('module:admin')->group(function (): void {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');

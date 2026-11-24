@@ -103,7 +103,7 @@ class AccessControlTest extends TestCase
         ]);
     }
 
-    public function test_business_admin_reads_everything_and_reaches_user_administration(): void
+    public function test_business_admin_reaches_every_module(): void
     {
         $user = $this->user(User::ROLE_BUSINESS_ADMIN);
 
@@ -119,16 +119,15 @@ class AccessControlTest extends TestCase
             '/projects' => 200,
             '/users' => 200,
             '/users/create' => 200,
-
-            '/departments' => 403,
-            '/settings' => 403,
+            '/departments' => 200,
+            '/settings' => 200,
         ]);
 
-        // Read-only outside staff administration.
-        $this->actingAs($user)->post('/clients', [])->assertForbidden();
+        // The business admin is no longer read-only: writes are allowed.
+        $this->actingAs($user)->post('/clients', [])->assertStatus(302);
     }
 
-    public function test_business_admin_can_add_users_but_cannot_escalate_or_delete(): void
+    public function test_business_admin_can_add_and_delete_users(): void
     {
         $department = $this->createDepartment('MIS Department');
         $businessAdmin = $this->user(User::ROLE_BUSINESS_ADMIN);
@@ -144,29 +143,27 @@ class AccessControlTest extends TestCase
 
         $this->assertDatabaseHas('users', ['email' => 'new.starter@example.com']);
 
-        // Cannot create a super admin.
+        // There is no higher role to escalate to, so a second admin is allowed.
         $this->actingAs($businessAdmin)->post('/users', [
-            'name' => 'Escalated',
-            'email' => 'escalated@example.com',
-            'role' => User::ROLE_SUPER_ADMIN,
+            'name' => 'Second Admin',
+            'email' => 'second.admin@example.com',
+            'role' => User::ROLE_BUSINESS_ADMIN,
             'password' => 'password123',
             'activate_now' => '1',
-        ])->assertForbidden();
+        ])->assertRedirect();
 
-        $this->assertDatabaseMissing('users', ['email' => 'escalated@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'second.admin@example.com']);
 
-        // Cannot act on a super admin account.
-        $superAdmin = $this->user(User::ROLE_SUPER_ADMIN);
-        $this->actingAs($businessAdmin)->get('/users/'.$superAdmin->id.'/edit')->assertForbidden();
-
-        // Cannot delete users.
+        // Admins may remove accounts.
         $target = User::query()->where('email', 'new.starter@example.com')->firstOrFail();
-        $this->actingAs($businessAdmin)->delete('/users/'.$target->id)->assertForbidden();
+
+        $this->actingAs($businessAdmin)->delete('/users/'.$target->id)->assertRedirect();
+        $this->assertDatabaseMissing('users', ['id' => $target->id]);
     }
 
     public function test_super_admin_reaches_everything(): void
     {
-        $user = $this->user(User::ROLE_SUPER_ADMIN, 'Admin (Reception)');
+        $user = $this->user(User::ROLE_BUSINESS_ADMIN, 'Admin (Reception)');
 
         $this->assertMatrix($user, [
             '/' => 200,

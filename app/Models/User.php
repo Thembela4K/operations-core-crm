@@ -16,22 +16,48 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    public const ROLE_SUPER_ADMIN = 'super_admin';
-
     public const ROLE_DIRECTOR = 'director';
 
     public const ROLE_RECEPTION = 'reception';
 
     public const ROLE_DEPARTMENT_USER = 'department_user';
 
+    /**
+     * The top role: formerly "super admin". One administrator role owns the
+     * system, so there is no separate super-admin account to maintain.
+     */
     public const ROLE_BUSINESS_ADMIN = 'business_admin';
 
+    /**
+     * Seniority inside a department. The role stays department_user; the level
+     * says whether someone is a trainee, an intern, an officer or a head.
+     */
+    public const LEVEL_TRAINEE = 'Trainee';
+
+    public const LEVEL_INTERN = 'Intern';
+
+    public const LEVEL_OFFICER = 'Officer';
+
+    public const LEVEL_HEAD = 'Head';
+
+    public const LEVELS = [
+        self::LEVEL_TRAINEE,
+        self::LEVEL_INTERN,
+        self::LEVEL_OFFICER,
+        self::LEVEL_HEAD,
+    ];
+
+    /** Levels a departmental officer may create. */
+    public const JUNIOR_LEVELS = [
+        self::LEVEL_TRAINEE,
+        self::LEVEL_INTERN,
+    ];
+
     public const ROLES = [
-        self::ROLE_SUPER_ADMIN => 'Super Admin',
-        self::ROLE_DIRECTOR => 'Director',
-        self::ROLE_RECEPTION => 'Reception',
-        self::ROLE_DEPARTMENT_USER => 'Department User',
         self::ROLE_BUSINESS_ADMIN => 'Business Admin',
+        self::ROLE_DIRECTOR => 'Director',
+        self::ROLE_RECEPTION => 'Front Desk Admin',
+        self::ROLE_DEPARTMENT_USER => 'Department User',
     ];
 
     /**
@@ -45,56 +71,48 @@ class User extends Authenticatable
      */
     public const MODULE_ACCESS = [
         'clients' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'catalog' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'operations' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'documents' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DEPARTMENT_USER,
         ],
         'finance' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
         ],
         'approvals' => [
-            self::ROLE_SUPER_ADMIN,
-            self::ROLE_DIRECTOR,
             self::ROLE_BUSINESS_ADMIN,
+            self::ROLE_DIRECTOR,
         ],
         'reports' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
         ],
         'users' => [
-            self::ROLE_SUPER_ADMIN,
             self::ROLE_BUSINESS_ADMIN,
         ],
         'admin' => [
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
         ],
     ];
 
@@ -109,6 +127,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'level',
         'is_active',
         'receives_submissions',
         'can_access_sppra',
@@ -166,42 +185,42 @@ class User extends Authenticatable
 
     public function canManage(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_RECEPTION);
     }
 
     public function canManageFinance(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_RECEPTION);
     }
 
     public function canDraftFinance(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION, self::ROLE_DEPARTMENT_USER);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_RECEPTION, self::ROLE_DEPARTMENT_USER);
     }
 
     public function canApproveFinance(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     public function canViewReports(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ADMIN);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canViewRequisitions(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION, self::ROLE_BUSINESS_ADMIN);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canApproveRequisitions(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     public function canReleaseRequisitionFunds(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canFulfillRequisitions(): bool
@@ -212,13 +231,13 @@ class User extends Authenticatable
     public function canReviewSubmissions(): bool
     {
         return $this->receives_submissions
-            || $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+            || $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canAccessSppra(): bool
     {
         return $this->can_access_sppra
-            || $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+            || $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canViewPortfolio(): bool
@@ -226,29 +245,51 @@ class User extends Authenticatable
         return $this->canManage() || $this->canReviewSubmissions() || $this->hasRole(self::ROLE_BUSINESS_ADMIN);
     }
 
-    public function isSuperAdmin(): bool
-    {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN);
-    }
-
     public function isBusinessAdmin(): bool
     {
         return $this->hasRole(self::ROLE_BUSINESS_ADMIN);
     }
 
+    public function isOfficer(): bool
+    {
+        return $this->hasRole(self::ROLE_DEPARTMENT_USER) && $this->level === self::LEVEL_OFFICER;
+    }
+
+    public function isDepartmentHead(): bool
+    {
+        return $this->hasRole(self::ROLE_DEPARTMENT_USER) && $this->level === self::LEVEL_HEAD;
+    }
+
     /**
-     * Business admins administer staff accounts (see and add users) but are
-     * not technical super admins: they cannot delete accounts or touch a
-     * super admin, and every other module stays read-only for them.
+     * The administrator role owns staff accounts.
      */
     public function canManageUsers(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_BUSINESS_ADMIN);
+        return $this->isBusinessAdmin();
+    }
+
+    /**
+     * Departmental officers and heads may add trainees and interns to their own
+     * department without a business admin doing it for them.
+     */
+    public function canCreateTeamMembers(): bool
+    {
+        return $this->isBusinessAdmin() || $this->isOfficer() || $this->isDepartmentHead();
     }
 
     public function canDeleteUsers(): bool
     {
-        return $this->isSuperAdmin();
+        return $this->isBusinessAdmin();
+    }
+
+    /**
+     * Levels this actor may assign to a new team member.
+     *
+     * @return array<int, string>
+     */
+    public function assignableLevels(): array
+    {
+        return $this->isBusinessAdmin() ? self::LEVELS : self::JUNIOR_LEVELS;
     }
 
     /**
@@ -258,13 +299,12 @@ class User extends Authenticatable
      */
     public function assignableRoles(): array
     {
-        $roles = self::ROLES;
-
-        if (! $this->isSuperAdmin()) {
-            unset($roles[self::ROLE_SUPER_ADMIN]);
+        if ($this->isBusinessAdmin()) {
+            return self::ROLES;
         }
 
-        return $roles;
+        // Officers and heads may only ever create department members.
+        return [self::ROLE_DEPARTMENT_USER => self::ROLES[self::ROLE_DEPARTMENT_USER]];
     }
 
     /**
@@ -288,10 +328,9 @@ class User extends Authenticatable
     public function seesAllDepartments(): bool
     {
         return $this->hasRole(
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
         );
     }
 
@@ -304,9 +343,8 @@ class User extends Authenticatable
     public function canSeeCompanyDeadlines(): bool
     {
         return $this->hasRole(
-            self::ROLE_SUPER_ADMIN,
-            self::ROLE_DIRECTOR,
             self::ROLE_BUSINESS_ADMIN,
+            self::ROLE_DIRECTOR,
         );
     }
 
@@ -317,9 +355,8 @@ class User extends Authenticatable
     public function deadlinesArePersonalOnly(): bool
     {
         return $this->hasRole(
-            self::ROLE_SUPER_ADMIN,
-            self::ROLE_DIRECTOR,
             self::ROLE_BUSINESS_ADMIN,
+            self::ROLE_DIRECTOR,
         );
     }
 
@@ -344,7 +381,7 @@ class User extends Authenticatable
 
     public function canManageAttendance(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_RECEPTION);
     }
 
     /**
@@ -353,12 +390,12 @@ class User extends Authenticatable
      */
     public function canApproveLeave(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     public function canViewAllLeave(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     /**
@@ -368,16 +405,15 @@ class User extends Authenticatable
     public function canViewAllProjects(): bool
     {
         return $this->hasRole(
-            self::ROLE_SUPER_ADMIN,
+            self::ROLE_BUSINESS_ADMIN,
             self::ROLE_DIRECTOR,
             self::ROLE_RECEPTION,
-            self::ROLE_BUSINESS_ADMIN,
         );
     }
 
     public function canAdministerProjects(): bool
     {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN);
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN);
     }
 
     public function displayLogin(): string

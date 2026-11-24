@@ -22,7 +22,13 @@
                 @forelse($upcomingItems as $item)
                     <tr>
                         <td>{{ $item['type'] }}</td>
-                        <td>{{ $item['reference'] }}</td>
+                        <td>
+                            @if(! empty($item['portal_url']))
+                                <a class="text-link" href="{{ $item['portal_url'] }}">{{ $item['reference'] }}</a>
+                            @else
+                                {{ $item['reference'] }}
+                            @endif
+                        </td>
                         <td>{{ $item['title'] }}</td>
                         <td>{{ $item['status'] }}</td>
                         <td>{{ $item['priority'] }}</td>

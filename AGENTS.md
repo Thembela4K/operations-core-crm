@@ -134,11 +134,12 @@ php artisan crm:import-old-data --database=datamatics_crm_old_import
 
 Roles are defined in [app/Models/User.php](app/Models/User.php):
 
-- `super_admin`: full control.
+- `business_admin`: the administrator role (formerly `super_admin`, merged in ADR-029). Full control of every module, staff accounts, departments and settings.
 - `director`: approval authority and company-wide dashboards/reports.
-- `reception`: client/finance operation, invoices, payments, expenses, operations intake and assignment.
+- `reception`: front-desk admin (label "Front Desk Admin"). Client/finance operation, invoices, payments, expenses, operations intake and assignment.
 - `department_user`: department quotation drafts, job cards, assigned operations work, own/department records.
-- `business_admin`: business administrator. Sees all users and can add staff accounts (but cannot delete accounts, touch a super admin, or assign the super admin role). Read-only everywhere else: company-wide operational and reporting visibility.
+
+Department users also carry a `level`: `Trainee`, `Intern`, `Officer` or `Head`. An **Officer** or **Head** may add trainees and interns to their own department through the "My Team" page, without full user-administration access; they can never create officers, heads, admins or users outside their department.
 
 There is intentionally no `manager` role.
 

@@ -157,6 +157,15 @@
                     'icon' => 'admin',
                     'badge' => null,
                 ],
+                [
+                    'key' => 'team',
+                    'label' => 'My Team',
+                    'meta' => 'Add trainees and interns',
+                    'route' => route('team.create'),
+                    'visible' => $user->canCreateTeamMembers() && ! $user->canAccessModule('users'),
+                    'icon' => 'admin',
+                    'badge' => null,
+                ],
             ];
 
             $moduleLabels = collect($moduleNav)->keyBy('key');
@@ -208,6 +217,9 @@
                 ],
                 'reports' => [
                     ['label' => 'Company Reports', 'route' => route('reports.index'), 'active' => request()->routeIs('reports.*'), 'visible' => $user->canViewReports(), 'badge' => null],
+                ],
+                'team' => [
+                    ['label' => 'Add Team Member', 'route' => route('team.create'), 'active' => request()->routeIs('team.*'), 'visible' => true, 'badge' => null],
                 ],
                 'admin' => [
                     ['label' => 'Users', 'route' => route('users.index'), 'active' => request()->routeIs('users.*'), 'visible' => $user->canAccessModule('users'), 'badge' => null],

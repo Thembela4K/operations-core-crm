@@ -18,6 +18,7 @@ use App\Models\SalesQuotation;
 use App\Models\Submission;
 use App\Models\Supplier;
 use App\Models\TenderProposal;
+use App\Services\DeadlineService;
 use App\Services\ReminderService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -61,67 +62,15 @@ class DashboardController extends Controller
             ->when(! ($user->canReviewSubmissions() || $user->canManage()), fn ($query) => $query->where('department_id', $user->department_id))
             ->count();
 
-        // Deadline pressure is a personal list.
-        //  - Director / admin / business admin: strictly their own, never a
-        //    colleague's (not even another director's).
-        //  - Department staff and reception: their own plus their department's.
-        // Workload is separate and stays company-wide for the management roles.
+        // Deadline pressure is a personal list. Scope rules live in
+        // DeadlineService so the reminders page applies exactly the same ones.
         $companyWideDeadlines = $user->canSeeCompanyDeadlines();
-        $personalDeadlinesOnly = $user->deadlinesArePersonalOnly();
 
-        $upcomingItems = $upcomingItems
-            ->filter(function (array $item) use ($user, $personalDeadlinesOnly, $companyWideDeadlines): bool {
-                $assignment = $item['assignment'] ?? null;
-
-                if ($personalDeadlinesOnly) {
-                    return $assignment !== null && (int) $assignment->assigned_user_id === $user->id;
-                }
-
-                if ($companyWideDeadlines) {
-                    return true;
-                }
-
-                return ($assignment->department_id ?? null) === $user->department_id;
-            })
-            ->values();
+        $upcomingItems = app(DeadlineService::class)->filterAssignments($upcomingItems, $user);
         // Week Plan entries (tasks) carry due dates but are not Assignment
-        // records, so upcomingItems() never sees them. Scoped the same way.
-        $deadlineTasks = match (true) {
-            $personalDeadlinesOnly => $tasks->filter(
-                fn (CrmTask $task): bool => $task->assigned_to === $user->id || $task->created_by === $user->id
-            ),
-            $companyWideDeadlines => $tasks,
-            default => $tasks->filter(
-                fn (CrmTask $task): bool => $task->department_id === $user->department_id
-                    || $task->assigned_to === $user->id
-            ),
-        };
-
-        $taskDeadlines = $deadlineTasks
-            ->reject(fn (CrmTask $task): bool => $task->isClosed())
-            ->filter(fn (CrmTask $task): bool => $task->due_date !== null)
-            ->filter(fn (CrmTask $task): bool => $task->due_date->copy()->startOfDay()
-                ->lessThanOrEqualTo(now()->addDays(ReminderService::DASHBOARD_WINDOW_DAYS)->startOfDay()))
-            ->map(function (CrmTask $task): array {
-                $dueOn = $task->due_date->copy()->startOfDay();
-                $daysLeft = (int) now()->startOfDay()->diffInDays($dueOn, false);
-
-                return [
-                    'type' => 'Week Plan Entry',
-                    'model' => $task,
-                    'reference' => $task->task_number,
-                    'title' => $task->title,
-                    'department' => $task->department?->name ?? 'Unassigned',
-                    'owner' => $task->assignee?->name ?? 'Unassigned',
-                    'status' => $task->status,
-                    'priority' => $task->priority,
-                    'due_label' => 'Task Due Date',
-                    'due_on' => $dueOn,
-                    'days_left' => $daysLeft,
-                    'portal_url' => route('tasks.show', $task),
-                ];
-            })
-            ->values();
+        // records, so upcomingItems() never sees them.
+        $taskDeadlines = app(DeadlineService::class)
+            ->taskItems($user, ReminderService::DASHBOARD_WINDOW_DAYS);
 
         $upcomingItems = $upcomingItems
             ->concat($taskDeadlines)

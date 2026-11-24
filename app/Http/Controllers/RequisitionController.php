@@ -175,7 +175,7 @@ class RequisitionController extends Controller
 
     public function destroy(Request $request, Requisition $requisition): RedirectResponse
     {
-        if (! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->isBusinessAdmin()) {
             abort(403);
         }
 
