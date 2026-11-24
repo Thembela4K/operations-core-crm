@@ -51,6 +51,12 @@
                 @if(filled($signature['address'] ?? null))
                     <div>{{ $signature['address'] }}</div>
                 @endif
+                @if(filled($signature['award_text'] ?? null))
+                    <div style="margin-top:5px; font-size:11px; line-height:15px; color:#b45309; font-weight:700;">{{ $signature['award_text'] }}</div>
+                @endif
+                @if(filled($signature['tagline'] ?? null))
+                    <div style="margin-top:2px; font-size:11px; line-height:15px; color:#6b7280; font-style:italic;">{{ $signature['tagline'] }}</div>
+                @endif
             </td>
         </tr>
     </table>
