@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Department;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\AccountingService;
 use App\Services\FinanceCalculatorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -109,7 +110,7 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.index')->with('success', 'Invoice deleted.');
     }
 
-    public function issue(Request $request, Invoice $invoice): RedirectResponse
+    public function issue(Request $request, Invoice $invoice, AccountingService $accounting): RedirectResponse
     {
         $this->authorizeManage($request);
 
@@ -117,6 +118,9 @@ class InvoiceController extends Controller
             'status' => Invoice::STATUS_ISSUED,
             'issued_at' => $invoice->issued_at ?: now(),
         ]);
+
+        // Post to the ledger. No-op until the chart of accounts is configured.
+        $accounting->postInvoice($invoice);
 
         return back()->with('success', 'Invoice issued.');
     }

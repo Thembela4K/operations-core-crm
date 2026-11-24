@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Expense;
 use App\Models\Supplier;
+use App\Services\AccountingService;
 use App\Services\FinanceNumberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,16 +53,19 @@ class ExpenseController extends Controller
         ]);
     }
 
-    public function store(Request $request, FinanceNumberService $numbers): RedirectResponse
+    public function store(Request $request, FinanceNumberService $numbers, AccountingService $accounting): RedirectResponse
     {
         $this->authorizeManage($request);
 
         $data = $this->validated($request);
-        $data['expense_number'] = $data['expense_number'] ?: $numbers->expenseNumber();
+        $data['expense_number'] = ($data['expense_number'] ?? null) ?: $numbers->expenseNumber();
         $data['recorded_by'] = $request->user()->id;
         $data['total_amount'] = round((float) $data['amount'] + (float) $data['vat_amount'], 2);
 
-        Expense::query()->create($data);
+        $expense = Expense::query()->create($data);
+
+        // Purchase-type spend posts straight to the ledger (decision A1).
+        $accounting->postExpense($expense, $request->user());
 
         return redirect()->route('expenses.index')->with('success', 'Expense recorded.');
     }

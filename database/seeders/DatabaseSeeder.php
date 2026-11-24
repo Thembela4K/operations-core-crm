@@ -85,5 +85,7 @@ class DatabaseSeeder extends Seeder
                 'notes' => 'Replace this sample quotation with your organization data.',
             ],
         );
+
+        $this->call(ChartOfAccountsSeeder::class);
     }
 }

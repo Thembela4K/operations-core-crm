@@ -70,6 +70,11 @@ class FinanceNumberService
         return $this->next(\App\Models\CrmTask::class, 'task_number', 'TSK');
     }
 
+    public function journalEntryNumber(): string
+    {
+        return $this->next(\App\Models\JournalEntry::class, 'entry_number', 'JE');
+    }
+
     /**
      * @param  class-string  $modelClass
      */

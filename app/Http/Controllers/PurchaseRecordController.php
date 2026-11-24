@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\PurchaseRecord;
 use App\Models\Requisition;
 use App\Models\Supplier;
+use App\Services\AccountingService;
 use App\Services\AuditLogService;
 use App\Services\FinanceNumberService;
 use Illuminate\Http\RedirectResponse;
@@ -53,15 +54,18 @@ class PurchaseRecordController extends Controller
         ]);
     }
 
-    public function store(Request $request, FinanceNumberService $numbers, AuditLogService $audit): RedirectResponse
+    public function store(Request $request, FinanceNumberService $numbers, AuditLogService $audit, AccountingService $accounting): RedirectResponse
     {
         $this->authorizeManage($request);
 
         $data = $this->validated($request);
-        $data['purchase_number'] = $data['purchase_number'] ?: $numbers->purchaseNumber();
+        $data['purchase_number'] = ($data['purchase_number'] ?? null) ?: $numbers->purchaseNumber();
         $data['created_by'] = $request->user()->id;
         $purchase = PurchaseRecord::query()->create($data);
         $audit->record('created', $purchase, "Purchase {$purchase->purchase_number} created.");
+
+        // Purchase records are treated as expenses (decision A1).
+        $accounting->postPurchase($purchase, $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('success', 'Purchase record created.');
     }

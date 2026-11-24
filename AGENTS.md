@@ -162,6 +162,7 @@ Use `User` helper methods such as `canManage()`, `canManageFinance()`, `canAppro
   - `crm_tasks`, `task_comments`, `attendance_records`, `crm_notifications`, `audit_logs`
   - `ai_conversations`, `ai_messages`, `ai_action_logs`
   - `app_settings`, `jobs`, `failed_jobs`, `sessions`, `cache`
+  - accounting (ADR-027): `accounts`, `tax_codes`, `journal_entries`, `journal_lines`
 
 ## Environment Variables
 
