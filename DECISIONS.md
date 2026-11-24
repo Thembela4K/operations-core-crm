@@ -270,6 +270,24 @@
 
 **Related:** ADR-014 (VAT fixed at 15%), ADR-015 (amended), ADR-026 (business admin).
 
+## ADR-028: Invoices may be created directly, QuickBooks style
+
+**Status:** Accepted — 2026-11-24
+
+**Context:** Staff are migrating off QuickBooks. In QuickBooks, reception types an invoice from scratch. The CRM previously forced invoices to originate from a completed job card (ADR-016), which added a step the finance user does not expect.
+
+**Decision:**
+
+1. Reception (and other finance-capable roles) may create an invoice directly, without a job card.
+2. The invoice form mirrors the QuickBooks Desktop layout: `Customer:Job`, `Class`, `Date`, `Invoice #`, `P.O. No.`, `Terms`, `Due Date`, `Ship Date`, `Ship Via`, `Bill To`, `Ship To`, line grid (`Item / Description / Qty / Rate / Amount`), `Customer Message` and `Memo`.
+3. Picking `Terms` recalculates `Due Date` from the invoice date.
+4. Job-card and quotation linkage is retained when available, but is no longer required.
+5. The printed invoice follows the QuickBooks form layout rather than the previous custom template.
+
+**Consequences:** ADR-016's job-card-gating is relaxed for invoice creation; reception may still generate an invoice from a job card. Totals and VAT continue to come from the shared calculator, and an invoice only posts to the ledger when its status is `Issued`.
+
+**Related:** ADR-016 (relaxed), ADR-014 (VAT), ADR-027 (accounting in scope).
+
 ## Unconfirmed / Needs Verification
 
 - Whether production should keep remote MIS AI enabled long term.

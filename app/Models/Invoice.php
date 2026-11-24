@@ -34,6 +34,17 @@ class Invoice extends Model
         self::STATUS_CANCELLED,
     ];
 
+    /**
+     * QuickBooks-style payment terms. "Due on receipt" is 0 days.
+     */
+    public const PAYMENT_TERMS = [
+        'Due on receipt' => 0,
+        'Net 15' => 15,
+        'Net 30' => 30,
+        'Net 45' => 45,
+        'Net 60' => 60,
+    ];
+
     protected $fillable = [
         'client_id',
         'sales_quotation_id',
@@ -41,6 +52,7 @@ class Invoice extends Model
         'department_id',
         'created_by',
         'invoice_number',
+        'po_number',
         'status',
         'issue_date',
         'due_date',
@@ -52,6 +64,10 @@ class Invoice extends Model
         'balance_due',
         'notes',
         'terms',
+        'ship_to',
+        'ship_date',
+        'ship_via',
+        'customer_message',
         'issued_at',
         'sent_at',
         'paid_at',
@@ -63,6 +79,7 @@ class Invoice extends Model
         return [
             'issue_date' => 'date',
             'due_date' => 'date',
+            'ship_date' => 'date',
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'vat_total' => 'decimal:2',
