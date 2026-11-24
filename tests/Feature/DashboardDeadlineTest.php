@@ -87,6 +87,36 @@ class DashboardDeadlineTest extends TestCase
             ->assertDontSee('Distant future task');
     }
 
+    public function test_reception_does_not_see_another_departments_deadlines(): void
+    {
+        $mis = $this->department('MIS Department');
+        $admin = $this->department('Admin (Reception)');
+
+        $misUser = $this->user('MIS Person', 'mis@example.com', User::ROLE_DEPARTMENT_USER, $mis);
+        $reception = $this->user('Reception', 'reception@example.com', User::ROLE_RECEPTION, $admin);
+
+        $this->task($misUser, $mis, 'MIS only deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
+
+        $this->actingAs($reception)->get('/')
+            ->assertOk()
+            ->assertDontSee('MIS only deadline')
+            ->assertDontSee('MIS Department');
+    }
+
+    public function test_director_sees_every_departments_deadlines(): void
+    {
+        $mis = $this->department('MIS Department');
+
+        $misUser = $this->user('MIS Person', 'mis@example.com', User::ROLE_DEPARTMENT_USER, $mis);
+        $director = $this->user('Director', 'director@example.com', User::ROLE_DIRECTOR);
+
+        $this->task($misUser, $mis, 'MIS only deadline', CrmTask::STATUS_IN_PROGRESS, now()->addDay()->toDateString());
+
+        $this->actingAs($director)->get('/')
+            ->assertOk()
+            ->assertSee('MIS only deadline');
+    }
+
     private function task(User $assignee, Department $department, string $title, string $status, string $dueDate): CrmTask
     {
         static $counter = 0;

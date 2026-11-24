@@ -11,7 +11,7 @@
 
     <section class="panel mt-6 overflow-x-auto">
         <table class="data-table">
-            <thead><tr><th>Name</th><th>Login</th><th>Role</th><th>Department</th><th>Invitation</th><th>Reviewer</th><th>SPPRA</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Login</th><th>Role</th><th>Department</th><th>Invitation</th><th>Status</th><th></th></tr></thead>
             <tbody>
                 @foreach($users as $user)
                     @php($latestInvitation = $user->invitations->first())
@@ -30,8 +30,6 @@
                                 Legacy / manual
                             @endif
                         </td>
-                        <td>{{ $user->canReviewSubmissions() ? 'Yes' : 'No' }}</td>
-                        <td>{{ $user->canAccessSppra() ? 'Yes' : 'No' }}</td>
                         <td>{{ $user->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="text-right">
                             <div class="flex flex-wrap justify-end gap-2">

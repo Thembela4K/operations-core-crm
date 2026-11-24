@@ -61,10 +61,23 @@ class DashboardController extends Controller
             ->when(! ($user->canReviewSubmissions() || $user->canManage()), fn ($query) => $query->where('department_id', $user->department_id))
             ->count();
 
+        // Deadline pressure is personal + departmental. Only the company-wide
+        // roles (admin, director, business admin) see other departments' work.
+        $companyWideDeadlines = $user->canSeeCompanyDeadlines();
+
+        if (! $companyWideDeadlines) {
+            $upcomingItems = $upcomingItems
+                ->filter(fn (array $item): bool => ($item['assignment']->department_id ?? null) === $user->department_id)
+                ->values();
+        }
         // Week Plan entries (tasks) carry due dates but are not Assignment
-        // records, so upcomingItems() never sees them. Build their deadline
-        // rows from the already permission-scoped task collection.
-        $taskDeadlines = $tasks
+        // records, so upcomingItems() never sees them. Scoped the same way.
+        $deadlineTasks = $companyWideDeadlines
+            ? $tasks
+            : $tasks->filter(fn (CrmTask $task): bool => $task->department_id === $user->department_id
+                || $task->assigned_to === $user->id);
+
+        $taskDeadlines = $deadlineTasks
             ->reject(fn (CrmTask $task): bool => $task->isClosed())
             ->filter(fn (CrmTask $task): bool => $task->due_date !== null)
             ->filter(fn (CrmTask $task): bool => $task->due_date->copy()->startOfDay()
@@ -102,11 +115,20 @@ class DashboardController extends Controller
         ]);
 
         // Workload counts assignment-based work (tenders/quotations) and open
-        // week-plan entries, so a busy department is not understated.
-        $departmentWorkload = $assignments
+        // week-plan entries, scoped to the viewer: personal + department, or
+        // the whole company for the company-wide roles.
+        $workloadAssignments = $companyWideDeadlines
+            ? $assignments
+            : $assignments->filter(fn (Assignment $assignment): bool => $assignment->department_id === $user->department_id);
+
+        $workloadTasks = $companyWideDeadlines
+            ? $tasks
+            : $tasks->filter(fn (CrmTask $task): bool => $task->department_id === $user->department_id);
+
+        $departmentWorkload = $workloadAssignments
             ->map(fn (Assignment $assignment): string => $assignment->department?->name ?? 'Unassigned')
             ->concat(
-                $tasks
+                $workloadTasks
                     ->reject(fn (CrmTask $task): bool => $task->isClosed())
                     ->map(fn (CrmTask $task): string => $task->department?->name ?? 'Unassigned')
             )

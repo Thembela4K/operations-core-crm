@@ -296,6 +296,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Who may see deadline pressure and workload across the whole company.
+     *
+     * Everyone else (department staff, reception) is limited to their own and
+     * their department's work — never another department's.
+     */
+    public function canSeeCompanyDeadlines(): bool
+    {
+        return $this->hasRole(
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_DIRECTOR,
+            self::ROLE_BUSINESS_ADMIN,
+        );
+    }
+
+    /**
      * Everyone who works inside a department and should read that department's
      * operational records, even when they may only edit their own.
      */
