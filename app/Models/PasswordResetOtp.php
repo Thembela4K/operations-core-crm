@@ -33,6 +33,7 @@ class PasswordResetOtp extends Model
     public function isUsable(): bool
     {
         return ! $this->used_at
+            && $this->expires_at !== null
             && $this->expires_at->isFuture()
             && $this->attempts < 5;
     }
