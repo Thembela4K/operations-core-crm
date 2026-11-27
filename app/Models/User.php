@@ -284,29 +284,27 @@ class User extends Authenticatable
     }
 
     /**
-     * The IT Officer triages the service desk. Until a dedicated IT department
-     * is confirmed (report item 11), business admins, directors and officers or
-     * heads working in the MIS/IT department hold that responsibility.
+     * The IT Officer is a department user inside the IT Department. Every
+     * employee raises tickets; the IT Officer receives them, triages them and
+     * turns procurement ones into requisitions addressed to the directors.
+     *
+     * The business admin keeps an override so the system owner is never locked
+     * out of a stuck queue.
      */
     public function canTriageItTickets(): bool
     {
-        if ($this->isBusinessAdmin() || $this->hasRole(self::ROLE_DIRECTOR)) {
+        if ($this->isBusinessAdmin()) {
             return true;
         }
 
-        if (! $this->hasRole(self::ROLE_DEPARTMENT_USER) || ! ($this->isOfficer() || $this->isDepartmentHead())) {
-            return false;
-        }
+        return $this->hasRole(self::ROLE_DEPARTMENT_USER)
+            && (bool) $this->department?->is_it_department;
+    }
 
-        $department = strtolower((string) $this->department?->name);
-
-        foreach (['mis', 'it ', ' it', 'ict', 'information technology'] as $needle) {
-            if ($department !== '' && str_contains($department, trim($needle))) {
-                return true;
-            }
-        }
-
-        return false;
+    public function isItOfficer(): bool
+    {
+        return $this->hasRole(self::ROLE_DEPARTMENT_USER)
+            && (bool) $this->department?->is_it_department;
     }
 
     /**

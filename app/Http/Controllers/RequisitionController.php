@@ -93,9 +93,9 @@ class RequisitionController extends Controller
     {
         $data = $this->validated($request);
         unset($data['attachments']);
-        $data['requisition_number'] = $data['requisition_number'] ?: $numbers->requisitionNumber();
+        $data['requisition_number'] = ($data['requisition_number'] ?? null) ?: $numbers->requisitionNumber();
         $data['requested_by'] = $request->user()->id;
-        $data['department_id'] = $request->user()->canViewRequisitions() ? $data['department_id'] : $request->user()->department_id;
+        $data['department_id'] = $request->user()->canViewRequisitions() ? ($data['department_id'] ?? null) : $request->user()->department_id;
         $data['status'] = $request->input('action') === 'submit' ? Requisition::STATUS_SUBMITTED : Requisition::STATUS_DRAFT;
         $data['submitted_at'] = $data['status'] === Requisition::STATUS_SUBMITTED ? now() : null;
         $items = $this->validatedItems($request);
@@ -104,6 +104,7 @@ class RequisitionController extends Controller
             $requisition = Requisition::query()->create($data);
             $this->syncItems($requisition, $items);
             $this->storeAttachments($request, $requisition);
+            $this->copyTicketAttachments($requisition);
 
             return $requisition->fresh(['department', 'requester', 'items']);
         });
@@ -127,6 +128,9 @@ class RequisitionController extends Controller
 
         return view('requisitions.show', [
             'requisition' => $requisition->load(['department', 'supplier', 'requester', 'approver', 'releaser', 'items', 'documents.uploader', 'emailLogs']),
+            'sourceTicket' => $requisition->source_ticket_id
+                ? Ticket::query()->with(['requester', 'category', 'documents'])->find($requisition->source_ticket_id)
+                : null,
         ]);
     }
 
@@ -159,7 +163,7 @@ class RequisitionController extends Controller
 
         $data = $this->validated($request, $requisition);
         unset($data['attachments']);
-        $data['department_id'] = $request->user()->canViewRequisitions() ? $data['department_id'] : $request->user()->department_id;
+        $data['department_id'] = $request->user()->canViewRequisitions() ? ($data['department_id'] ?? null) : $request->user()->department_id;
         $items = $this->validatedItems($request);
         $submit = $request->input('action') === 'submit';
 
@@ -349,6 +353,37 @@ class RequisitionController extends Controller
             'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'max:10240'],
         ]);
+    }
+
+    /**
+     * Report 4.6: the ticket's attachments and details travel with the
+     * requisition, so the directors can approve without asking IT for evidence.
+     */
+    private function copyTicketAttachments(Requisition $requisition): void
+    {
+        if (! $requisition->source_ticket_id) {
+            return;
+        }
+
+        $ticket = Ticket::query()->with('documents')->find($requisition->source_ticket_id);
+
+        if (! $ticket) {
+            return;
+        }
+
+        foreach ($ticket->documents as $document) {
+            $requisition->documents()->create([
+                'category' => $document->category,
+                'title' => $document->title ?: $document->original_name,
+                'tags' => $document->tags,
+                'original_name' => $document->original_name,
+                'stored_name' => $document->stored_name,
+                'path' => $document->path,
+                'mime_type' => $document->mime_type,
+                'size' => $document->size,
+                'uploaded_by' => $document->uploaded_by,
+            ]);
+        }
     }
 
     private function validatedItems(Request $request): array

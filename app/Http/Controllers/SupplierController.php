@@ -47,7 +47,7 @@ class SupplierController extends Controller
         $this->authorizeManage();
 
         $data = $this->validated($request);
-        $data['supplier_code'] = $data['supplier_code'] ?: $numbers->supplierCode();
+        $data['supplier_code'] = ($data['supplier_code'] ?? null) ?: $numbers->supplierCode();
         $data['created_by'] = $request->user()->id;
         $supplier = Supplier::query()->create($data);
         $audit->record('created', $supplier, "Supplier {$supplier->supplier_code} created.");

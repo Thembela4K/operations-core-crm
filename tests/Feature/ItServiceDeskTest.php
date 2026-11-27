@@ -81,8 +81,8 @@ class ItServiceDeskTest extends TestCase
 
     public function test_the_it_officer_can_triage_and_resolve(): void
     {
-        $mis = $this->department('MIS Department');
-        $officer = $this->user('IT Officer', 'it.officer@example.com', $mis, User::LEVEL_OFFICER);
+        $it = $this->department('IT Department');
+        $officer = $this->user('IT Officer', 'it.officer@example.com', $it);
         $employee = $this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance'));
         $ticket = $this->ticket($employee, 'Email not syncing');
 
@@ -112,8 +112,8 @@ class ItServiceDeskTest extends TestCase
 
     public function test_an_internal_note_is_marked_and_hidden_from_the_requester(): void
     {
-        $mis = $this->department('MIS Department');
-        $officer = $this->user('IT Officer', 'it.officer@example.com', $mis, User::LEVEL_OFFICER);
+        $it = $this->department('IT Department');
+        $officer = $this->user('IT Officer', 'it.officer@example.com', $it);
         $employee = $this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance'));
         $ticket = $this->ticket($employee, 'Screen flickering');
 
@@ -137,8 +137,8 @@ class ItServiceDeskTest extends TestCase
 
     public function test_a_ticket_can_seed_a_requisition(): void
     {
-        $mis = $this->department('MIS Department');
-        $officer = $this->user('IT Officer', 'it.officer@example.com', $mis, User::LEVEL_OFFICER);
+        $it = $this->department('IT Department');
+        $officer = $this->user('IT Officer', 'it.officer@example.com', $it);
         $ticket = $this->ticket($this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance')), 'Need a replacement printer');
 
         $this->actingAs($officer)
@@ -188,6 +188,78 @@ class ItServiceDeskTest extends TestCase
         $this->assertSame($ticket->id, $ticket->documents()->first()->documentable_id);
     }
 
+    public function test_a_mis_officer_is_not_the_it_officer(): void
+    {
+        $mis = $this->department('MIS Department');
+        $misOfficer = $this->user('MIS Officer', 'mis.officer@example.com', $mis, User::LEVEL_OFFICER);
+        $employee = $this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance'));
+        $ticket = $this->ticket($employee, 'Someone else issue');
+
+        $this->assertFalse($misOfficer->fresh()->canTriageItTickets());
+
+        $this->actingAs($misOfficer)
+            ->post(route('tickets.status', $ticket), ['status' => Ticket::STATUS_RESOLVED])
+            ->assertForbidden();
+    }
+
+    public function test_a_director_receives_requisitions_and_does_not_triage_tickets(): void
+    {
+        $director = User::query()->create([
+            'name' => 'Director',
+            'email' => 'director.tickets@example.com',
+            'password' => 'password',
+            'role' => User::ROLE_DIRECTOR,
+            'is_active' => true,
+        ]);
+
+        $ticket = $this->ticket($this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance')), 'Needs triage');
+
+        $this->assertFalse($director->canTriageItTickets());
+
+        $this->actingAs($director)
+            ->post(route('tickets.status', $ticket), ['status' => Ticket::STATUS_RESOLVED])
+            ->assertForbidden();
+    }
+
+    public function test_a_department_user_in_the_it_department_triages_without_needing_a_level(): void
+    {
+        $it = $this->department('IT Department');
+        $itOfficer = $this->user('IT Person', 'it.person@example.com', $it);
+
+        $this->assertTrue($itOfficer->fresh()->canTriageItTickets());
+    }
+
+    public function test_ticket_attachments_are_carried_onto_the_requisition(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $it = $this->department('IT Department');
+        $officer = $this->user('IT Officer', 'it.officer@example.com', $it);
+        $ticket = $this->ticket($this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance')), 'Replacement printer');
+
+        $this->actingAs($officer)->post(route('tickets.attachments.store', $ticket), [
+            'document' => \Illuminate\Http\UploadedFile::fake()->create('quote.pdf', 40, 'application/pdf'),
+        ])->assertRedirect();
+
+        $this->actingAs($officer)->post(route('requisitions.store'), [
+            'source_ticket_id' => $ticket->id,
+            'addressed_to' => 'Directors',
+            'title' => 'Replace finance printer',
+            'category' => 'Operational',
+            'priority' => 'Medium',
+            'action' => 'submit',
+            'items' => [
+                ['description' => 'Laser printer', 'payment_type' => 'Bank', 'quantity' => 1, 'estimated_unit_cost' => 4500],
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $requisition = Requisition::query()->firstOrFail();
+
+        $this->assertSame($ticket->id, $requisition->source_ticket_id);
+        $this->assertSame(1, $requisition->documents()->count());
+        $this->assertSame('quote.pdf', $requisition->documents()->first()->original_name);
+    }
+
     private function ticket(User $requester, string $title): Ticket
     {
         return Ticket::query()->create([
@@ -207,7 +279,12 @@ class ItServiceDeskTest extends TestCase
     {
         return Department::query()->firstOrCreate(
             ['slug' => Str::slug($name)],
-            ['name' => $name, 'is_active' => true],
+            [
+                'name' => $name,
+                'is_active' => true,
+                // Triage is tied to the IT Department record, not to a name.
+                'is_it_department' => $name === 'IT Department',
+            ],
         );
     }
 

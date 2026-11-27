@@ -39,6 +39,35 @@
         </div>
     </div>
 
+    @if($sourceTicket ?? null)
+        <section class="panel mt-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="section-title">Raised from IT Ticket</h2>
+                <a class="text-link" href="{{ route('tickets.show', $sourceTicket) }}">{{ $sourceTicket->ticket_number }}</a>
+            </div>
+            <dl class="mt-4 grid gap-4 md:grid-cols-2">
+                <div><dt class="label">Ticket</dt><dd>{{ $sourceTicket->title }}</dd></div>
+                <div><dt class="label">Category</dt><dd>{{ $sourceTicket->category?->name ?? 'Uncategorised' }}</dd></div>
+                <div><dt class="label">Requested By</dt><dd>{{ $sourceTicket->requester?->name ?? '—' }}</dd></div>
+                <div><dt class="label">Priority</dt><dd>{{ $sourceTicket->priority }}</dd></div>
+                <div class="md:col-span-2">
+                    <dt class="label">Original Request</dt>
+                    <dd class="whitespace-pre-line">{{ $sourceTicket->description ?: '—' }}</dd>
+                </div>
+            </dl>
+            @if($sourceTicket->documents->isNotEmpty())
+                <div class="mt-4">
+                    <span class="label">Ticket Attachments</span>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        @foreach($sourceTicket->documents as $ticketDocument)
+                            <a class="btn-secondary" href="{{ route('documents.download', $ticketDocument) }}">{{ $ticketDocument->original_name }}</a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
+    @endif
+
     <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
         <section class="panel">
             <h2 class="section-title">Requisition Summary</h2>

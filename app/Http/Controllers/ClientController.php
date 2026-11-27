@@ -50,7 +50,7 @@ class ClientController extends Controller
         $this->authorizeManageClients();
 
         $data = $this->validated($request);
-        $data['client_code'] = $data['client_code'] ?: $numbers->clientCode();
+        $data['client_code'] = ($data['client_code'] ?? null) ?: $numbers->clientCode();
         $data['created_by'] = $request->user()->id;
         $data = $this->clientData($data);
 

@@ -69,7 +69,7 @@ class SalesQuotationController extends Controller
         $this->authorizeDraft($request);
 
         $data = $this->validated($request);
-        $data['quotation_number'] = $data['quotation_number'] ?: $numbers->salesQuotationNumber();
+        $data['quotation_number'] = ($data['quotation_number'] ?? null) ?: $numbers->salesQuotationNumber();
         $data['created_by'] = $request->user()->id;
         $data['department_id'] = $request->user()->canManageFinance() ? $data['department_id'] : $request->user()->department_id;
         $items = $this->validatedItems($request);
