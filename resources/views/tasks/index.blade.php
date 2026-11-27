@@ -21,19 +21,20 @@
     <section class="panel mt-6 overflow-hidden p-0">
         <div class="overflow-x-auto">
             <table class="data-table">
-                <thead><tr><th>Task</th><th>Owner</th><th>Deadline</th><th>Status</th><th>Priority</th><th></th></tr></thead>
+                <thead><tr><th>Task</th><th>Owner</th><th>Deadline</th><th>Days</th><th>Status</th><th>Priority</th><th></th></tr></thead>
                 <tbody>
                     @forelse($tasks as $task)
                         <tr>
                             <td><strong>{{ $task->task_number }}</strong><br><span class="text-xs text-neutral-500">{{ $task->title }}</span></td>
                             <td>{{ $task->assignee?->name ?: 'Unassigned' }}<br><span class="text-xs text-neutral-500">{{ $task->department?->name ?: 'No department' }}</span></td>
                             <td>{{ $task->due_date?->toFormattedDateString() ?: 'No due date' }}</td>
+                            <td>{{ $task->duration_days ? $task->duration_days.'d' : '—' }}</td>
                             <td>{{ $task->status }}</td>
                             <td>{{ $task->priority }}</td>
                             <td class="text-right"><a class="link" href="{{ route('tasks.show', $task) }}">Open</a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><p class="empty">No tasks found.</p></td></tr>
+                        <tr><td colspan="7"><p class="empty">No tasks found.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>

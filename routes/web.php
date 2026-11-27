@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('profile/password', [ProfileController::class, 'password'])->name('profile.password');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
+    Route::get('tasks/report', [TaskController::class, 'report'])->name('tasks.report');
     Route::resource('tasks', TaskController::class);
     Route::post('tasks/{task}/comments', [TaskController::class, 'comment'])->name('tasks.comments.store');
     Route::post('tasks/{task}/status', [TaskController::class, 'status'])->name('tasks.status');

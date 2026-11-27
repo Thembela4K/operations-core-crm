@@ -56,6 +56,63 @@ class TaskController extends Controller
         ]);
     }
 
+    /**
+     * Weekly week-plan report. Defaults to last week so a week can be closed
+     * out after the fact; any week can be reviewed with ?week=YYYY-MM-DD.
+     */
+    public function report(Request $request): View
+    {
+        $anchor = $request->filled('week') ? $request->date('week') : null;
+        $anchor ??= now()->subWeek();
+
+        $start = $anchor->copy()->startOfWeek();
+        $end = $start->copy()->endOfWeek();
+
+        $base = CrmTask::query()
+            ->visibleTo($request->user())
+            ->with(['department', 'assignee', 'creator']);
+
+        $created = (clone $base)->whereBetween('created_at', [$start, $end])->get();
+
+        $completed = (clone $base)
+            ->whereNotNull('completed_at')
+            ->whereBetween('completed_at', [$start, $end])
+            ->get();
+
+        $due = (clone $base)
+            ->whereNotNull('due_date')
+            ->whereBetween('due_date', [$start->toDateString(), $end->toDateString()])
+            ->get();
+
+        $entries = (clone $base)
+            ->where(function ($query) use ($start, $end): void {
+                $query->whereBetween('created_at', [$start, $end])
+                    ->orWhere(function ($inner) use ($start, $end): void {
+                        $inner->whereNotNull('completed_at')->whereBetween('completed_at', [$start, $end]);
+                    })
+                    ->orWhere(function ($inner) use ($start, $end): void {
+                        $inner->whereNotNull('due_date')
+                            ->whereBetween('due_date', [$start->toDateString(), $end->toDateString()]);
+                    });
+            })
+            ->orderBy('due_date')
+            ->get();
+
+        return view('tasks.report', [
+            'start' => $start,
+            'end' => $end,
+            'entries' => $entries,
+            'createdCount' => $created->count(),
+            'completedCount' => $completed->count(),
+            'dueCount' => $due->count(),
+            'statusCounts' => $entries->groupBy('status')->map->count()->sortDesc(),
+            'byAssignee' => $entries->groupBy(fn (CrmTask $task): string => $task->assignee?->name ?? 'Unassigned')->map->count()->sortDesc(),
+            'previousWeek' => $start->copy()->subWeek()->toDateString(),
+            'nextWeek' => $start->copy()->addWeek()->toDateString(),
+            'isCurrentWeek' => $start->isSameWeek(now()),
+        ]);
+    }
+
     public function create(Request $request, FinanceNumberService $numbers): View
     {
         return view('tasks.create', [
@@ -178,6 +235,7 @@ class TaskController extends Controller
             'department_id' => ['nullable', 'exists:departments,id'],
             'assigned_to' => ['nullable', 'exists:users,id'],
             'due_date' => ['nullable', 'date'],
+            'duration_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'related_record' => ['nullable', 'string'],
         ]);
     }

@@ -199,9 +199,13 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_RECEPTION, self::ROLE_DEPARTMENT_USER);
     }
 
+    /**
+     * Approval and release of funds belong to the directors. The business admin
+     * administers the system but does not approve money or release funds.
+     */
     public function canApproveFinance(): bool
     {
-        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
+        return $this->hasRole(self::ROLE_DIRECTOR);
     }
 
     public function canViewReports(): bool
@@ -216,12 +220,12 @@ class User extends Authenticatable
 
     public function canApproveRequisitions(): bool
     {
-        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
+        return $this->hasRole(self::ROLE_DIRECTOR);
     }
 
     public function canReleaseRequisitionFunds(): bool
     {
-        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
     }
 
     public function canFulfillRequisitions(): bool

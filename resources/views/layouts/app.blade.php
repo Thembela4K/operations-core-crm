@@ -208,6 +208,7 @@
                 'tasks' => [
                     ['label' => 'Week Plan', 'route' => route('tasks.index'), 'active' => request()->routeIs('tasks.index') || request()->routeIs('tasks.show'), 'visible' => true, 'badge' => null],
                     ['label' => 'New Entry', 'route' => route('tasks.create'), 'active' => request()->routeIs('tasks.create'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Weekly Report', 'route' => route('tasks.report'), 'active' => request()->routeIs('tasks.report'), 'visible' => true, 'badge' => null],
                 ],
                 'projects' => [
                     ['label' => 'Project Register', 'route' => route('projects.index'), 'active' => request()->routeIs('projects.index') || request()->routeIs('projects.show'), 'visible' => true, 'badge' => null],
