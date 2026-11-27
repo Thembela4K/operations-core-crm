@@ -283,6 +283,32 @@ class User extends Authenticatable
     }
 
     /**
+     * The IT Officer triages the service desk. Until a dedicated IT department
+     * is confirmed (report item 11), business admins, directors and officers or
+     * heads working in the MIS/IT department hold that responsibility.
+     */
+    public function canTriageItTickets(): bool
+    {
+        if ($this->isBusinessAdmin() || $this->hasRole(self::ROLE_DIRECTOR)) {
+            return true;
+        }
+
+        if (! $this->hasRole(self::ROLE_DEPARTMENT_USER) || ! ($this->isOfficer() || $this->isDepartmentHead())) {
+            return false;
+        }
+
+        $department = strtolower((string) $this->department?->name);
+
+        foreach (['mis', 'it ', ' it', 'ict', 'information technology'] as $needle) {
+            if ($department !== '' && str_contains($department, trim($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Levels this actor may assign to a new team member.
      *
      * @return array<int, string>

@@ -13,6 +13,7 @@ use App\Models\Requisition;
 use App\Models\SalesOrder;
 use App\Models\SalesQuotation;
 use App\Models\Supplier;
+use App\Models\Ticket;
 
 class FinanceNumberService
 {
@@ -49,6 +50,11 @@ class FinanceNumberService
     public function paymentNumber(): string
     {
         return $this->next(Payment::class, 'payment_number', 'REC');
+    }
+
+    public function ticketNumber(): string
+    {
+        return $this->next(Ticket::class, 'ticket_number', 'TKT');
     }
 
     public function expenseNumber(): string
