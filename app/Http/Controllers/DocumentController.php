@@ -382,7 +382,7 @@ class DocumentController extends Controller
         }
 
         if ($record instanceof Requisition) {
-            if ($request->user()->canReleaseRequisitionFunds() || $record->department_id === $request->user()->department_id) {
+            if ($request->user()->canAdministerRequisitions() || $record->department_id === $request->user()->department_id) {
                 return;
             }
 

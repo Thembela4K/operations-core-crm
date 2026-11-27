@@ -222,7 +222,7 @@ class RequisitionController extends Controller
 
     public function markInReview(Request $request, Requisition $requisition): RedirectResponse
     {
-        if (! ($request->user()->canApproveRequisitions() || $request->user()->canReleaseRequisitionFunds())) {
+        if (! ($request->user()->canApproveRequisitions() || $request->user()->canAdministerRequisitions())) {
             abort(403);
         }
 
@@ -323,7 +323,7 @@ class RequisitionController extends Controller
 
     public function cancel(Request $request, Requisition $requisition): RedirectResponse
     {
-        if (! $this->canMutateOwnDepartment($request, $requisition) && ! $request->user()->canReleaseRequisitionFunds()) {
+        if (! $this->canMutateOwnDepartment($request, $requisition) && ! $request->user()->canAdministerRequisitions()) {
             abort(403);
         }
 
@@ -481,7 +481,7 @@ class RequisitionController extends Controller
             abort(403);
         }
 
-        if ($this->canMutateOwnDepartment($request, $requisition) || $request->user()->canReleaseRequisitionFunds()) {
+        if ($this->canMutateOwnDepartment($request, $requisition) || $request->user()->canAdministerRequisitions()) {
             return;
         }
 

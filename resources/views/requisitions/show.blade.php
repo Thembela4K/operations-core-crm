@@ -4,11 +4,11 @@
     @php
         $user = auth()->user();
         $ownDepartment = $requisition->department_id === $user->department_id || $requisition->requested_by === $user->id;
-        $canEdit = $requisition->isEditable() && ($ownDepartment || $user->canReleaseRequisitionFunds());
-        $canReview = ($user->canApproveRequisitions() || $user->canReleaseRequisitionFunds()) && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
+        $canEdit = $requisition->isEditable() && ($ownDepartment || $user->canAdministerRequisitions());
+        $canReview = ($user->canApproveRequisitions() || $user->canAdministerRequisitions()) && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
         $canApprove = $user->canApproveRequisitions() && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
         $canReleaseFunds = $user->canReleaseRequisitionFunds() && $requisition->status === \App\Models\Requisition::STATUS_APPROVED;
-        $canCancel = ! in_array($requisition->status, [\App\Models\Requisition::STATUS_APPROVED, \App\Models\Requisition::STATUS_FUNDS_RELEASED], true) && ($ownDepartment || $user->canReleaseRequisitionFunds());
+        $canCancel = ! in_array($requisition->status, [\App\Models\Requisition::STATUS_APPROVED, \App\Models\Requisition::STATUS_FUNDS_RELEASED], true) && ($ownDepartment || $user->canAdministerRequisitions());
     @endphp
 
     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -181,7 +181,7 @@
         <section class="panel">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="section-title">Documents</h2>
-                @if($canEdit || $user->canReleaseRequisitionFunds())
+                @if($canEdit || $user->canAdministerRequisitions())
                     <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
                         @csrf
                         <input type="hidden" name="module" value="requisition">

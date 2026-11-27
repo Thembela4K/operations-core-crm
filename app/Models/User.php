@@ -223,9 +223,26 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_DIRECTOR);
     }
 
+    /**
+     * Approved funds are released by a director only.
+     */
     public function canReleaseRequisitionFunds(): bool
     {
-        return $this->hasRole(self::ROLE_DIRECTOR, self::ROLE_RECEPTION);
+        return $this->hasRole(self::ROLE_DIRECTOR);
+    }
+
+    /**
+     * Day-to-day requisition administration (edit, review, cancel). Separate
+     * from releasing funds so the front desk can keep managing the paperwork
+     * without being able to pay anything out.
+     */
+    public function canAdministerRequisitions(): bool
+    {
+        return $this->hasRole(
+            self::ROLE_DIRECTOR,
+            self::ROLE_RECEPTION,
+            self::ROLE_BUSINESS_ADMIN,
+        );
     }
 
     public function canFulfillRequisitions(): bool

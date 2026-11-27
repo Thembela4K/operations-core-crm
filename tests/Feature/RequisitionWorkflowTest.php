@@ -71,13 +71,18 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertSame(Requisition::STATUS_APPROVED, $requisition->status);
         $this->assertSame($director->id, $requisition->approved_by);
 
+        // The front desk may administer the paperwork but no longer releases funds.
         $this->actingAs($reception)->post(route('requisitions.release-funds', $requisition), [
+            'release_notes' => 'Should be rejected.',
+        ])->assertForbidden();
+
+        $this->actingAs($director)->post(route('requisitions.release-funds', $requisition), [
             'release_notes' => 'Cash prepared and bank transfer queued.',
         ])->assertRedirect();
 
         $requisition->refresh();
         $this->assertSame(Requisition::STATUS_FUNDS_RELEASED, $requisition->status);
-        $this->assertSame($reception->id, $requisition->released_by);
+        $this->assertSame($director->id, $requisition->released_by);
     }
 
     private function department(string $name): Department

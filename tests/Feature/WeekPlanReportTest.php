@@ -160,6 +160,21 @@ class WeekPlanReportTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_reception_cannot_release_but_can_still_administer_requisitions(): void
+    {
+        $reception = User::query()->create([
+            'name' => 'Front Desk',
+            'email' => 'reception.perms@example.com',
+            'password' => 'password',
+            'role' => User::ROLE_RECEPTION,
+            'is_active' => true,
+        ]);
+
+        $this->assertFalse($reception->canReleaseRequisitionFunds());
+        $this->assertFalse($reception->canApproveRequisitions());
+        $this->assertTrue($reception->canAdministerRequisitions());
+    }
+
     private function task(User $user, string $title, Carbon $createdAt): CrmTask
     {
         $task = CrmTask::query()->create([
