@@ -238,7 +238,15 @@ class TaskController extends Controller
 
     private function authorizeMutate(Request $request, CrmTask $task): void
     {
-        if ($request->user()->canManage() || $task->assigned_to === $request->user()->id || $task->created_by === $request->user()->id) {
+        $user = $request->user();
+
+        if ($user->canManage() || $task->assigned_to === $user->id || $task->created_by === $user->id) {
+            return;
+        }
+
+        // Officers and heads supervise their own department's week plan, so they
+        // may update a colleague's task without being its owner.
+        if (($user->isOfficer() || $user->isDepartmentHead()) && $task->department_id === $user->department_id) {
             return;
         }
 
