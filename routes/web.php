@@ -3,6 +3,7 @@
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceTypeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogItemController;
 use App\Http\Controllers\ClientActivityController;
@@ -287,5 +288,9 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('departments', DepartmentController::class);
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('settings/attendance-types', [AttendanceTypeController::class, 'index'])->name('attendance-types.index');
+        Route::post('settings/attendance-types', [AttendanceTypeController::class, 'store'])->name('attendance-types.store');
+        Route::patch('settings/attendance-types/{attendanceType}', [AttendanceTypeController::class, 'update'])->name('attendance-types.update');
     });
 });

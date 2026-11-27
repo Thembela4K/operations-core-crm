@@ -240,7 +240,8 @@
                 'admin' => [
                     ['label' => 'Users', 'route' => route('users.index'), 'active' => request()->routeIs('users.*'), 'visible' => $user->canAccessModule('users'), 'badge' => null],
                     ['label' => 'Departments', 'route' => route('departments.index'), 'active' => request()->routeIs('departments.*'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
-                    ['label' => 'Settings', 'route' => route('settings.index'), 'active' => request()->routeIs('settings.*'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
+                    ['label' => 'Settings', 'route' => route('settings.index'), 'active' => request()->routeIs('settings.index'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
+                    ['label' => 'Attendance Types', 'route' => route('attendance-types.index'), 'active' => request()->routeIs('attendance-types.*'), 'visible' => $user->canAccessModule('admin'), 'badge' => null],
                 ],
                 default => [
                     ['label' => 'Overview', 'route' => route('dashboard'), 'active' => request()->routeIs('dashboard'), 'visible' => true, 'badge' => null],
