@@ -39,6 +39,16 @@
                 @if(! $todayRecord)
                     <form method="POST" action="{{ route('attendance.clock-in') }}">
                         @csrf
+                        @if(($attendanceTypes ?? collect())->isNotEmpty())
+                            <label class="mb-3 block">
+                                <span class="label">Attendance type</span>
+                                <select class="input" name="attendance_type_id">
+                                    @foreach($attendanceTypes as $type)
+                                        <option value="{{ $type->id }}" @selected(($defaultAttendanceType->id ?? null) === $type->id)>{{ $type->name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endif
                         <button class="btn-primary w-full" type="submit">Clock In</button>
                     </form>
                 @elseif(! $todayRecord->out_time)

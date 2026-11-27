@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AttendanceRecord;
+use App\Models\AttendanceType;
 use App\Models\Department;
 use App\Models\User;
 use App\Services\AttendanceService;
@@ -43,6 +44,8 @@ class AttendanceController extends Controller
             'attendancePendingCount' => $attendanceMetrics->where('status', AttendanceRecord::STATUS_PENDING_REVIEW)->count(),
             'attendanceTotalHours' => round($attendanceMetrics->sum('total_minutes') / 60, 1),
             'statuses' => AttendanceRecord::STATUSES,
+            'attendanceTypes' => AttendanceType::query()->where('is_active', true)->orderBy('name')->get(),
+            'defaultAttendanceType' => AttendanceType::default(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -50,8 +53,17 @@ class AttendanceController extends Controller
 
     public function clockIn(Request $request, AttendanceService $attendance, AuditLogService $audit): RedirectResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string']]);
-        $record = $attendance->clockIn($request->user(), $data['note'] ?? null);
+        $data = $request->validate([
+            'note' => ['nullable', 'string'],
+            'attendance_type_id' => ['nullable', 'exists:attendance_types,id'],
+        ]);
+
+        $record = $attendance->clockIn(
+            $request->user(),
+            $data['note'] ?? null,
+            isset($data['attendance_type_id']) ? (int) $data['attendance_type_id'] : null,
+        );
+
         $audit->record('clock_in', $record, "{$request->user()->name} clocked in.");
 
         return back()->with('success', 'Clocked in.');

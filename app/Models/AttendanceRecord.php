@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AttendanceRecord extends Model
 {
@@ -26,6 +27,7 @@ class AttendanceRecord extends Model
     protected $fillable = [
         'user_id',
         'department_id',
+        'attendance_type_id',
         'work_date',
         'in_time',
         'out_time',
@@ -50,6 +52,16 @@ class AttendanceRecord extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function attendanceType(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceType::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(AttendanceEvent::class, 'attendance_record_id')->latest('occurred_at');
     }
 
     public function department(): BelongsTo
