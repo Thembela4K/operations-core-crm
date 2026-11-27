@@ -180,9 +180,9 @@ Route::middleware('auth')->group(function (): void {
         Route::post('requisitions/{requisition}/release-funds', [RequisitionController::class, 'releaseFunds'])->name('requisitions.release-funds');
         Route::post('requisitions/{requisition}/cancel', [RequisitionController::class, 'cancel'])->name('requisitions.cancel');
 
-        Route::resource('tender-proposals', TenderProposalController::class)->except(['create', 'store', 'destroy']);
+        Route::resource('tender-proposals', TenderProposalController::class)->except(['create', 'store', 'destroy'])->whereNumber('tender_proposal');
         Route::post('tender-proposals/{tender_proposal}/progress', [TenderProposalController::class, 'updateProgress'])->name('tender-proposals.progress');
-        Route::resource('quotations', QuotationController::class)->except(['create', 'store', 'destroy']);
+        Route::resource('quotations', QuotationController::class)->except(['create', 'store', 'destroy'])->whereNumber('quotation');
 
         Route::get('submissions', [SubmissionController::class, 'index'])->name('submissions.index');
         Route::post('submissions', [SubmissionController::class, 'store'])->name('submissions.store');
