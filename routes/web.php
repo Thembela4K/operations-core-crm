@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign'])->name('tickets.assign');
     Route::post('tickets/{ticket}/status', [TicketController::class, 'status'])->name('tickets.status');
     Route::post('tickets/{ticket}/requisition', [TicketController::class, 'createRequisition'])->name('tickets.requisition');
+    Route::post('tickets/{ticket}/attachments', [TicketController::class, 'attach'])->name('tickets.attachments.store');
 
     Route::resource('projects', ProjectController::class);
 
@@ -89,6 +90,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
     Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
     Route::patch('attendance/{attendanceRecord}/correct', [AttendanceController::class, 'correct'])->name('attendance.correct');
+    Route::post('attendance/{attendanceRecord}/corrections', [AttendanceController::class, 'requestCorrection'])->name('attendance.corrections.store');
+    Route::post('attendance/corrections/{correction}/decide', [AttendanceController::class, 'decideCorrection'])->name('attendance.corrections.decide');
 
     Route::get('attendance/leave', [LeaveController::class, 'index'])->name('leave.index');
     Route::get('attendance/leave/create', [LeaveController::class, 'create'])->name('leave.create');

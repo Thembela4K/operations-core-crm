@@ -172,6 +172,22 @@ class ItServiceDeskTest extends TestCase
         $this->assertSame(1, $ticket->requisitions()->count());
     }
 
+    public function test_a_requester_can_attach_a_file_to_their_ticket(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $employee = $this->user('Finance Clerk', 'clerk@example.com', $this->department('Finance'));
+        $ticket = $this->ticket($employee, 'Screen shows an error');
+
+        $this->actingAs($employee)->post(route('tickets.attachments.store', $ticket), [
+            'document' => \Illuminate\Http\UploadedFile::fake()->image('screenshot.png', 800, 600),
+            'title' => 'Error screenshot',
+        ])->assertRedirect();
+
+        $this->assertSame(1, $ticket->documents()->count());
+        $this->assertSame($ticket->id, $ticket->documents()->first()->documentable_id);
+    }
+
     private function ticket(User $requester, string $title): Ticket
     {
         return Ticket::query()->create([

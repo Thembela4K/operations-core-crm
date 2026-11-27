@@ -30,6 +30,29 @@
             </section>
 
             <section class="panel mt-6">
+                <h2 class="section-title">Attachments</h2>
+                <div class="mt-4 space-y-2 text-sm">
+                    @forelse($ticket->documents as $document)
+                        <a class="flex items-center justify-between rounded border border-neutral-200 px-3 py-2 hover:bg-neutral-50" href="{{ route('documents.download', $document) }}">
+                            <span>{{ $document->title ?: $document->original_name }}</span>
+                            <span class="text-xs text-neutral-500">{{ number_format($document->size / 1024, 1) }} KB</span>
+                        </a>
+                    @empty
+                        <p class="empty">No attachments yet.</p>
+                    @endforelse
+                </div>
+
+                <form class="mt-4" method="POST" action="{{ route('tickets.attachments.store', $ticket) }}" enctype="multipart/form-data">
+                    @csrf
+                    <label class="block">
+                        <span class="label">Add a screenshot or file</span>
+                        <input class="input" type="file" name="document" required>
+                    </label>
+                    <button class="btn-secondary mt-3" type="submit">Upload</button>
+                </form>
+            </section>
+
+            <section class="panel mt-6">
                 <h2 class="section-title">Conversation</h2>
                 <div class="mt-4 space-y-3">
                     @forelse($ticket->comments as $comment)

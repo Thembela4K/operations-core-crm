@@ -13,6 +13,26 @@
         <input class="input" name="title" value="{{ old('title', $tenderProposal->title) }}" required>
     </label>
     <label>
+        <span class="label">Procurement Type</span>
+        <select class="input" name="procurement_type">
+            <option value="">Not classified</option>
+            @foreach(\App\Models\TenderProposal::PROCUREMENT_TYPES as $type)
+                <option value="{{ $type }}" @selected(old('procurement_type', $tenderProposal->procurement_type) === $type)>{{ $type }}</option>
+            @endforeach
+        </select>
+        <span class="mt-1 block text-xs text-neutral-500">The actual notice type — a tender and a request for quotation are different.</span>
+    </label>
+    <label>
+        <span class="label">Notice Source</span>
+        <select class="input" name="notice_source">
+            <option value="">Not recorded</option>
+            @foreach(\App\Models\TenderProposal::NOTICE_SOURCES as $source)
+                <option value="{{ $source }}" @selected(old('notice_source', $tenderProposal->notice_source) === $source)>{{ $source }}</option>
+            @endforeach
+        </select>
+        <span class="mt-1 block text-xs text-neutral-500">Where it was advertised, e.g. ESPPRA.</span>
+    </label>
+    <label>
         <span class="label">Tender Due Date</span>
         <input class="input" type="date" name="closing_date" value="{{ old('closing_date', $tenderProposal->closing_date ? \Illuminate\Support\Carbon::parse($tenderProposal->closing_date)->format('Y-m-d') : now()->addMonth()->format('Y-m-d')) }}" required>
     </label>

@@ -206,6 +206,8 @@ class TenderProposalController extends Controller
         return $request->validate([
             'tender_reference' => ['required', 'string', 'max:40', Rule::unique('tender_proposals', 'tender_reference')->ignore($tenderProposal)],
             'title' => ['required', 'string', 'max:255'],
+            'procurement_type' => ['nullable', Rule::in(TenderProposal::PROCUREMENT_TYPES)],
+            'notice_source' => ['nullable', Rule::in(TenderProposal::NOTICE_SOURCES)],
             'closing_date' => ['required', 'date'],
             'brief' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in(TenderProposal::STATUSES)],

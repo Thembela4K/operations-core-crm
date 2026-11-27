@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\Document;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\TicketComment;
@@ -100,7 +101,7 @@ class TicketController extends Controller
             'ticket' => $ticket->load([
                 'requester', 'department', 'category', 'assignee', 'creator',
                 'requisitions', 'statusHistory.actor',
-                'comments.user',
+                'comments.user', 'documents',
             ]),
             'canTriage' => $canTriage,
             'statuses' => Ticket::STATUSES,
@@ -195,6 +196,37 @@ class TicketController extends Controller
         $this->authorizeTriage($request);
 
         return redirect()->route('requisitions.create', ['source_ticket_id' => $ticket->id]);
+    }
+
+    /**
+     * Screenshots and supporting files attached to the ticket (report 4.2).
+     */
+    public function attach(Request $request, Ticket $ticket, AuditLogService $audit): RedirectResponse
+    {
+        $this->authorizeView($request, $ticket);
+
+        $request->validate([
+            'document' => ['required', 'file', 'max:10240'],
+            'title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $file = $request->file('document');
+        $path = $file->store("documents/ticket/{$ticket->id}");
+
+        $document = $ticket->documents()->create([
+            'category' => Document::CATEGORY_OTHER,
+            'title' => $request->input('title') ?: null,
+            'original_name' => $file->getClientOriginalName(),
+            'stored_name' => basename($path),
+            'path' => $path,
+            'mime_type' => $file->getClientMimeType(),
+            'size' => $file->getSize(),
+            'uploaded_by' => $request->user()->id,
+        ]);
+
+        $audit->record('document_uploaded', $document, "Attachment {$document->original_name} added to IT ticket {$ticket->ticket_number}.");
+
+        return back()->with('success', 'Attachment uploaded.');
     }
 
     private function recordStatus(Ticket $ticket, ?string $from, string $to, ?User $actor, ?string $reason): void

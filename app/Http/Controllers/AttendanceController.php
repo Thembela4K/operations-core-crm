@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AttendanceCorrection;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceType;
 use App\Models\Department;
@@ -46,6 +47,13 @@ class AttendanceController extends Controller
             'statuses' => AttendanceRecord::STATUSES,
             'attendanceTypes' => AttendanceType::query()->where('is_active', true)->orderBy('name')->get(),
             'defaultAttendanceType' => AttendanceType::default(),
+            'pendingCorrections' => $request->user()->canManageAttendance()
+                ? AttendanceCorrection::query()
+                    ->with(['record.user', 'requester'])
+                    ->where('status', AttendanceCorrection::STATUS_PENDING)
+                    ->latest()
+                    ->get()
+                : collect(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -83,13 +91,88 @@ class AttendanceController extends Controller
         return back()->with('success', 'Clocked out.');
     }
 
-    public function correct(Request $request, string|int $attendanceRecord, AttendanceService $attendance, AuditLogService $audit): RedirectResponse
+    /**
+     * An employee asks for a recorded day to be corrected. The original clock
+     * events stay untouched until a manager approves (report 5.6).
+     */
+    public function requestCorrection(Request $request, AttendanceRecord $attendanceRecord, AuditLogService $audit): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($attendanceRecord->user_id !== $user->id && ! $user->canManageAttendance()) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'proposed_in_at' => ['required', 'date'],
+            'proposed_out_at' => ['nullable', 'date', 'after_or_equal:proposed_in_at'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $correction = AttendanceCorrection::query()->create([
+            'attendance_record_id' => $attendanceRecord->id,
+            'requested_by' => $user->id,
+            'original_in_at' => $attendanceRecord->in_time,
+            'original_out_at' => $attendanceRecord->out_time,
+            'proposed_in_at' => $request->date('proposed_in_at'),
+            'proposed_out_at' => $request->date('proposed_out_at'),
+            'reason' => $data['reason'],
+            'status' => AttendanceCorrection::STATUS_PENDING,
+        ]);
+
+        $audit->record('attendance_correction_requested', $correction, "Attendance correction requested for {$attendanceRecord->user?->name}.");
+
+        return back()->with('success', 'Correction requested for approval.');
+    }
+
+    public function decideCorrection(Request $request, AttendanceCorrection $correction, AttendanceService $attendance, AuditLogService $audit): RedirectResponse
     {
         if (! $request->user()->canManageAttendance()) {
             abort(403);
         }
 
-        $attendanceRecord = AttendanceRecord::query()->findOrFail($attendanceRecord);
+        if ($correction->status !== AttendanceCorrection::STATUS_PENDING) {
+            return back()->with('warning', 'That correction has already been decided.');
+        }
+
+        $data = $request->validate([
+            'decision' => ['required', 'in:approve,reject'],
+            'decision_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $approved = $data['decision'] === 'approve';
+
+        if ($approved && $correction->proposed_in_at) {
+            $attendance->correct(
+                $correction->record,
+                $correction->proposed_in_at,
+                $correction->proposed_out_at,
+                $correction->reason,
+                $request->user(),
+            );
+        }
+
+        $correction->update([
+            'status' => $approved ? AttendanceCorrection::STATUS_APPROVED : AttendanceCorrection::STATUS_REJECTED,
+            'decided_by' => $request->user()->id,
+            'decided_at' => now(),
+            'decision_note' => $data['decision_note'] ?? null,
+        ]);
+
+        $audit->record(
+            $approved ? 'attendance_correction_approved' : 'attendance_correction_rejected',
+            $correction,
+            'Attendance correction '.($approved ? 'approved' : 'rejected').'.',
+        );
+
+        return back()->with('success', 'Correction '.($approved ? 'approved and applied' : 'rejected').'.');
+    }
+
+    public function correct(Request $request, AttendanceRecord $attendanceRecord, AttendanceService $attendance, AuditLogService $audit): RedirectResponse
+    {
+        if (! $request->user()->canManageAttendance()) {
+            abort(403);
+        }
 
         $data = $request->validate([
             'in_time' => ['required', 'date'],

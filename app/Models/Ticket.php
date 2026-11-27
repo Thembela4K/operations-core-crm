@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * An IT service desk ticket (report section 4).
@@ -140,6 +141,11 @@ class Ticket extends Model
     public function requisitions(): HasMany
     {
         return $this->hasMany(Requisition::class, 'source_ticket_id');
+    }
+
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(Document::class, 'documentable');
     }
 
     public function isOpen(): bool
