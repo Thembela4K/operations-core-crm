@@ -10,6 +10,7 @@ use App\Models\JobCard;
 use App\Models\Payment;
 use App\Models\PurchaseRecord;
 use App\Models\Requisition;
+use App\Models\SalesOrder;
 use App\Models\SalesQuotation;
 use App\Models\Supplier;
 
@@ -33,6 +34,11 @@ class FinanceNumberService
     public function jobCardNumber(): string
     {
         return $this->next(JobCard::class, 'job_card_number', 'JOB');
+    }
+
+    public function salesOrderNumber(): string
+    {
+        return $this->next(SalesOrder::class, 'order_number', 'SO');
     }
 
     public function deliveryNoteNumber(): string

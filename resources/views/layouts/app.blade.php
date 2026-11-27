@@ -184,6 +184,7 @@
                 ],
                 'operations' => [
                     ['label' => 'Sales Quotations', 'route' => route('sales-quotations.index'), 'active' => request()->routeIs('sales-quotations.*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Sales Orders', 'route' => route('sales-orders.index'), 'active' => request()->routeIs('sales-orders.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Job Cards', 'route' => route('job-cards.index'), 'active' => request()->routeIs('job-cards.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Delivery Notes', 'route' => route('delivery-notes.index'), 'active' => request()->routeIs('delivery-notes.*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Tender Proposals', 'route' => $layoutNextUnreadTenderUrl ?? route('tender-proposals.index'), 'active' => request()->routeIs('tender-proposals.*'), 'visible' => true, 'badge' => $unreadTenderCount ?: null],

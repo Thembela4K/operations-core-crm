@@ -114,6 +114,14 @@ class SalesQuotation extends Model
         return $this->hasOne(Invoice::class);
     }
 
+    /**
+     * The sales order created when the client accepted this quotation.
+     */
+    public function salesOrder(): HasOne
+    {
+        return $this->hasOne(SalesOrder::class);
+    }
+
     public function jobCards(): HasMany
     {
         return $this->hasMany(JobCard::class)->latest();

@@ -28,6 +28,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesQuotationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubmissionController;
@@ -123,6 +124,7 @@ Route::middleware('auth')->group(function (): void {
     |--------------------------------------------------------------------------
     */
     Route::middleware('module:operations')->group(function (): void {
+        Route::resource('sales-orders', SalesOrderController::class)->except(['destroy']);
         Route::resource('sales-quotations', SalesQuotationController::class);
         Route::post('sales-quotations/{sales_quotation}/submit', [SalesQuotationController::class, 'submit'])->name('sales-quotations.submit');
         Route::post('sales-quotations/{sales_quotation}/approve', [SalesQuotationController::class, 'approve'])->name('sales-quotations.approve');
