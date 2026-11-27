@@ -127,7 +127,7 @@ php artisan crm:import-old-data --database=datamatics_crm_old_import
 - Tasks: task assignment, comments, deadlines, attachments.
 - Attendance: clock in/out, admin correction, reports.
 - Suppliers/Purchases: supplier register and purchase records.
-- Documents: central document registry, preview/download, document text indexing where supported.
+- Documents: registry split into **Attachments** (record-bound files, visible to the uploader, their department and the record's reviewers) and **Company Documents** (licences, registrations, policies — uploaded by business admin/director, readable by everyone). Preview/download and text indexing where supported.
 - Approvals: sales quotation approvals, requisition approvals, notifications.
 - Reports: finance, operations, workload, attendance, supplier/expense summaries.
 - Admin: users, invitations, departments, settings.

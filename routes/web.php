@@ -232,6 +232,7 @@ Route::middleware('auth')->group(function (): void {
     */
     Route::middleware('module:documents')->group(function (): void {
         Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
+        Route::post('documents/company', [DocumentController::class, 'storeCompany'])->name('documents.company.store');
         Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');

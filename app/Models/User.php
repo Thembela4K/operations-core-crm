@@ -278,6 +278,16 @@ class User extends Authenticatable
         return $this->isBusinessAdmin() || $this->isOfficer() || $this->isDepartmentHead();
     }
 
+    /**
+     * Company documents (trading licences, registrations, policies) are
+     * uploaded and maintained by the business admin and directors; everyone
+     * else may only read and download them.
+     */
+    public function canManageCompanyDocuments(): bool
+    {
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
+    }
+
     public function canDeleteUsers(): bool
     {
         return $this->isBusinessAdmin();
