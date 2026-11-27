@@ -94,6 +94,7 @@ php artisan route:list
 php artisan mail:test optional-recipient@example.com
 php artisan reminders:send-due
 php artisan crm:send-daily-notifications
+php artisan attendance:remind
 php artisan assistant:index-documents
 php artisan crm:import-old-data --database=datamatics_crm_old_import
 ```
