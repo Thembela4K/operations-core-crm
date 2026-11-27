@@ -121,6 +121,8 @@ php artisan crm:import-old-data --database=datamatics_crm_old_import
 - Clients: client register, contacts, follow-ups.
 - Finance: sales quotations, job cards, delivery notes, invoices, payments, expenses, item catalog.
 - Operations: tender proposals, quotation requests, assignments, submissions, requisitions, reminders.
+- Sales Orders: accepted quotations become orders, which may be fulfilled by many job cards.
+- IT Service Desk: any employee raises a ticket; IT triage, comments, status history and ticket-to-requisition.
 - Tasks: task assignment, comments, deadlines, attachments.
 - Attendance: clock in/out, admin correction, reports.
 - Suppliers/Purchases: supplier register and purchase records.
@@ -163,6 +165,9 @@ Use `User` helper methods such as `canManage()`, `canManageFinance()`, `canAppro
   - `crm_tasks`, `task_comments`, `attendance_records`, `crm_notifications`, `audit_logs`
   - `ai_conversations`, `ai_messages`, `ai_action_logs`
   - `app_settings`, `jobs`, `failed_jobs`, `sessions`, `cache`
+  - sales orders: `sales_orders` (accepted quotation → order → many job cards)
+  - IT service desk: `tickets`, `ticket_categories`, `ticket_comments`, `ticket_status_history`
+  - attendance: `attendance_types`, `attendance_events`, `attendance_schedules`, `attendance_corrections`
   - accounting (ADR-027): `accounts`, `tax_codes`, `journal_entries`, `journal_lines`
 
 ## Environment Variables

@@ -11,6 +11,17 @@
         $invoiceStatusTotal = max(1, $invoiceStatusCounts->sum());
     @endphp
 
+    {{-- Gentle, non-blocking attendance prompt: once per employee per day. --}}
+    @if($attendancePrompt ?? false)
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+            <span>Good morning! Remember to record your arrival.</span>
+            <span class="flex flex-wrap items-center gap-2">
+                <a class="btn-primary" href="{{ route('attendance.index') }}">Clock In</a>
+                <button class="btn-secondary" type="button" onclick="this.closest('div').parentElement.remove()">I'll do this later</button>
+            </span>
+        </div>
+    @endif
+
     <div class="dashboard-header">
         <div>
             <h1 class="page-title">Datamatics Eswatini Dashboard</h1>

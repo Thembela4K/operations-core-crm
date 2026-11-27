@@ -18,6 +18,7 @@ use App\Models\SalesQuotation;
 use App\Models\Submission;
 use App\Models\Supplier;
 use App\Models\TenderProposal;
+use App\Services\AttendanceReminderService;
 use App\Services\DeadlineService;
 use App\Services\ReminderService;
 use Illuminate\Http\Request;
@@ -117,6 +118,18 @@ class DashboardController extends Controller
         $showOperations = $user->canAccessModule('operations');
         $showCompany = $user->seesAllDepartments();
 
+        // Attendance prompt: shown at most once per local workday, and never
+        // when the employee is on approved leave or has already clocked in.
+        $attendanceReminders = app(AttendanceReminderService::class);
+        $attendancePrompt = false;
+
+        if (! $attendanceReminders->hasArrivalToday($user)
+            && ! $attendanceReminders->onApprovedLeave($user)
+            && ! $attendanceReminders->alreadyPromptedToday($user)) {
+            $attendancePrompt = true;
+            $attendanceReminders->markPrompted($user);
+        }
+
         return view('dashboard', [
             'showClients' => $showClients,
             'showFinance' => $showFinance,
@@ -162,6 +175,10 @@ class DashboardController extends Controller
             'maxDepartmentWorkload' => $maxDepartmentWorkload,
             'deadlineBands' => $deadlineBands,
             'upcomingItems' => $upcomingItems->take(6),
+
+            // One-time, non-blocking attendance prompt per employee per day
+            // (report 5.3). Dismissing it never blocks the dashboard.
+            'attendancePrompt' => $attendancePrompt,
             'sppraUrl' => $user->canAccessSppra() ? config('services.sppra.url') : null,
         ]);
     }

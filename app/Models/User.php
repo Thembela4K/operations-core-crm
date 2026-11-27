@@ -150,6 +150,7 @@ class User extends Authenticatable
             'can_access_sppra' => 'boolean',
             'invited_at' => 'datetime',
             'invitation_accepted_at' => 'datetime',
+            'attendance_prompted_on' => 'date',
         ];
     }
 
