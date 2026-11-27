@@ -7,6 +7,7 @@
             <p class="page-subtitle">{{ $order->status }} | E{{ number_format((float) $order->value, 2) }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a class="btn-secondary" href="{{ route('sales-orders.print', $order) }}" target="_blank">Print Order</a>
             @if($order->canAcceptJobCards())
                 <a class="btn-primary" href="{{ route('job-cards.create', ['sales_order_id' => $order->id]) }}">New Job Card</a>
             @endif

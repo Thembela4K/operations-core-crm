@@ -143,6 +143,7 @@ Route::middleware('auth')->group(function (): void {
     */
     Route::middleware('module:operations')->group(function (): void {
         Route::resource('sales-orders', SalesOrderController::class)->except(['destroy']);
+        Route::get('sales-orders/{sales_order}/print', [SalesOrderController::class, 'print'])->name('sales-orders.print');
         Route::resource('sales-quotations', SalesQuotationController::class);
         Route::post('sales-quotations/{sales_quotation}/submit', [SalesQuotationController::class, 'submit'])->name('sales-quotations.submit');
         Route::post('sales-quotations/{sales_quotation}/approve', [SalesQuotationController::class, 'approve'])->name('sales-quotations.approve');

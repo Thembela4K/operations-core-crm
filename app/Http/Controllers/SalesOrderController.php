@@ -104,6 +104,15 @@ class SalesOrderController extends Controller
         ]);
     }
 
+    public function print(Request $request, SalesOrder $salesOrder): View
+    {
+        $this->authorizeView($request, $salesOrder);
+
+        return view('sales-orders.print', [
+            'order' => $salesOrder->load(['client', 'department', 'quotation']),
+        ]);
+    }
+
     public function edit(Request $request, SalesOrder $salesOrder): View
     {
         $this->authorizeManage($request);
