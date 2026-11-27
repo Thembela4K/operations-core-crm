@@ -22,7 +22,7 @@
                 $activeModule = 'clients';
             } elseif (request()->routeIs('client-activities.*')) {
                 $activeModule = 'clients';
-            } elseif (request()->routeIs('sales-quotations.*') || request()->routeIs('job-cards.*') || request()->routeIs('delivery-notes.*')) {
+            } elseif (request()->routeIs('sales-quotations.*') || request()->routeIs('sales-orders.*') || request()->routeIs('job-cards.*') || request()->routeIs('delivery-notes.*')) {
                 $activeModule = 'operations';
             } elseif (request()->routeIs('invoices.*') || request()->routeIs('payments.*') || request()->routeIs('expenses.*') || request()->routeIs('catalog-items.*')) {
                 $activeModule = 'finance';
@@ -44,7 +44,9 @@
                 $activeModule = 'dashboard';
             } elseif (request()->routeIs('reports.*')) {
                 $activeModule = 'reports';
-            } elseif (request()->routeIs('users.*') || request()->routeIs('departments.*') || request()->routeIs('settings.*')) {
+            } elseif (request()->routeIs('tickets.*')) {
+                $activeModule = 'tickets';
+            } elseif (request()->routeIs('users.*') || request()->routeIs('departments.*') || request()->routeIs('settings.*') || request()->routeIs('team.*')) {
                 $activeModule = 'admin';
             }
 
@@ -149,6 +151,15 @@
                     'badge' => null,
                 ],
                 [
+                    'key' => 'tickets',
+                    'label' => 'IT Service Desk',
+                    'meta' => 'Report and track IT issues',
+                    'route' => route('tickets.index'),
+                    'visible' => true,
+                    'icon' => 'documents',
+                    'badge' => null,
+                ],
+                [
                     'key' => 'admin',
                     'label' => 'Admin',
                     'meta' => 'Users, departments, settings',
@@ -221,6 +232,10 @@
                 ],
                 'team' => [
                     ['label' => 'Add Team Member', 'route' => route('team.create'), 'active' => request()->routeIs('team.*'), 'visible' => true, 'badge' => null],
+                ],
+                'tickets' => [
+                    ['label' => 'Ticket Queue', 'route' => route('tickets.index'), 'active' => request()->routeIs('tickets.index') || request()->routeIs('tickets.show'), 'visible' => true, 'badge' => null],
+                    ['label' => 'New Ticket', 'route' => route('tickets.create'), 'active' => request()->routeIs('tickets.create'), 'visible' => true, 'badge' => null],
                 ],
                 'admin' => [
                     ['label' => 'Users', 'route' => route('users.index'), 'active' => request()->routeIs('users.*'), 'visible' => $user->canAccessModule('users'), 'badge' => null],

@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\Requisition;
 use App\Models\Supplier;
+use App\Models\Ticket;
 use App\Services\AuditLogService;
 use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\CrmNotificationService;
@@ -56,16 +57,30 @@ class RequisitionController extends Controller
 
     public function create(Request $request, FinanceNumberService $numbers): View
     {
+        // A requisition raised from an IT ticket is pre-populated from it
+        // (report 4.6) while remaining a separate, independently auditable record.
+        $ticket = null;
+
+        if ($request->filled('source_ticket_id')) {
+            $ticket = Ticket::query()
+                ->visibleTo($request->user())
+                ->find($request->integer('source_ticket_id'));
+        }
+
         return view('requisitions.create', [
             'requisition' => new Requisition([
+                'source_ticket_id' => $ticket?->id,
                 'requisition_number' => $numbers->requisitionNumber(),
                 'addressed_to' => 'Directors',
-                'department_id' => $request->user()->department_id,
+                'department_id' => $ticket?->department_id ?: $request->user()->department_id,
                 'category' => 'Operational',
                 'priority' => 'Medium',
                 'status' => Requisition::STATUS_DRAFT,
                 'needed_by' => now()->addWeek()->toDateString(),
+                'title' => $ticket ? 'IT procurement: '.$ticket->title : null,
+                'purpose' => $ticket?->description,
             ]),
+            'sourceTicket' => $ticket,
             'statuses' => Requisition::STATUSES,
             'categories' => Requisition::CATEGORIES,
             'priorities' => Requisition::PRIORITIES,
@@ -320,6 +335,7 @@ class RequisitionController extends Controller
     private function validated(Request $request, ?Requisition $requisition = null): array
     {
         return $request->validate([
+            'source_ticket_id' => ['nullable', 'exists:tickets,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'requisition_number' => ['nullable', 'string', 'max:40', Rule::unique('requisitions', 'requisition_number')->ignore($requisition)],

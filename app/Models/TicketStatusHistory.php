@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TicketStatusHistory extends Model
 {
+    /** Named for the single transition log, per the report's entity list. */
+    protected $table = 'ticket_status_history';
+
     protected $fillable = [
         'ticket_id',
         'from_status',
