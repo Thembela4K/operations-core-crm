@@ -201,8 +201,10 @@ class UserController extends Controller
             abort(403);
         }
 
-        if ($target !== null && $target->isBusinessAdmin() && ! $actor->isBusinessAdmin()) {
-            abort(403, 'Only a super admin may manage a super admin account.');
+        // The business admin and directors are peers and may manage each other's
+        // accounts; nobody below them may touch either.
+        if ($target !== null && ! $target->canManageUsers() && ! $actor->canManageUsers()) {
+            abort(403);
         }
     }
 

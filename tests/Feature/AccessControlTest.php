@@ -97,10 +97,33 @@ class AccessControlTest extends TestCase
             '/documents' => 200,
             '/attendance/leave' => 200,
 
-            '/users' => 403,
-            '/departments' => 403,
-            '/settings' => 403,
+            // Directors hold the full staff-account and admin permission.
+            '/users' => 200,
+            '/users/create' => 200,
+            '/departments' => 200,
+            '/settings' => 200,
         ]);
+    }
+
+    public function test_a_director_can_create_and_delete_users(): void
+    {
+        $department = $this->createDepartment('MIS Department');
+        $director = $this->user(User::ROLE_DIRECTOR);
+
+        $this->actingAs($director)->post('/users', [
+            'name' => 'New Starter',
+            'email' => 'new.starter.director@example.com',
+            'role' => User::ROLE_DEPARTMENT_USER,
+            'department_id' => $department->id,
+            'password' => 'password123',
+            'activate_now' => '1',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['email' => 'new.starter.director@example.com']);
+
+        $target = User::query()->where('email', 'new.starter.director@example.com')->firstOrFail();
+        $this->actingAs($director)->delete('/users/'.$target->id)->assertRedirect();
+        $this->assertDatabaseMissing('users', ['id' => $target->id]);
     }
 
     public function test_business_admin_reaches_every_module(): void

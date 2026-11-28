@@ -111,9 +111,11 @@ class User extends Authenticatable
         ],
         'users' => [
             self::ROLE_BUSINESS_ADMIN,
+            self::ROLE_DIRECTOR,
         ],
         'admin' => [
             self::ROLE_BUSINESS_ADMIN,
+            self::ROLE_DIRECTOR,
         ],
     ];
 
@@ -323,11 +325,11 @@ class User extends Authenticatable
     }
 
     /**
-     * The administrator role owns staff accounts.
+     * The administrator role and the directors own staff accounts.
      */
     public function canManageUsers(): bool
     {
-        return $this->isBusinessAdmin();
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     /**
@@ -336,7 +338,7 @@ class User extends Authenticatable
      */
     public function canCreateTeamMembers(): bool
     {
-        return $this->isBusinessAdmin() || $this->isOfficer() || $this->isDepartmentHead();
+        return $this->canManageUsers() || $this->isOfficer() || $this->isDepartmentHead();
     }
 
     /**
@@ -351,7 +353,7 @@ class User extends Authenticatable
 
     public function canDeleteUsers(): bool
     {
-        return $this->isBusinessAdmin();
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     /**
@@ -395,7 +397,7 @@ class User extends Authenticatable
      */
     public function assignableRoles(): array
     {
-        if ($this->isBusinessAdmin()) {
+        if ($this->canManageUsers()) {
             return self::ROLES;
         }
 

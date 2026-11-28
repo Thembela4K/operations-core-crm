@@ -293,6 +293,7 @@ Route::middleware('auth')->group(function (): void {
     */
     Route::middleware('module:users')->group(function (): void {
         Route::post('users/{user}/resend-invitation', [UserController::class, 'resendInvitation'])->name('users.resend-invitation');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::resource('users', UserController::class)->except(['destroy']);
     });
 
@@ -308,7 +309,6 @@ Route::middleware('auth')->group(function (): void {
     Route::post('team', [UserController::class, 'store'])->name('team.store');
 
     Route::middleware('module:admin')->group(function (): void {
-        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::resource('departments', DepartmentController::class);
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
