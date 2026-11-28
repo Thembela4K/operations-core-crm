@@ -27,10 +27,46 @@
             <h1 class="page-title">Datamatics Eswatini Dashboard</h1>
             <p class="page-subtitle">Company view across clients, finance, operations, assignments, and deadlines.</p>
         </div>
-        @if($sppraUrl)
-            <a class="btn-primary" href="{{ $sppraUrl }}" target="_blank" rel="noopener noreferrer">Open SPPRA Tender Site</a>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            {{-- Central Africa Time (CAT, GMT+2). Server renders the authoritative
+                 value; the script keeps it ticking without depending on the
+                 visitor's own clock or timezone. --}}
+            <div class="rounded-md border border-neutral-200 bg-white px-4 py-2 text-right">
+                <div class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Central Africa Time (CAT)</div>
+                <div class="text-lg font-bold text-neutral-900" id="cat-clock">{{ now()->format('H:i:s') }}</div>
+                <div class="text-xs text-neutral-600" id="cat-date">{{ now()->format('l, j F Y') }}</div>
+            </div>
+            @if($sppraUrl)
+                <a class="btn-primary" href="{{ $sppraUrl }}" target="_blank" rel="noopener noreferrer">Open SPPRA Tender Site</a>
+            @endif
+        </div>
     </div>
+
+    <script>
+        (function () {
+            var clock = document.getElementById('cat-clock');
+            var dateLine = document.getElementById('cat-date');
+            if (!clock || !dateLine) return;
+
+            var timeFormat = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Africa/Johannesburg',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            var dateFormat = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Africa/Johannesburg',
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            function tick() {
+                var now = new Date();
+                clock.textContent = timeFormat.format(now);
+                dateLine.textContent = dateFormat.format(now);
+            }
+
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
 
     <div class="dashboard-metrics">
         @if($showClients)
