@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="page-title">Projects</h1>
-            <p class="page-subtitle">What each employee is working on, progress, completion status and notes &mdash; in the weekly Report &amp; Plan format.</p>
+            <p class="page-subtitle">The projects you are working on &mdash; progress, completion status and notes.</p>
         </div>
         <a class="btn-primary" href="{{ route('projects.create') }}">Add Project</a>
     </div>

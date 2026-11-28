@@ -28,7 +28,7 @@
                 $activeModule = 'finance';
             } elseif (request()->routeIs('tender-proposals.*') || request()->routeIs('quotations.*') || request()->routeIs('assignments.*') || request()->routeIs('submissions.*') || request()->routeIs('reminders.*') || request()->routeIs('requisitions.*')) {
                 $activeModule = 'operations';
-            } elseif (request()->routeIs('tasks.*')) {
+            } elseif (request()->routeIs('tasks.*') || request()->routeIs('week-reports.*')) {
                 $activeModule = 'tasks';
             } elseif (request()->routeIs('projects.*')) {
                 $activeModule = 'projects';
@@ -92,7 +92,7 @@
                 [
                     'key' => 'projects',
                     'label' => 'Projects',
-                    'meta' => 'Weekly report and plan',
+                    'meta' => 'Projects I am working on',
                     'route' => route('projects.index'),
                     'visible' => true,
                     'icon' => 'operations',
@@ -219,7 +219,8 @@
                 'tasks' => [
                     ['label' => 'Week Plan', 'route' => route('tasks.index'), 'active' => request()->routeIs('tasks.index') || request()->routeIs('tasks.show'), 'visible' => true, 'badge' => null],
                     ['label' => 'New Entry', 'route' => route('tasks.create'), 'active' => request()->routeIs('tasks.create'), 'visible' => true, 'badge' => null],
-                    ['label' => 'Weekly Report', 'route' => route('tasks.report'), 'active' => request()->routeIs('tasks.report'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Weekly Report', 'route' => route('week-reports.index'), 'active' => request()->routeIs('week-reports.*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Overview', 'route' => route('tasks.report'), 'active' => request()->routeIs('tasks.report'), 'visible' => true, 'badge' => null],
                 ],
                 'projects' => [
                     ['label' => 'Project Register', 'route' => route('projects.index'), 'active' => request()->routeIs('projects.index') || request()->routeIs('projects.show'), 'visible' => true, 'badge' => null],

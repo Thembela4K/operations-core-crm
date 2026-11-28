@@ -39,6 +39,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TenderProposalController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\WeekPlanReportController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -79,6 +80,15 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('tasks/report', [TaskController::class, 'report'])->name('tasks.report');
     Route::resource('tasks', TaskController::class);
+
+    /*
+    | Weekly Report & Plan — the employee writes up last week's progress, this
+    | week's plan and who contributed; reviewers read the same report.
+    */
+    Route::get('week-reports', [WeekPlanReportController::class, 'index'])->name('week-reports.index');
+    Route::get('week-reports/write', [WeekPlanReportController::class, 'edit'])->name('week-reports.edit');
+    Route::post('week-reports', [WeekPlanReportController::class, 'save'])->name('week-reports.save');
+    Route::get('week-reports/{weekPlanReport}', [WeekPlanReportController::class, 'show'])->name('week-reports.show');
     Route::post('tasks/{task}/comments', [TaskController::class, 'comment'])->name('tasks.comments.store');
     Route::post('tasks/{task}/status', [TaskController::class, 'status'])->name('tasks.status');
 
