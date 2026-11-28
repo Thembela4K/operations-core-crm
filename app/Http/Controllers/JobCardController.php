@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Invoice;
 use App\Models\JobCard;
+use App\Models\SalesOrder;
 use App\Models\SalesQuotation;
 use App\Models\User;
 use App\Services\AuditLogService;
@@ -48,6 +49,30 @@ class JobCardController extends Controller
     public function create(Request $request, FinanceNumberService $numbers): View|RedirectResponse
     {
         $quotation = null;
+        $salesOrder = null;
+
+        // A job card can be started from a Sales Order (report 2.4/2.5). The
+        // order supplies the quotation, client and scope, and an order may
+        // legitimately produce several job cards.
+        if ($request->filled('sales_order_id')) {
+            $salesOrder = SalesOrder::query()
+                ->visibleTo($request->user())
+                ->findOrFail($request->integer('sales_order_id'));
+
+            if (! $salesOrder->canAcceptJobCards()) {
+                return redirect()
+                    ->route('sales-orders.show', $salesOrder)
+                    ->with('warning', 'This sales order is closed and cannot take new job cards.');
+            }
+
+            if ($salesOrder->sales_quotation_id === null) {
+                return redirect()
+                    ->route('sales-orders.show', $salesOrder)
+                    ->with('warning', 'Link this sales order to an accepted quotation before creating job cards.');
+            }
+
+            $request->merge(['sales_quotation_id' => $salesOrder->sales_quotation_id]);
+        }
 
         if ($request->filled('sales_quotation_id')) {
             $quotation = SalesQuotation::query()
@@ -63,29 +88,35 @@ class JobCardController extends Controller
                     ->with('warning', 'Mark the quotation as client accepted before creating a job card.');
             }
 
-            $existingJobCard = $quotation->jobCards()
-                ->whereNotIn('status', [JobCard::STATUS_CANCELLED])
-                ->first();
+            // Orders may be fulfilled by several job cards; a single quotation
+            // outside an order still gets the one-active-job-card guard.
+            if ($salesOrder === null) {
+                $existingJobCard = $quotation->jobCards()
+                    ->whereNotIn('status', [JobCard::STATUS_CANCELLED])
+                    ->first();
 
-            if ($existingJobCard) {
-                return redirect()
-                    ->route('job-cards.show', $existingJobCard)
-                    ->with('warning', 'This quotation already has an active job card.');
+                if ($existingJobCard) {
+                    return redirect()
+                        ->route('job-cards.show', $existingJobCard)
+                        ->with('warning', 'This quotation already has an active job card.');
+                }
             }
         }
 
         return view('job_cards.create', [
             'jobCard' => new JobCard([
                 'job_card_number' => $numbers->jobCardNumber(),
+                'sales_order_id' => $salesOrder?->id,
                 'sales_quotation_id' => $quotation?->id,
                 'client_id' => $quotation?->client_id,
                 'department_id' => $quotation?->department_id ?: $request->user()->department_id,
-                'title' => $quotation?->title,
+                'title' => $salesOrder?->title ?? $quotation?->title,
                 'status' => JobCard::STATUS_DRAFT,
                 'start_date' => now()->toDateString(),
                 'due_date' => now()->addDays(7)->toDateString(),
             ]),
             'quotation' => $quotation,
+            'salesOrder' => $salesOrder,
             'quotations' => $this->availableQuotations($request),
             'staff' => $this->staffFor($request, $quotation?->department_id),
         ]);
@@ -106,17 +137,34 @@ class JobCardController extends Controller
                 ->with('warning', 'Mark the quotation as client accepted before creating a job card.');
         }
 
-        $existingJobCard = $quotation->jobCards()
-            ->whereNotIn('status', [JobCard::STATUS_CANCELLED])
-            ->first();
+        // A sales order may be fulfilled by several job cards.
+        $salesOrder = null;
 
-        if ($existingJobCard) {
-            return redirect()
-                ->route('job-cards.show', $existingJobCard)
-                ->with('warning', 'This quotation already has an active job card.');
+        if (! empty($data['sales_order_id'])) {
+            $salesOrder = SalesOrder::query()
+                ->visibleTo($request->user())
+                ->findOrFail((int) $data['sales_order_id']);
+
+            if (! $salesOrder->canAcceptJobCards()) {
+                return redirect()
+                    ->route('sales-orders.show', $salesOrder)
+                    ->with('warning', 'This sales order is closed and cannot take new job cards.');
+            }
         }
 
-        $data['job_card_number'] = $data['job_card_number'] ?: $numbers->jobCardNumber();
+        if ($salesOrder === null) {
+            $existingJobCard = $quotation->jobCards()
+                ->whereNotIn('status', [JobCard::STATUS_CANCELLED])
+                ->first();
+
+            if ($existingJobCard) {
+                return redirect()
+                    ->route('job-cards.show', $existingJobCard)
+                    ->with('warning', 'This quotation already has an active job card.');
+            }
+        }
+
+        $data['job_card_number'] = ($data['job_card_number'] ?? null) ?: $numbers->jobCardNumber();
         $data['client_id'] = $quotation->client_id;
         $data['department_id'] = $quotation->department_id;
         $data['created_by'] = $request->user()->id;
@@ -234,7 +282,7 @@ class JobCardController extends Controller
         $notifications->notifyUsers(
             User::query()
                 ->where('is_active', true)
-                ->whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_RECEPTION])
+                ->whereIn('role', [User::ROLE_BUSINESS_ADMIN, User::ROLE_RECEPTION])
                 ->get(),
             'job_card_ready_for_invoice',
             "Job card {$jobCard->job_card_number} is ready for invoice",
@@ -313,6 +361,7 @@ class JobCardController extends Controller
     {
         return $request->validate([
             'sales_quotation_id' => [$jobCard ? 'nullable' : 'required', 'exists:sales_quotations,id'],
+            'sales_order_id' => ['nullable', 'exists:sales_orders,id'],
             'job_card_number' => ['nullable', 'string', 'max:40', \Illuminate\Validation\Rule::unique('job_cards', 'job_card_number')->ignore($jobCard)],
             'assigned_to' => ['nullable', 'exists:users,id'],
             'title' => ['required', 'string', 'max:255'],

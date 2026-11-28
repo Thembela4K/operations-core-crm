@@ -18,7 +18,7 @@ class UserInvitationAndPasswordResetTest extends TestCase
     public function test_admin_invites_user_and_user_accepts_with_password(): void
     {
         Mail::fake();
-        $admin = $this->user('Admin User', 'admin@example.com', User::ROLE_SUPER_ADMIN);
+        $admin = $this->user('Admin User', 'admin@example.com', User::ROLE_BUSINESS_ADMIN);
         $department = $this->department('MIS Department');
 
         $this->actingAs($admin)->post(route('users.store'), [

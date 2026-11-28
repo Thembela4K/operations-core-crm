@@ -33,6 +33,7 @@ class JobCard extends Model
     ];
 
     protected $fillable = [
+        'sales_order_id',
         'sales_quotation_id',
         'client_id',
         'department_id',
@@ -59,6 +60,11 @@ class JobCard extends Model
             'invoice_ready_at' => 'datetime',
             'delivery_required' => 'boolean',
         ];
+    }
+
+    public function salesOrder(): BelongsTo
+    {
+        return $this->belongsTo(SalesOrder::class);
     }
 
     public function salesQuotation(): BelongsTo

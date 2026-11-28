@@ -7,7 +7,9 @@ use App\Models\Client;
 use App\Models\Department;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\AccountingService;
 use App\Services\FinanceCalculatorService;
+use App\Services\FinanceNumberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,18 +42,48 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function create(Request $request): RedirectResponse
+    public function create(Request $request): View
     {
         $this->authorizeManage($request);
 
-        return redirect()->route('job-cards.index')->with('warning', 'Invoices are created from completed job cards so every invoice stays linked to its quotation.');
+        return view('invoices.create', [
+            'invoice' => new Invoice([
+                'status' => Invoice::STATUS_DRAFT,
+                'issue_date' => now(),
+                'due_date' => now()->addDays(30),
+            ]),
+            'clients' => Client::query()->where('is_active', true)->orderBy('name')->get(),
+            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'catalogItems' => CatalogItem::query()->where('is_active', true)->with('department')->orderBy('name')->get(),
+            'vatRate' => app(FinanceCalculatorService::class)->vatRatePercent(),
+            'paymentTerms' => Invoice::PAYMENT_TERMS,
+        ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, FinanceCalculatorService $calculator, FinanceNumberService $numbers, AccountingService $accounting): RedirectResponse
     {
         $this->authorizeManage($request);
 
-        return redirect()->route('job-cards.index')->with('warning', 'Use a completed job card to draft an invoice.');
+        $data = $this->validated($request);
+        $items = $this->validatedItems($request);
+
+        $data['created_by'] = $request->user()->id;
+        $data['invoice_number'] = ($data['invoice_number'] ?? null) ?: $numbers->invoiceNumber();
+        $data['amount_paid'] = 0;
+
+        $invoice = DB::transaction(function () use ($data, $items, $calculator): Invoice {
+            $invoice = Invoice::query()->create($data);
+            $calculator->syncInvoiceItems($invoice, $items);
+
+            return $invoice->fresh(['items']);
+        });
+
+        if ($invoice->status === Invoice::STATUS_ISSUED) {
+            $invoice->update(['issued_at' => $invoice->issued_at ?: now()]);
+            $accounting->postInvoice($invoice, $request->user());
+        }
+
+        return redirect()->route('invoices.show', $invoice)->with('success', 'Invoice '.$invoice->invoice_number.' created.');
     }
 
     public function show(Request $request, Invoice $invoice): View
@@ -77,8 +109,9 @@ class InvoiceController extends Controller
             'invoice' => $invoice->load('items'),
             'clients' => Client::query()->where('is_active', true)->orderBy('name')->get(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'catalogItems' => CatalogItem::query()->where('is_active', true)->orderBy('name')->get(),
+            'catalogItems' => CatalogItem::query()->where('is_active', true)->with('department')->orderBy('name')->get(),
             'vatRate' => app(FinanceCalculatorService::class)->vatRatePercent(),
+            'paymentTerms' => Invoice::PAYMENT_TERMS,
         ]);
     }
 
@@ -109,7 +142,7 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.index')->with('success', 'Invoice deleted.');
     }
 
-    public function issue(Request $request, Invoice $invoice): RedirectResponse
+    public function issue(Request $request, Invoice $invoice, AccountingService $accounting): RedirectResponse
     {
         $this->authorizeManage($request);
 
@@ -117,6 +150,9 @@ class InvoiceController extends Controller
             'status' => Invoice::STATUS_ISSUED,
             'issued_at' => $invoice->issued_at ?: now(),
         ]);
+
+        // Post to the ledger. No-op until the chart of accounts is configured.
+        $accounting->postInvoice($invoice);
 
         return back()->with('success', 'Invoice issued.');
     }
@@ -152,8 +188,13 @@ class InvoiceController extends Controller
             'status' => ['required', Rule::in([Invoice::STATUS_DRAFT, Invoice::STATUS_ISSUED])],
             'issue_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:issue_date'],
+            'po_number' => ['nullable', 'string', 'max:60'],
+            'terms' => ['nullable', 'string', 'max:60'],
+            'ship_to' => ['nullable', 'string'],
+            'ship_date' => ['nullable', 'date'],
+            'ship_via' => ['nullable', 'string', 'max:60'],
+            'customer_message' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'terms' => ['nullable', 'string'],
         ]);
     }
 

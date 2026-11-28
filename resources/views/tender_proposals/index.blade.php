@@ -59,6 +59,7 @@
                 <tr>
                     <th>Tender Proposal</th>
                     <th>Status</th>
+                    <th>Progress</th>
                     <th>Assigned</th>
                     <th>Due Date</th>
                     <th>Documents</th>
@@ -74,6 +75,12 @@
                             <div class="text-zinc-600">{{ $tenderProposal->title }}</div>
                         </td>
                         <td>{{ $tenderProposal->status }}</td>
+                        <td>
+                            <div class="progress-row" style="min-width:120px">
+                                <div class="progress-meta"><span>Progress</span><strong>{{ $tenderProposal->progress_percent }}%</strong></div>
+                                <div class="progress-track"><i style="width: {{ $tenderProposal->progress_percent }}%; background: #087aa5"></i></div>
+                            </div>
+                        </td>
                         <td>{{ $tenderProposal->latestAssignment?->department?->name ?? 'Unassigned' }}</td>
                         <td>{{ $tenderProposal->closing_date->toDateString() }}</td>
                         <td>{{ $tenderProposal->documents_count }}</td>
@@ -81,7 +88,7 @@
                         <td class="text-right"><a class="link" href="{{ route('tender-proposals.show', $tenderProposal) }}">Open</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="empty">No tender proposals found.</td></tr>
+                    <tr><td colspan="8" class="empty">No tender proposals found.</td></tr>
                 @endforelse
             </tbody>
         </table>

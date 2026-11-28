@@ -50,7 +50,7 @@ class InvitationController extends Controller
 
         $user->forceFill([
             'name' => $data['name'],
-            'username' => $data['username'] ?: $this->uniqueUsername($data['name'], $user),
+            'username' => ($data['username'] ?? null) ?: $this->uniqueUsername($data['name'], $user),
             'password' => $data['password'],
             'is_active' => true,
             'email_verified_at' => now(),

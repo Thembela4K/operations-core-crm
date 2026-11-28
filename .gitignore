@@ -1,5 +1,16 @@
 *.log
 .DS_Store
+
+# Never commit database dumps or local database files.
+# Real organization data belongs in a private database, not in this public repo.
+*.sql
+*.sql.gz
+*.sql.zip
+*.dump
+*.sqlite
+*.sqlite3
+/database/dumps/
+/storage/app/private/*
 __pycache__/
 *.py[cod]
 .env
@@ -19,6 +30,7 @@ __pycache__/
 /public/build
 /public/images/*
 !/public/images/.gitkeep
+!/public/images/app-logo.png
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

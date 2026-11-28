@@ -14,7 +14,7 @@
 
     <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_0.8fr]">
         <section class="panel">
-            <h2 class="section-title">Task Details</h2>
+            <h2 class="section-title">Week Plan Details</h2>
             <dl class="mt-4 grid gap-4 md:grid-cols-2">
                 <div><dt class="label">Assignee</dt><dd>{{ $task->assignee?->name ?: 'Unassigned' }}</dd></div>
                 <div><dt class="label">Due Date</dt><dd>{{ $task->due_date?->toFormattedDateString() ?: 'No due date' }}</dd></div>

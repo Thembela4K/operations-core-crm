@@ -1393,3 +1393,46 @@
         border-color: var(--brand-line-soft);
     }
 }
+
+/* ------------------------------------------------------------------
+   Dashboard clock — quiet typographic treatment, no card, no effects.
+   Monospaced tabular digits keep the seconds from jittering the layout.
+   ------------------------------------------------------------------ */
+.cat-clock {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding-left: 14px;
+    border-left: 2px solid var(--brand-blue);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.cat-clock__time {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--brand-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.cat-clock__date {
+    font-family: inherit;
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6b7280;
+}
+
+@media (max-width: 640px) {
+    .cat-clock {
+        padding-left: 10px;
+    }
+
+    .cat-clock__time {
+        font-size: 1.2rem;
+    }
+}

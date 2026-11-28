@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\AccountingService;
 use App\Services\AuditLogService;
 use App\Services\FinanceCalculatorService;
 use App\Services\FinanceNumberService;
@@ -13,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
-    public function store(Request $request, Invoice $invoice, FinanceNumberService $numbers, FinanceCalculatorService $calculator, AuditLogService $audit): RedirectResponse
+    public function store(Request $request, Invoice $invoice, FinanceNumberService $numbers, FinanceCalculatorService $calculator, AuditLogService $audit, AccountingService $accounting): RedirectResponse
     {
         if (! $request->user()->canManageFinance()) {
             abort(403);
@@ -36,6 +37,7 @@ class PaymentController extends Controller
 
         $payment = $calculator->recordPayment($invoice, $data);
         $audit->record('payment_recorded', $payment, "Payment {$payment->payment_number} recorded for invoice {$invoice->invoice_number}.");
+        $accounting->postPayment($payment, $request->user());
 
         return redirect()->route('invoices.show', $invoice)->with('success', 'Payment recorded.');
     }

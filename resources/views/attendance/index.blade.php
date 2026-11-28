@@ -39,6 +39,16 @@
                 @if(! $todayRecord)
                     <form method="POST" action="{{ route('attendance.clock-in') }}">
                         @csrf
+                        @if(($attendanceTypes ?? collect())->isNotEmpty())
+                            <label class="mb-3 block">
+                                <span class="label">Attendance type</span>
+                                <select class="input" name="attendance_type_id">
+                                    @foreach($attendanceTypes as $type)
+                                        <option value="{{ $type->id }}" @selected(($defaultAttendanceType->id ?? null) === $type->id)>{{ $type->name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endif
                         <button class="btn-primary w-full" type="submit">Clock In</button>
                     </form>
                 @elseif(! $todayRecord->out_time)
@@ -50,9 +60,64 @@
                     <span class="btn-secondary w-full">Completed {{ $todayRecord->formattedDuration() }}</span>
                 @endif
                 <p class="text-xs leading-5 text-neutral-500">Attendance changes are tracked in the audit trail when corrected by an authorized user.</p>
+
+                @if($todayRecord)
+                    <details class="mt-2">
+                        <summary class="cursor-pointer text-xs font-semibold uppercase tracking-wide text-neutral-500">Request a correction</summary>
+                        <form class="mt-3 space-y-2" method="POST" action="{{ route('attendance.corrections.store', $todayRecord) }}">
+                            @csrf
+                            <label class="block">
+                                <span class="label">Correct clock-in</span>
+                                <input class="input" type="datetime-local" name="proposed_in_at" value="{{ old('proposed_in_at', $todayRecord->in_time?->format('Y-m-d\TH:i')) }}" required>
+                            </label>
+                            <label class="block">
+                                <span class="label">Correct clock-out</span>
+                                <input class="input" type="datetime-local" name="proposed_out_at" value="{{ old('proposed_out_at', $todayRecord->out_time?->format('Y-m-d\TH:i')) }}">
+                            </label>
+                            <label class="block">
+                                <span class="label">Reason</span>
+                                <input class="input" name="reason" value="{{ old('reason') }}" required placeholder="Why the recorded time is wrong">
+                            </label>
+                            <button class="btn-secondary w-full" type="submit">Send for Approval</button>
+                        </form>
+                    </details>
+                @endif
             </div>
         </div>
     </section>
+
+    @if(($pendingCorrections ?? collect())->isNotEmpty())
+        <section class="panel mt-6">
+            <h2 class="section-title">Corrections Awaiting Decision</h2>
+            <div class="mt-4 space-y-3">
+                @foreach($pendingCorrections as $correction)
+                    <div class="rounded border border-neutral-200 px-4 py-3 text-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <strong>{{ $correction->record?->user?->name }} — {{ $correction->record?->work_date?->toFormattedDateString() }}</strong>
+                            <span class="text-xs text-neutral-500">Requested by {{ $correction->requester?->name ?? 'system' }}</span>
+                        </div>
+                        <p class="mt-1 text-xs text-neutral-600">
+                            Recorded: {{ $correction->original_in_at?->format('H:i') ?? '—' }} – {{ $correction->original_out_at?->format('H:i') ?? '—' }}
+                            &nbsp;→&nbsp; Requested: {{ $correction->proposed_in_at?->format('H:i') ?? '—' }} – {{ $correction->proposed_out_at?->format('H:i') ?? '—' }}
+                        </p>
+                        <p class="mt-1 italic text-neutral-700">“{{ $correction->reason }}”</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <form method="POST" action="{{ route('attendance.corrections.decide', $correction) }}">
+                                @csrf
+                                <input type="hidden" name="decision" value="approve">
+                                <button class="btn-primary" type="submit">Approve &amp; Apply</button>
+                            </form>
+                            <form method="POST" action="{{ route('attendance.corrections.decide', $correction) }}">
+                                @csrf
+                                <input type="hidden" name="decision" value="reject">
+                                <button class="btn-secondary" type="submit">Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     <div class="dashboard-metrics">
         <div class="metric-card"><span>Records</span><strong>{{ $attendanceRecordCount }}</strong><div class="metric-foot">Current filter</div></div>

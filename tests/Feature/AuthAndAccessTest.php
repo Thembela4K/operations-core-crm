@@ -19,7 +19,7 @@ class AuthAndAccessTest extends TestCase
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'password' => 'password',
-            'role' => User::ROLE_SUPER_ADMIN,
+            'role' => User::ROLE_BUSINESS_ADMIN,
             'is_active' => true,
         ]);
 

@@ -94,6 +94,7 @@ php artisan route:list
 php artisan mail:test optional-recipient@example.com
 php artisan reminders:send-due
 php artisan crm:send-daily-notifications
+php artisan attendance:remind
 php artisan assistant:index-documents
 php artisan crm:import-old-data --database=datamatics_crm_old_import
 ```
@@ -121,10 +122,12 @@ php artisan crm:import-old-data --database=datamatics_crm_old_import
 - Clients: client register, contacts, follow-ups.
 - Finance: sales quotations, job cards, delivery notes, invoices, payments, expenses, item catalog.
 - Operations: tender proposals, quotation requests, assignments, submissions, requisitions, reminders.
+- Sales Orders: accepted quotations become orders, which may be fulfilled by many job cards.
+- IT Service Desk: any employee raises a ticket; IT triage, comments, status history and ticket-to-requisition.
 - Tasks: task assignment, comments, deadlines, attachments.
 - Attendance: clock in/out, admin correction, reports.
 - Suppliers/Purchases: supplier register and purchase records.
-- Documents: central document registry, preview/download, document text indexing where supported.
+- Documents: registry split into **Attachments** (record-bound files, visible to the uploader, their department and the record's reviewers) and **Company Documents** (licences, registrations, policies — uploaded by business admin/director, readable by everyone). Preview/download and text indexing where supported.
 - Approvals: sales quotation approvals, requisition approvals, notifications.
 - Reports: finance, operations, workload, attendance, supplier/expense summaries.
 - Admin: users, invitations, departments, settings.
@@ -134,11 +137,12 @@ php artisan crm:import-old-data --database=datamatics_crm_old_import
 
 Roles are defined in [app/Models/User.php](app/Models/User.php):
 
-- `super_admin`: full control.
+- `business_admin`: the administrator role (formerly `super_admin`, merged in ADR-029). Full control of every module, staff accounts, departments and settings.
 - `director`: approval authority and company-wide dashboards/reports.
-- `reception`: client/finance operation, invoices, payments, expenses, operations intake and assignment.
+- `reception`: front-desk admin (label "Front Desk Admin"). Client/finance operation, invoices, payments, expenses, operations intake and assignment.
 - `department_user`: department quotation drafts, job cards, assigned operations work, own/department records.
-- `business_analyst`: read-only operational/reporting visibility.
+
+Department users also carry a `level`: `Trainee`, `Intern`, `Officer` or `Head`. An **Officer** or **Head** may add trainees and interns to their own department through the "My Team" page, without full user-administration access; they can never create officers, heads, admins or users outside their department.
 
 There is intentionally no `manager` role.
 
@@ -162,6 +166,10 @@ Use `User` helper methods such as `canManage()`, `canManageFinance()`, `canAppro
   - `crm_tasks`, `task_comments`, `attendance_records`, `crm_notifications`, `audit_logs`
   - `ai_conversations`, `ai_messages`, `ai_action_logs`
   - `app_settings`, `jobs`, `failed_jobs`, `sessions`, `cache`
+  - sales orders: `sales_orders` (accepted quotation → order → many job cards)
+  - IT service desk: `tickets`, `ticket_categories`, `ticket_comments`, `ticket_status_history`
+  - attendance: `attendance_types`, `attendance_events`, `attendance_schedules`, `attendance_corrections`
+  - accounting (ADR-027): `accounts`, `tax_codes`, `journal_entries`, `journal_lines`
 
 ## Environment Variables
 
@@ -173,6 +181,7 @@ Core:
 APP_ENV=local
 APP_KEY=
 APP_URL=http://127.0.0.1:8000
+APP_TIMEZONE=Africa/Johannesburg
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -215,6 +224,8 @@ MAIL_SIGNATURE_LANDLINE=
 MAIL_SIGNATURE_EMAIL=
 MAIL_SIGNATURE_WEBSITE=
 MAIL_SIGNATURE_ADDRESS=
+MAIL_SIGNATURE_AWARD_TEXT=
+MAIL_SIGNATURE_TAGLINE=
 MAIL_SIGNATURE_IMAGE_PATH=
 ```
 
@@ -226,7 +237,7 @@ AI_REMOTE_ENABLED=true
 AI_HTTP_VERIFY=true
 NVIDIA_API_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
-NVIDIA_AI_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
+NVIDIA_AI_MODEL=nvidia/nemotron-3.5-bolt-e4b
 AI_TEMPERATURE=0.2
 AI_TOP_P=0.7
 AI_MAX_TOKENS=1024
@@ -299,7 +310,7 @@ The user may export the local database via phpMyAdmin and import it to Hostinger
 - Do not expose public registration.
 - Do not remove the local Mailpit mirror without replacing the demo email strategy.
 - Do not change VAT away from 15% unless the business rule changes.
-- Do not turn the app into full accounting with ledgers/journals/payroll/tax filing without a new scope decision.
+- Full accounting is now in scope per ADR-027: chart of accounts, double-entry ledger, VAT return, bank reconciliation, trial balance and financial statements. Payroll, inventory/stock, fixed assets and multi-currency remain out of scope until separately decided.
 - Do not make departments send emails to clients from CRM; current rule is departments download documents and send through their own email.
 - Do not let reception send client quotations; departments own client quotation sending outside CRM.
 - Do not make departments create invoices; departments create job cards, reception creates invoices.

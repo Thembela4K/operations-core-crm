@@ -46,7 +46,7 @@ return [
         'nvidia' => [
             'base_url' => env('NVIDIA_API_BASE_URL', 'https://integrate.api.nvidia.com/v1'),
             'api_key' => env('NVIDIA_API_KEY'),
-            'model' => env('NVIDIA_AI_MODEL', 'nvidia/llama-3.3-nemotron-super-49b-v1'),
+            'model' => env('NVIDIA_AI_MODEL', 'nvidia/nemotron-3.5-bolt-e4b'),
             'verify' => env('AI_HTTP_VERIFY', true),
             'temperature' => (float) env('AI_TEMPERATURE', 0.2),
             'top_p' => (float) env('AI_TOP_P', 0.7),

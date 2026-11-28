@@ -10,8 +10,10 @@ use App\Models\JobCard;
 use App\Models\Payment;
 use App\Models\PurchaseRecord;
 use App\Models\Requisition;
+use App\Models\SalesOrder;
 use App\Models\SalesQuotation;
 use App\Models\Supplier;
+use App\Models\Ticket;
 
 class FinanceNumberService
 {
@@ -35,6 +37,11 @@ class FinanceNumberService
         return $this->next(JobCard::class, 'job_card_number', 'JOB');
     }
 
+    public function salesOrderNumber(): string
+    {
+        return $this->next(SalesOrder::class, 'order_number', 'SO');
+    }
+
     public function deliveryNoteNumber(): string
     {
         return $this->next(DeliveryNote::class, 'delivery_note_number', 'DN');
@@ -43,6 +50,11 @@ class FinanceNumberService
     public function paymentNumber(): string
     {
         return $this->next(Payment::class, 'payment_number', 'REC');
+    }
+
+    public function ticketNumber(): string
+    {
+        return $this->next(Ticket::class, 'ticket_number', 'TKT');
     }
 
     public function expenseNumber(): string
@@ -68,6 +80,11 @@ class FinanceNumberService
     public function taskNumber(): string
     {
         return $this->next(\App\Models\CrmTask::class, 'task_number', 'TSK');
+    }
+
+    public function journalEntryNumber(): string
+    {
+        return $this->next(\App\Models\JournalEntry::class, 'entry_number', 'JE');
     }
 
     /**

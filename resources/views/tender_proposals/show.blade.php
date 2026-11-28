@@ -49,9 +49,44 @@
             <dl class="mt-4 grid gap-4 md:grid-cols-3">
                 <div><dt class="label">Tender Due Date</dt><dd>{{ $tenderProposal->closing_date->toDateString() }}</dd></div>
                 <div><dt class="label">Status</dt><dd>{{ $tenderProposal->status }}</dd></div>
+                <div><dt class="label">Priority / Risk</dt><dd>{{ $tenderProposal->priority }} / {{ $tenderProposal->risk }}</dd></div>
+                <div><dt class="label">Budget</dt><dd>{{ number_format((float) $tenderProposal->budget, 2) }}</dd></div>
+                <div><dt class="label">Owner</dt><dd>{{ $tenderProposal->owner ?: 'Not set' }}</dd></div>
                 <div><dt class="label">Documents</dt><dd>{{ $tenderProposal->documents->count() }}</dd></div>
+                <div class="md:col-span-3">
+                    <dt class="label">Progress</dt>
+                    <dd>
+                        <div class="progress-row">
+                            <div class="progress-meta"><span>{{ $tenderProposal->progress_percent }}% complete</span></div>
+                            <div class="progress-track"><i style="width: {{ $tenderProposal->progress_percent }}%; background: #087aa5"></i></div>
+                        </div>
+                    </dd>
+                </div>
                 <div class="md:col-span-3"><dt class="label">Brief Description</dt><dd class="whitespace-pre-line">{{ $tenderProposal->brief ?: 'No brief recorded.' }}</dd></div>
             </dl>
+
+            <form class="mt-6 grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-[150px_1fr_auto]" method="POST" action="{{ route('tender-proposals.progress', $tenderProposal) }}">
+                @csrf
+                <label>
+                    <span class="label">Update Progress (%)</span>
+                    <input class="input" type="number" name="progress_percent" min="0" max="100" value="{{ $tenderProposal->progress_percent }}">
+                </label>
+                @if(auth()->user()->canManage())
+                    <label>
+                        <span class="label">Status</span>
+                        <select class="input" name="status">
+                            @foreach(\App\Models\TenderProposal::STATUSES as $status)
+                                <option value="{{ $status }}" @selected($tenderProposal->status === $status)>{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                @else
+                    <div></div>
+                @endif
+                <div class="flex items-end">
+                    <button class="btn-secondary" type="submit">Save</button>
+                </div>
+            </form>
         </section>
 
         <section class="panel">

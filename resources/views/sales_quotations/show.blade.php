@@ -27,6 +27,12 @@
             @if($canCreateJobCard)
                 <a class="btn-primary" href="{{ route('job-cards.create', ['sales_quotation_id' => $salesQuotation->id]) }}">Create Job Card</a>
             @endif
+            @if(in_array($salesQuotation->status, [\App\Models\SalesQuotation::STATUS_ACCEPTED, \App\Models\SalesQuotation::STATUS_SENT], true) && ! $salesQuotation->salesOrder)
+                <a class="btn-primary" href="{{ route('sales-orders.create', ['sales_quotation_id' => $salesQuotation->id]) }}">Create Sales Order</a>
+            @endif
+            @if($salesQuotation->salesOrder)
+                <a class="btn-secondary" href="{{ route('sales-orders.show', $salesQuotation->salesOrder) }}">Sales Order {{ $salesQuotation->salesOrder->order_number }}</a>
+            @endif
         </div>
     </div>
 

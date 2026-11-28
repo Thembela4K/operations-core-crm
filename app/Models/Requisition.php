@@ -48,6 +48,7 @@ class Requisition extends Model
     public const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
     protected $fillable = [
+        'source_ticket_id',
         'department_id',
         'supplier_id',
         'requested_by',

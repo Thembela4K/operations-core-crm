@@ -80,7 +80,7 @@
 
 ## ADR-009: Roles Without Manager
 
-**Decision:** Supported roles are `super_admin`, `director`, `reception`, `department_user`, and `business_analyst`. No `manager`.
+**Decision:** Supported roles are `super_admin`, `director`, `reception`, `department_user`, and `business_admin`. No `manager`.
 
 **Why:** The business clarified there is no manager/operational management role needed.
 
@@ -141,6 +141,10 @@
 **Out of scope:** Chart of accounts, journals, ledgers, payroll, tax filing, trial balance.
 
 **Do not expand into full accounting without a new plan.**
+
+> **Amended by ADR-027.** The out-of-scope list above no longer applies: chart of accounts,
+> the ledger, VAT filing and financial statements are now in scope. Payroll, inventory and
+> multi-currency remain excluded.
 
 ## ADR-016: Departments Own Client Quotations; Reception Owns Invoices
 
@@ -219,6 +223,89 @@
 **Why:** The user explicitly requested commits after every change.
 
 **Tradeoffs:** Requires discipline to verify before committing and avoid bundling unrelated changes.
+## ADR-025: Module Access Control Map
+
+**Decision:** Module entry is governed by a single map, `User::MODULE_ACCESS`, enforced by the `module:` route middleware (`EnsureModuleAccess`) and mirrored in the sidebar and dashboard.
+
+- `finance` (invoices, payments, expenses, suppliers, purchases) and `approvals` are **closed to department users**.
+- `approvals` is director, super admin and business admin only. Reception does not see the approval queue, but keeps requisition funds release from the requisition screen.
+- `clients`, `operations`, `catalog` and `documents` remain open to department users, scoped to their department.
+- `business_admin` reads every gated module, may write only inside the `users` module, and cannot delete accounts or assign the super admin role.
+- `admin` (users, departments, settings) stays super-admin only.
+
+**Why:** A department-level user could previously read the whole client register, the company approval queue and every document title, and the dashboard showed company finance to every role. Access was enforced only by coarse route groups and a handful of controller checks.
+
+**Tradeoffs:** Two policy axes now exist — `role` for capability and department scope for reach. Any new module must be added to `MODULE_ACCESS` (or deliberately left out for personal modules) or it inherits "open to everyone". Client billing fields (VAT/tax, billing mailbox) and invoice sections are also hidden from department users.
+
+**Related:** ADR-009 still stands — there is no `manager` role. Department heads are a future *level*, not a sixth role.
+
+## ADR-026: Business Analyst Renamed To Business Admin
+
+**Decision:** The role `business_analyst` was renamed to `business_admin`. A migration renames existing rows. The role gained a `users` module grant: business admins can **see all users and add staff accounts**.
+
+**Why:** The business clarified that this seat administers staff accounts; it was never a pure reporting analyst. The old name implied read-only analytics and the role was given no account rights.
+
+**Constraints kept:** business admins cannot delete accounts (deletion stays super-admin only), cannot view or edit a super admin account, and cannot assign the `super_admin` role — adding staff must not become a privilege-escalation path. Every other gated module stays read-only for them.
+
+**Tradeoffs:** Two rename touchpoints: the stored `users.role` value and the `ROLE_*` constant. Any external report or export filtering on `business_analyst` must be updated. ADR-009's "no manager role" is unaffected.
+
+## ADR-027: Full Accounting In Scope
+
+**Decision:** The portal becomes the company's accounting system. Chart of accounts, a double-entry ledger, VAT return generation, bank reconciliation, trial balance, P&L and balance sheet are **in scope**. QuickBooks Desktop data will be migrated in and QuickBooks then retired and uninstalled.
+
+**Why:** The business confirmed that once the CRM is live and the data migrated, QuickBooks will be "rendered useless and possibly uninstalled". VAT returns are prepared and filed internally, so an operational-only system cannot replace QuickBooks.
+
+**Scope boundaries still excluded:** payroll, inventory/stock, fixed assets and depreciation, multi-currency. None has been confirmed as in use; each is a large addition requiring its own decision.
+
+**Supersedes:** the out-of-scope list in ADR-015 (chart of accounts, journals, ledgers, tax filing, trial balance).
+
+**Non-negotiables this creates:**
+- Every posted journal entry balances; posted entries are immutable and corrected by reversal.
+- A document posts exactly once (idempotent by source).
+- VAT figures on the return are read from the ledger, not recomputed from invoices.
+- Periods are locked after a VAT return is filed.
+- Historical periods are locked after migration.
+
+**Tradeoffs:** This is a system build, not a feature. Ledger and VAT correctness carry legal exposure; the first generated VAT return must be reviewed by whoever signs the filing. The design is specified separately and must be approved before implementation.
+
+**Related:** ADR-014 (VAT fixed at 15%), ADR-015 (amended), ADR-026 (business admin).
+
+## ADR-028: Invoices may be created directly, QuickBooks style
+
+**Status:** Accepted — 2026-11-24
+
+**Context:** Staff are migrating off QuickBooks. In QuickBooks, reception types an invoice from scratch. The CRM previously forced invoices to originate from a completed job card (ADR-016), which added a step the finance user does not expect.
+
+**Decision:**
+
+1. Reception (and other finance-capable roles) may create an invoice directly, without a job card.
+2. The invoice form mirrors the QuickBooks Desktop layout: `Customer:Job`, `Class`, `Date`, `Invoice #`, `P.O. No.`, `Terms`, `Due Date`, `Ship Date`, `Ship Via`, `Bill To`, `Ship To`, line grid (`Item / Description / Qty / Rate / Amount`), `Customer Message` and `Memo`.
+3. Picking `Terms` recalculates `Due Date` from the invoice date.
+4. Job-card and quotation linkage is retained when available, but is no longer required.
+5. The printed invoice follows the QuickBooks form layout rather than the previous custom template.
+
+**Consequences:** ADR-016's job-card-gating is relaxed for invoice creation; reception may still generate an invoice from a job card. Totals and VAT continue to come from the shared calculator, and an invoice only posts to the ledger when its status is `Issued`.
+
+**Related:** ADR-016 (relaxed), ADR-014 (VAT), ADR-027 (accounting in scope).
+
+## ADR-029: One administrator role, and department levels
+
+**Status:** Accepted — 2026-11-24
+
+**Context:** Two administrator roles existed (`super_admin` and `business_admin`) with overlapping intent, and the business admin was read-only everywhere except staff accounts. Staff also needed a way to record seniority inside a department, and departmental officers needed to onboard their own trainees without an administrator doing it for them.
+
+**Decision:**
+
+1. **Merge the administrator roles.** `super_admin` is removed; `business_admin` becomes the single top role with full control. Existing super admin accounts were migrated to `business_admin`.
+2. **The business admin is no longer read-only** — the module middleware no longer blocks its writes.
+3. **Role labels:** `business_admin` = "Business Admin", `reception` = "Front Desk Admin".
+4. **Department levels:** `department_user` carries a `level` of `Trainee`, `Intern`, `Officer` or `Head`.
+5. **Officers and heads add juniors:** a department user at Officer or Head level may create `department_user` accounts at Trainee/Intern level in **their own department only**, via the "My Team" page. They cannot create officers, heads, admins, or users in another department; the server forces role and department regardless of the submitted form.
+6. Trainees and interns cannot add users.
+
+**Consequences:** There is no longer a separate technical owner account, so anyone who held `super_admin` now holds full administrator rights. Responsibility for keeping that list short is operational, not enforced by the schema.
+
+**Related:** ADR-009 (roles without manager), ADR-026 (business admin rename).
 
 ## Unconfirmed / Needs Verification
 

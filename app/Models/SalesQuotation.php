@@ -42,6 +42,7 @@ class SalesQuotation extends Model
     ];
 
     protected $fillable = [
+        'source_quotation_request_id',
         'client_id',
         'department_id',
         'created_by',
@@ -112,6 +113,22 @@ class SalesQuotation extends Model
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    /**
+     * The client request this quotation answers, when converted from one.
+     */
+    public function sourceRequest(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'source_quotation_request_id');
+    }
+
+    /**
+     * The sales order created when the client accepted this quotation.
+     */
+    public function salesOrder(): HasOne
+    {
+        return $this->hasOne(SalesOrder::class);
     }
 
     public function jobCards(): HasMany

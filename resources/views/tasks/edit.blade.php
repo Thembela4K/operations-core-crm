@@ -3,7 +3,7 @@
 @section('content')
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="page-title">Edit Task</h1>
+            <h1 class="page-title">Edit Week Plan Entry</h1>
             <p class="page-subtitle">{{ $task->task_number }}</p>
         </div>
         <a class="btn-secondary" href="{{ route('tasks.show', $task) }}">Back</a>

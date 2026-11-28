@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
                     'department_id' => $departments['Admin (Reception)']->id,
                     'name' => env('ADMIN_NAME', 'System Administrator'),
                     'password' => env('ADMIN_PASSWORD'),
-                    'role' => User::ROLE_SUPER_ADMIN,
+                    'role' => User::ROLE_BUSINESS_ADMIN,
                     'is_active' => true,
                 ],
             );
@@ -85,5 +85,8 @@ class DatabaseSeeder extends Seeder
                 'notes' => 'Replace this sample quotation with your organization data.',
             ],
         );
+
+        $this->call(ChartOfAccountsSeeder::class);
+        $this->call(TicketCategorySeeder::class);
     }
 }

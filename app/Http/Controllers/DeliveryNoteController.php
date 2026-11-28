@@ -75,7 +75,7 @@ class DeliveryNoteController extends Controller
             ->with(['salesQuotation', 'client', 'department'])
             ->findOrFail((int) $data['job_card_id']);
 
-        $data['delivery_note_number'] = $data['delivery_note_number'] ?: $numbers->deliveryNoteNumber();
+        $data['delivery_note_number'] = ($data['delivery_note_number'] ?? null) ?: $numbers->deliveryNoteNumber();
         $data['sales_quotation_id'] = $jobCard->sales_quotation_id;
         $data['client_id'] = $jobCard->client_id;
         $data['department_id'] = $jobCard->department_id;

@@ -15,6 +15,10 @@
         <div class="flex gap-2">
             @if(auth()->user()->canManage())
                 <a class="btn-secondary" href="{{ route('quotations.edit', $quotation) }}">Edit</a>
+                <form method="POST" action="{{ route('quotations.convert', $quotation) }}">
+                    @csrf
+                    <button class="btn-primary" type="submit">Convert to Sales Quotation</button>
+                </form>
                 <form method="POST" action="{{ route('quotations.destroy', $quotation) }}" onsubmit="return confirm('Delete this quotation?')">
                     @csrf
                     @method('DELETE')

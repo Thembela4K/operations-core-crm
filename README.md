@@ -15,6 +15,8 @@ A Laravel + MySQL/MariaDB business operations portal for managing clients, sales
 - Clients: client register, billing details, VAT/tax number, notes, and primary contacts.
 - Finance: item catalog, sales quotations, director approval, invoices, manual payments, expenses, print-ready documents, and email notifications.
 - Operations: tender proposals, quotation requests, requisitions for funds approval, department assignments, documents, submissions, reminders, and SPPRA shortcut setting.
+- Leave: leave applications, annual working-day balance (12 days per calendar year), approval workflow, public holiday calendar, and the printable DATF025 leave application form.
+- Projects: employee-owned projects in the company weekly Report &amp; Plan format (Activity, Status, %, Comment, Date, By Whom, Time Frame); management sees every employee's projects grouped by employee.
 - Reports: finance totals, outstanding balances, sales quotation pipeline, expenses, department workload, and operations summaries.
 - Admin: users, departments, staff members, and private settings.
 
@@ -26,7 +28,7 @@ VAT is fixed at 15% in V1. This is stored as an internal setting/default for mai
 - `director`: approve/reject sales quotations and view company-wide dashboards/reports.
 - `reception`: create clients, issue invoices, record payments/expenses, and manage operations intake/assignments.
 - `department_user`: create department sales quotation drafts and work on assigned operations records.
-- `business_analyst`: read-only company and operations reporting visibility.
+- `business_admin`: business administrator — sees and adds staff accounts, and has read-only company and operations reporting visibility.
 
 There is no `manager` role in the CRM permission model.
 
@@ -128,7 +130,7 @@ AI_REMOTE_ENABLED=true
 AI_HTTP_VERIFY=true
 NVIDIA_API_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
-NVIDIA_AI_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
+NVIDIA_AI_MODEL=nvidia/nemotron-3.5-bolt-e4b
 AI_TEMPERATURE=0.2
 AI_TOP_P=0.7
 AI_MAX_TOKENS=1024

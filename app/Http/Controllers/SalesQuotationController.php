@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CatalogItem;
 use App\Models\Client;
 use App\Models\Department;
+use App\Models\Quotation;
 use App\Models\SalesQuotation;
 use App\Models\User;
 use App\Services\AuditLogService;
@@ -68,7 +69,7 @@ class SalesQuotationController extends Controller
         $this->authorizeDraft($request);
 
         $data = $this->validated($request);
-        $data['quotation_number'] = $data['quotation_number'] ?: $numbers->salesQuotationNumber();
+        $data['quotation_number'] = ($data['quotation_number'] ?? null) ?: $numbers->salesQuotationNumber();
         $data['created_by'] = $request->user()->id;
         $data['department_id'] = $request->user()->canManageFinance() ? $data['department_id'] : $request->user()->department_id;
         $items = $this->validatedItems($request);
@@ -308,6 +309,50 @@ class SalesQuotationController extends Controller
             ->map(fn (array $item): array => $item + ['discount_amount' => 0, 'taxable' => false])
             ->values()
             ->all();
+    }
+
+    /**
+     * Report 2.1: a client request becomes a draft Sales Quotation that keeps
+     * the originating request reference. One request may produce several
+     * quotation versions.
+     */
+    public function convertFromRequest(Request $request, Quotation $quotation, FinanceNumberService $numbers, AuditLogService $audit): RedirectResponse
+    {
+        $this->authorizeDraft($request);
+
+        $client = Client::query()
+            ->where('name', $quotation->client)
+            ->orWhere('client_code', $quotation->client)
+            ->first();
+
+        // A sales quotation must belong to a client register entry.
+        if (! $client) {
+            return back()->with('warning', 'Create the client "'.$quotation->client.'" in the client register before converting this request.');
+        }
+
+        $salesQuotation = SalesQuotation::query()->create([
+            'source_quotation_request_id' => $quotation->id,
+            'client_id' => $client->id,
+            'department_id' => $request->user()->department_id,
+            'created_by' => $request->user()->id,
+            'quotation_number' => $numbers->salesQuotationNumber(),
+            'title' => $quotation->opportunity ?: $quotation->quotation_code,
+            'status' => SalesQuotation::STATUS_DRAFT,
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'notes' => 'Converted from quotation request '.$quotation->quotation_code.'.',
+            'terms' => 'Prices are valid until the quotation expiry date. Payment terms to be confirmed on invoice.',
+            'subtotal' => 0,
+            'discount_total' => 0,
+            'vat_total' => 0,
+            'total' => 0,
+        ]);
+
+        $audit->record('converted', $salesQuotation, "Sales quotation {$salesQuotation->quotation_number} created from request {$quotation->quotation_code}.");
+
+        return redirect()
+            ->route('sales-quotations.edit', $salesQuotation)
+            ->with('success', 'Quotation request converted. Add pricing lines to complete it.');
     }
 
     private function clients()

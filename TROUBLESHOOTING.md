@@ -416,6 +416,25 @@ Review any matches. Placeholder docs are fine; real secrets are not.
 
 ## Unconfirmed / Needs Verification
 
+## Invitations or password-reset OTPs expire instantly (MySQL / MariaDB)
+
+**Symptom:** an invitation link is rejected as "invalid or expired" straight after being sent, and the database shows `expires_at` a couple of hours after `created_at` instead of seven days.
+
+**Cause:** with `explicit_defaults_for_timestamp = 0` (the MariaDB default), the **first `TIMESTAMP` column in a table** silently gets:
+
+```sql
+DEFAULT current_timestamp() ON UPDATE current_timestamp()
+```
+
+Every `UPDATE` on the row therefore rewrites `expires_at` to "now". The invitation service updates the row to record `sent_at`, which wipes the expiry. The same defect affected `password_reset_otps.expires_at`.
+
+**Why tests missed it:** the suite runs on SQLite, which has no such behaviour. This is a MySQL/MariaDB-only failure.
+
+**Fix:** migration `2026_11_24_100000_fix_implicit_timestamp_defaults` alters both columns to `TIMESTAMP NULL DEFAULT NULL`, which removes the implicit default and auto-update. Models treat a null expiry as unusable.
+
+**Rule:** when adding an `expires_at`-style column on MariaDB, never leave it as a non-nullable `TIMESTAMP`; make it nullable or use `DATETIME`.
+
+
 - Production Hostinger cron availability.
 - Production mail provider behavior.
 - Whether generated PDFs need exact branding/template matching.

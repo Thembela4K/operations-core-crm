@@ -34,6 +34,31 @@ class Document extends Model
 
     public const CATEGORY_OTHER = 'other';
 
+    /*
+    | Company documents stand on their own (no parent record): trading
+    | licences, registrations and similar operational paperwork.
+    */
+    public const CATEGORY_TRADING_LICENSE = 'trading_license';
+
+    public const CATEGORY_COMPANY_REGISTRATION = 'company_registration';
+
+    public const CATEGORY_TAX_COMPLIANCE = 'tax_compliance';
+
+    public const CATEGORY_INSURANCE = 'insurance';
+
+    public const CATEGORY_POLICY = 'policy_procedure';
+
+    public const CATEGORY_COMPANY_OTHER = 'company_other';
+
+    public const COMPANY_CATEGORIES = [
+        self::CATEGORY_TRADING_LICENSE => 'Trading Licence',
+        self::CATEGORY_COMPANY_REGISTRATION => 'Company Registration',
+        self::CATEGORY_TAX_COMPLIANCE => 'Tax / Compliance',
+        self::CATEGORY_INSURANCE => 'Insurance',
+        self::CATEGORY_POLICY => 'Policy / Procedure',
+        self::CATEGORY_COMPANY_OTHER => 'Other Company Document',
+    ];
+
     public const CATEGORIES = [
         self::CATEGORY_ORIGINAL_TENDER => 'Original Tender / Request',
         self::CATEGORY_QUOTATION_REQUEST => 'Quotation Request',
@@ -65,6 +90,7 @@ class Document extends Model
         'title',
         'tags',
         'is_generated',
+        'is_company_document',
         'original_name',
         'stored_name',
         'path',
@@ -77,6 +103,7 @@ class Document extends Model
     {
         return [
             'is_generated' => 'boolean',
+            'is_company_document' => 'boolean',
         ];
     }
 
@@ -98,5 +125,28 @@ class Document extends Model
     public function isPreviewable(): bool
     {
         return in_array($this->mime_type, self::PREVIEWABLE_MIME_TYPES, true);
+    }
+
+    /**
+     * Attachments are scoped to the uploader and their department (the people
+     * who review the parent record). Company documents are readable by every
+     * signed-in employee.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->seesAllDepartments()) {
+            return $query;
+        }
+
+        return $query->where(function ($inner) use ($user): void {
+            $inner->where('is_company_document', true)
+                ->orWhere('uploaded_by', $user->id)
+                ->orWhereIn(
+                    'uploaded_by',
+                    User::query()
+                        ->where('department_id', $user->department_id)
+                        ->select('id'),
+                );
+        });
     }
 }

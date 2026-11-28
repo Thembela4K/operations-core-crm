@@ -4,11 +4,11 @@
     @php
         $user = auth()->user();
         $ownDepartment = $requisition->department_id === $user->department_id || $requisition->requested_by === $user->id;
-        $canEdit = $requisition->isEditable() && ($ownDepartment || $user->canReleaseRequisitionFunds());
-        $canReview = ($user->canApproveRequisitions() || $user->canReleaseRequisitionFunds()) && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
+        $canEdit = $requisition->isEditable() && ($ownDepartment || $user->canAdministerRequisitions());
+        $canReview = ($user->canApproveRequisitions() || $user->canAdministerRequisitions()) && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
         $canApprove = $user->canApproveRequisitions() && in_array($requisition->status, [\App\Models\Requisition::STATUS_SUBMITTED, \App\Models\Requisition::STATUS_IN_REVIEW], true);
         $canReleaseFunds = $user->canReleaseRequisitionFunds() && $requisition->status === \App\Models\Requisition::STATUS_APPROVED;
-        $canCancel = ! in_array($requisition->status, [\App\Models\Requisition::STATUS_APPROVED, \App\Models\Requisition::STATUS_FUNDS_RELEASED], true) && ($ownDepartment || $user->canReleaseRequisitionFunds());
+        $canCancel = ! in_array($requisition->status, [\App\Models\Requisition::STATUS_APPROVED, \App\Models\Requisition::STATUS_FUNDS_RELEASED], true) && ($ownDepartment || $user->canAdministerRequisitions());
     @endphp
 
     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -29,7 +29,7 @@
             @if($canCancel)
                 <form method="POST" action="{{ route('requisitions.cancel', $requisition) }}">@csrf<button class="btn-secondary" type="submit">Cancel</button></form>
             @endif
-            @if($user->isSuperAdmin())
+            @if($user->isBusinessAdmin())
                 <form method="POST" action="{{ route('requisitions.destroy', $requisition) }}" onsubmit="return confirm('Delete this requisition?')">
                     @csrf
                     @method('DELETE')
@@ -38,6 +38,35 @@
             @endif
         </div>
     </div>
+
+    @if($sourceTicket ?? null)
+        <section class="panel mt-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="section-title">Raised from IT Ticket</h2>
+                <a class="text-link" href="{{ route('tickets.show', $sourceTicket) }}">{{ $sourceTicket->ticket_number }}</a>
+            </div>
+            <dl class="mt-4 grid gap-4 md:grid-cols-2">
+                <div><dt class="label">Ticket</dt><dd>{{ $sourceTicket->title }}</dd></div>
+                <div><dt class="label">Category</dt><dd>{{ $sourceTicket->category?->name ?? 'Uncategorised' }}</dd></div>
+                <div><dt class="label">Requested By</dt><dd>{{ $sourceTicket->requester?->name ?? '—' }}</dd></div>
+                <div><dt class="label">Priority</dt><dd>{{ $sourceTicket->priority }}</dd></div>
+                <div class="md:col-span-2">
+                    <dt class="label">Original Request</dt>
+                    <dd class="whitespace-pre-line">{{ $sourceTicket->description ?: '—' }}</dd>
+                </div>
+            </dl>
+            @if($sourceTicket->documents->isNotEmpty())
+                <div class="mt-4">
+                    <span class="label">Ticket Attachments</span>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        @foreach($sourceTicket->documents as $ticketDocument)
+                            <a class="btn-secondary" href="{{ route('documents.download', $ticketDocument) }}">{{ $ticketDocument->original_name }}</a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
+    @endif
 
     <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
         <section class="panel">
@@ -152,7 +181,7 @@
         <section class="panel">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="section-title">Documents</h2>
-                @if($canEdit || $user->canReleaseRequisitionFunds())
+                @if($canEdit || $user->canAdministerRequisitions())
                     <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
                         @csrf
                         <input type="hidden" name="module" value="requisition">

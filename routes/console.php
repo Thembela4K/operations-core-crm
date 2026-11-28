@@ -2,11 +2,13 @@
 
 use App\Mail\TestNotificationMail;
 use App\Models\AttendanceRecord;
+use App\Models\CrmNotification;
 use App\Models\CrmTask;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Requisition;
 use App\Models\SalesQuotation;
+use App\Services\AttendanceReminderService;
 use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\ReminderService;
 use App\Services\CrmNotificationService;
@@ -124,3 +126,62 @@ Artisan::command('assistant:index-documents', function (DocumentTextExtractor $e
 
 Schedule::command('reminders:send-due')->dailyAt('08:00');
 Schedule::command('crm:send-daily-notifications')->dailyAt('08:15');
+
+/*
+| Attendance reminders (report 5.3 / 5.4): a morning nudge, then a clock-out
+| nudge ten minutes before the scheduled end of day. Approved leave suppresses
+| both, and each reminder is sent at most once per employee per day.
+*/
+Artisan::command('attendance:remind {--force}', function (): int {
+    $reminders = app(AttendanceReminderService::class);
+    $notifications = app(CrmNotificationService::class);
+    $date = now();
+    $count = 0;
+
+    $alreadyNotified = function (int $userId, string $type) use ($date): bool {
+        return CrmNotification::query()
+            ->where('user_id', $userId)
+            ->where('type', $type)
+            ->whereDate('created_at', $date->toDateString())
+            ->exists();
+    };
+
+    if ($this->option('force') || $reminders->isMorningWindow($date)) {
+        foreach ($reminders->morningReminderRecipients($date) as $user) {
+            if ($alreadyNotified($user->id, 'attendance_clock_in')) {
+                continue;
+            }
+
+            $notifications->notifyUser(
+                $user,
+                'attendance_clock_in',
+                'Good morning! Remember to record your arrival.',
+                'You have not clocked in yet today.',
+                route('attendance.index'),
+            );
+            $count++;
+        }
+    }
+
+    foreach ($reminders->clockOutReminderRecipients($date) as $user) {
+        if ($alreadyNotified($user->id, 'attendance_clock_out')) {
+            continue;
+        }
+
+        $notifications->notifyUser(
+            $user,
+            'attendance_clock_out',
+            'Wrapping up for today? Remember to record your clock-out.',
+            null,
+            route('attendance.index'),
+        );
+        $count++;
+    }
+
+    $this->info("{$count} attendance reminder(s) sent.");
+
+    return self::SUCCESS;
+})->purpose('Send gentle attendance reminders');
+
+// Every ten minutes so the clock-out window is caught promptly.
+Schedule::command('attendance:remind')->everyTenMinutes()->between('08:00', '18:00');

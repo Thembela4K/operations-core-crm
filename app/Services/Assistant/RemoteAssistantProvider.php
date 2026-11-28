@@ -255,7 +255,7 @@ PROMPT;
 
         $reply = preg_replace('/\*\*(.*?)\*\*/s', '$1', $reply) ?? $reply;
         $reply = str_replace('**', '', $reply);
-        $reply = preg_replace('/\s+\((?:super_admin|department_user|business_analyst|director|reception|manager)[^)]*\)/i', '', $reply) ?? $reply;
+        $reply = preg_replace('/\s+\((?:super_admin|department_user|business_admin|business_analyst|director|reception|manager)[^)]*\)/i', '', $reply) ?? $reply;
         $reply = preg_replace('/[ \t]+/', ' ', $reply) ?? $reply;
         $reply = preg_replace("/\n{3,}/", "\n\n", $reply) ?? $reply;
 

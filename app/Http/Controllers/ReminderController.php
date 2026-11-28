@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EmailLog;
 use App\Models\ReminderLog;
+use App\Services\DeadlineService;
 use App\Services\ReminderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,10 +14,20 @@ use Illuminate\View\View;
 
 class ReminderController extends Controller
 {
-    public function index(ReminderService $reminderService): View
+    public function index(Request $request, ReminderService $reminderService, DeadlineService $deadlines): View
     {
+        $user = $request->user();
+
+        // Assignments (tenders/quotations) plus week-plan entries, using the
+        // same scope rules as the dashboard.
+        $items = $deadlines
+            ->filterAssignments($reminderService->upcomingItems(), $user)
+            ->concat($deadlines->taskItems($user))
+            ->sortBy('days_left')
+            ->values();
+
         return view('reminders.index', [
-            'upcomingItems' => $this->paginateCollection($reminderService->upcomingItems(), 'deadlines_page'),
+            'upcomingItems' => $this->paginateCollection($items, 'deadlines_page'),
             'reminderLogs' => ReminderLog::query()
                 ->with(['remindable', 'assignment.department'])
                 ->latest()

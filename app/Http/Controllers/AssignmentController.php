@@ -81,7 +81,7 @@ class AssignmentController extends Controller
                 ->withInput();
         }
 
-        $assigneeName = $staffMember?->name ?: ($assignedUser?->name ?: ($data['assignee_name'] ?: $department->name));
+        $assigneeName = $staffMember?->name ?: ($assignedUser?->name ?: (($data['assignee_name'] ?? null) ?: $department->name));
         $assigneeEmail = $staffMember?->email ?: ($department->email ?: ($assignedUser?->email ?: ($data['assignee_email'] ?? null)));
 
         if (! $assigneeName || ! $assigneeEmail) {

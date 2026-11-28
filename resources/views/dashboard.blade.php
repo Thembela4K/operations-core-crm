@@ -11,22 +11,71 @@
         $invoiceStatusTotal = max(1, $invoiceStatusCounts->sum());
     @endphp
 
+    {{-- Gentle, non-blocking attendance prompt: once per employee per day. --}}
+    @if($attendancePrompt ?? false)
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+            <span>Good morning! Remember to record your arrival.</span>
+            <span class="flex flex-wrap items-center gap-2">
+                <a class="btn-primary" href="{{ route('attendance.index') }}">Clock In</a>
+                <button class="btn-secondary" type="button" onclick="this.closest('div').parentElement.remove()">I'll do this later</button>
+            </span>
+        </div>
+    @endif
+
     <div class="dashboard-header">
         <div>
             <h1 class="page-title">Datamatics Eswatini Dashboard</h1>
             <p class="page-subtitle">Company view across clients, finance, operations, assignments, and deadlines.</p>
         </div>
-        @if($sppraUrl)
-            <a class="btn-primary" href="{{ $sppraUrl }}" target="_blank" rel="noopener noreferrer">Open SPPRA Tender Site</a>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            {{-- Central Africa Time (CAT, GMT+2). Server renders the authoritative
+                 value; the script keeps it ticking without depending on the
+                 visitor's own clock or timezone. --}}
+            <div class="cat-clock">
+                <span class="cat-clock__time" id="cat-clock">{{ now()->format('H:i:s') }}</span>
+                <span class="cat-clock__date" id="cat-date">{{ now()->format('l, j F Y') }}</span>
+            </div>
+            @if($sppraUrl)
+                <a class="btn-primary" href="{{ $sppraUrl }}" target="_blank" rel="noopener noreferrer">Open SPPRA Tender Site</a>
+            @endif
+        </div>
     </div>
 
+    <script>
+        (function () {
+            var clock = document.getElementById('cat-clock');
+            var dateLine = document.getElementById('cat-date');
+            if (!clock || !dateLine) return;
+
+            var timeFormat = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Africa/Johannesburg',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            var dateFormat = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Africa/Johannesburg',
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            function tick() {
+                var now = new Date();
+                clock.textContent = timeFormat.format(now);
+                dateLine.textContent = dateFormat.format(now);
+            }
+
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
+
     <div class="dashboard-metrics">
+        @if($showClients)
         <div class="metric-card stat-tooltip" data-tooltip="{{ $clientCount }} active and inactive clients in the CRM" tabindex="0">
             <span>Clients</span>
             <strong>{{ $clientCount }}</strong>
             <div class="metric-foot">Client register</div>
         </div>
+        @endif
+        @if($showFinance)
         <div class="metric-card stat-tooltip" data-tooltip="Sales quotation pipeline total: E{{ number_format($salesQuotationPipeline, 2) }}" tabindex="0">
             <span>Sales Pipeline</span>
             <strong>E{{ number_format($salesQuotationPipeline, 0) }}</strong>
@@ -47,11 +96,14 @@
             <strong>E{{ number_format($expenseTotal, 0) }}</strong>
             <div class="metric-foot">Company costs</div>
         </div>
+        @endif
+        @if($showOperations)
         <div class="metric-card stat-tooltip" data-tooltip="{{ $pendingRequisitionApprovals }} requisitions waiting for review or approval" tabindex="0">
             <span>Requisitions</span>
             <strong>{{ $requisitionCount }}</strong>
             <div class="metric-foot">{{ $openRequisitions }} open requests</div>
         </div>
+        @endif
         <div class="metric-card stat-tooltip" data-tooltip="{{ $overdueTaskCount }} overdue open tasks" tabindex="0">
             <span>Tasks</span>
             <strong>{{ $taskCount }}</strong>
@@ -70,11 +122,18 @@
         <div class="metric-card stat-tooltip" data-tooltip="{{ $unreadCrmNotifications }} unread CRM notifications" tabindex="0">
             <span>Notifications</span>
             <strong>{{ $unreadCrmNotifications }}</strong>
-            <div class="metric-foot">{{ $documentCount }} documents | {{ $supplierCount }} suppliers</div>
+            <div class="metric-foot">
+                @if($showFinance && $showCompany)
+                    {{ $documentCount }} documents | {{ $supplierCount }} suppliers
+                @else
+                    Unread alerts
+                @endif
+            </div>
         </div>
     </div>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
+        @if($showFinance)
         <section class="panel chart-panel">
             <div class="panel-heading">
                 <h2 class="section-title">Finance Workflow</h2>
@@ -111,7 +170,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if($showOperations)
         <section class="panel chart-panel">
             <div class="panel-heading">
                 <h2 class="section-title">Operations Snapshot</h2>
@@ -145,6 +206,7 @@
                 </div>
             </div>
         </section>
+        @endif
     </div>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-3">
@@ -238,13 +300,21 @@
             </div>
             <div class="mt-4 divide-y divide-neutral-100">
                 @forelse($upcomingItems as $item)
-                    <div class="list-row">
+                    <a class="list-row" href="{{ $item['portal_url'] ?? '#' }}">
                         <span>
                             <strong>{{ $item['reference'] }}</strong>
-                            <small>{{ $item['title'] }}</small>
+                            <small>{{ $item['type'] ?? 'Deadline' }} &middot; {{ $item['title'] }}</small>
                         </span>
-                        <em>{{ $item['days_left'] }} days</em>
-                    </div>
+                        <em>
+                            @if($item['days_left'] < 0)
+                                {{ abs($item['days_left']) }}d overdue
+                            @elseif($item['days_left'] === 0)
+                                Today
+                            @else
+                                {{ $item['days_left'] }} {{ $item['days_left'] === 1 ? 'day' : 'days' }}
+                            @endif
+                        </em>
+                    </a>
                 @empty
                     <p class="empty">No urgent deadlines.</p>
                 @endforelse

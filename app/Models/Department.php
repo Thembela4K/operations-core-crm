@@ -15,12 +15,14 @@ class Department extends Model
         'slug',
         'email',
         'is_active',
+        'is_it_department',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'is_it_department' => 'boolean',
         ];
     }
 

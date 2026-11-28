@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseRecord extends Model
 {
@@ -23,6 +25,17 @@ class PurchaseRecord extends Model
         self::STATUS_CANCELLED,
     ];
 
+    /**
+     * QuickBooks-style payment terms shared with invoices.
+     */
+    public const PAYMENT_TERMS = [
+        'Due on receipt' => 0,
+        'Net 15' => 15,
+        'Net 30' => 30,
+        'Net 45' => 45,
+        'Net 60' => 60,
+    ];
+
     protected $fillable = [
         'supplier_id',
         'requisition_id',
@@ -32,6 +45,9 @@ class PurchaseRecord extends Model
         'title',
         'status',
         'purchase_date',
+        'ship_to',
+        'terms',
+        'expected_date',
         'amount',
         'notes',
     ];
@@ -40,8 +56,42 @@ class PurchaseRecord extends Model
     {
         return [
             'purchase_date' => 'date',
+            'expected_date' => 'date',
             'amount' => 'decimal:2',
         ];
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(PurchaseRecordItem::class)->orderBy('position');
+    }
+
+    /**
+     * Replaces the line items and keeps the stored amount equal to their total,
+     * because reports and ledger posting read `amount`.
+     */
+    public function syncItems(array $items): void
+    {
+        DB::transaction(function () use ($items): void {
+            $this->items()->delete();
+
+            foreach (array_values($items) as $index => $item) {
+                $quantity = round((float) ($item['quantity'] ?? 1), 2);
+                $unitPrice = round((float) ($item['unit_price'] ?? 0), 2);
+
+                $this->items()->create([
+                    'position' => $index + 1,
+                    'catalog_item_id' => $item['catalog_item_id'] ?? null,
+                    'description' => (string) $item['description'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => round($quantity * $unitPrice, 2),
+                ]);
+            }
+
+            $total = round((float) $this->items()->sum('line_total'), 2);
+            $this->forceFill(['amount' => $total])->save();
+        });
     }
 
     public function supplier(): BelongsTo

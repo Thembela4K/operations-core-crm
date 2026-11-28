@@ -80,7 +80,7 @@ class OperationsAssistantTest extends TestCase
             'action' => null,
         ]);
 
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'do you know Chat GPT?',
@@ -90,7 +90,7 @@ class OperationsAssistantTest extends TestCase
         $this->assertSame('Yes, I know of ChatGPT. I am MIS, focused on helping with this portal.', $response->json('reply'));
 
         Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer testing-key')
-            && $request['model'] === 'nvidia/llama-3.3-nemotron-super-49b-v1'
+            && $request['model'] === config('services.assistant_ai.nvidia.model')
             && $request['response_format']['type'] === 'json_object'
             && $request['stream'] === false);
     }
@@ -102,7 +102,7 @@ class OperationsAssistantTest extends TestCase
             'action' => null,
         ]);
 
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'draft a professional greeting',
@@ -118,7 +118,7 @@ class OperationsAssistantTest extends TestCase
             "A brief escape from work! Here is a short story for you.\n{\"reply\":\"A brief escape from work! Here is a short story for you.\\n\\nBack to work?\",\"action\":null}"
         );
 
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'tell me a story',
@@ -132,7 +132,7 @@ class OperationsAssistantTest extends TestCase
     {
         $this->configureAiRaw("{\"reply\":\"Hello Temnotfo\nHow can I assist?\",\"action\":null}");
 
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'draft a short greeting',
@@ -145,7 +145,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_answers_count_questions_locally_without_navigation(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
 
         Supplier::query()->create([
             'supplier_code' => 'SUP-001',
@@ -171,7 +171,7 @@ class OperationsAssistantTest extends TestCase
     {
         $this->configureAiTimeout();
         $department = $this->department('MIS Department');
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN, $department);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN, $department);
         $client = Client::query()->create([
             'client_code' => 'CLT-001',
             'name' => 'Acme Client',
@@ -282,7 +282,7 @@ class OperationsAssistantTest extends TestCase
             'action' => null,
         ]);
 
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'first tell me who you are',
@@ -301,7 +301,7 @@ class OperationsAssistantTest extends TestCase
             'action' => null,
         ]);
 
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
 
         Supplier::query()->create([
             'supplier_code' => 'SUP-001',
@@ -321,7 +321,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_handles_direct_navigation_locally(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'open unpaid invoices',
@@ -373,7 +373,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_uses_valid_task_status_when_opening_pending_tasks(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'open pending tasks',
@@ -397,7 +397,7 @@ class OperationsAssistantTest extends TestCase
                 'auto' => true,
             ],
         ]);
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'what should I inspect in finance?',
@@ -418,7 +418,7 @@ class OperationsAssistantTest extends TestCase
                 'auto' => true,
             ],
         ]);
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $prompts = [
             'summarise sales quotations without navigating',
             'before we open anything, explain invoices',
@@ -441,7 +441,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_answers_capability_questions_without_reusing_previous_navigation_target(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
         $conversation = AiConversation::query()->create([
             'user_id' => $user->id,
             'title' => 'Quotation drafting',
@@ -466,7 +466,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_explains_quotation_drafting_capability_without_creating_records(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
 
         $response = $this->actingAs($user)->postJson(route('assistant.message'), [
             'message' => 'can you draft for me a quotation? do you have the capability?',
@@ -480,7 +480,7 @@ class OperationsAssistantTest extends TestCase
 
     public function test_local_navigation_guard_simulates_many_non_navigation_prompts(): void
     {
-        $user = $this->user('Temnotfo Malinga', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Temnotfo Malinga', User::ROLE_BUSINESS_ADMIN);
         $assistant = app(LocalAssistantResponder::class);
         $history = [[
             'role' => 'assistant',
@@ -567,7 +567,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_still_navigates_for_clear_navigation_prompts_after_guarding_analysis(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $cases = [
             'open sales quotations' => '/sales-quotations',
             'show tender proposals' => '/tender-proposals',
@@ -596,7 +596,7 @@ class OperationsAssistantTest extends TestCase
     {
         $this->configureAiTimeout();
         $department = $this->department('MIS Department');
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN, $department);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN, $department);
         $client = Client::query()->create([
             'client_code' => 'CLT-001',
             'name' => 'Acme Client',
@@ -651,7 +651,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_handles_named_follow_up_navigation_without_repeating_prior_answer(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $conversation = AiConversation::query()->create([
             'user_id' => $user->id,
             'title' => 'Finance question',
@@ -676,7 +676,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_uses_recent_suggestion_for_show_me_follow_up(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $conversation = AiConversation::query()->create([
             'user_id' => $user->id,
             'title' => 'Finance question',
@@ -701,7 +701,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_handles_show_me_typo_as_navigation_follow_up(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $conversation = AiConversation::query()->create([
             'user_id' => $user->id,
             'title' => 'Finance question',
@@ -726,7 +726,7 @@ class OperationsAssistantTest extends TestCase
     public function test_assistant_handles_lettered_choice_navigation_follow_up(): void
     {
         $this->configureAiTimeout();
-        $user = $this->user('Admin User', User::ROLE_SUPER_ADMIN);
+        $user = $this->user('Admin User', User::ROLE_BUSINESS_ADMIN);
         $conversation = AiConversation::query()->create([
             'user_id' => $user->id,
             'title' => 'Finance question',
@@ -804,7 +804,7 @@ class OperationsAssistantTest extends TestCase
         config()->set('services.assistant_ai.remote_enabled', true);
         config()->set('services.assistant_ai.nvidia.api_key', 'testing-key');
         config()->set('services.assistant_ai.nvidia.base_url', 'https://integrate.api.nvidia.com/v1');
-        config()->set('services.assistant_ai.nvidia.model', 'nvidia/llama-3.3-nemotron-super-49b-v1');
+        config()->set('services.assistant_ai.nvidia.model', 'nvidia/nemotron-3.5-bolt-e4b');
 
         Http::fake([
             'https://integrate.api.nvidia.com/v1/chat/completions' => Http::response(

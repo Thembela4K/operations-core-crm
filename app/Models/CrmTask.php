@@ -45,6 +45,7 @@ class CrmTask extends Model
         'status',
         'priority',
         'due_date',
+        'duration_days',
         'started_at',
         'completed_at',
     ];
@@ -53,6 +54,7 @@ class CrmTask extends Model
     {
         return [
             'due_date' => 'date',
+            'duration_days' => 'integer',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
         ];

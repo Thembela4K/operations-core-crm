@@ -50,6 +50,7 @@ class UserInvitation extends Model
     {
         return $this->status === self::STATUS_PENDING
             && ! $this->accepted_at
+            && $this->expires_at !== null
             && $this->expires_at->isFuture();
     }
 }

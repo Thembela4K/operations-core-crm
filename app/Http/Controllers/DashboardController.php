@@ -18,6 +18,8 @@ use App\Models\SalesQuotation;
 use App\Models\Submission;
 use App\Models\Supplier;
 use App\Models\TenderProposal;
+use App\Services\AttendanceReminderService;
+use App\Services\DeadlineService;
 use App\Services\ReminderService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,7 +33,7 @@ class DashboardController extends Controller
         $invoices = Invoice::query()->visibleTo($user)->get();
         $expenses = Expense::query()->visibleTo($user)->get();
         $requisitions = Requisition::query()->visibleTo($user)->get();
-        $tasks = CrmTask::query()->visibleTo($user)->get();
+        $tasks = CrmTask::query()->visibleTo($user)->with(['department', 'assignee'])->get();
         $attendance = AttendanceRecord::query()->visibleTo($user)->get();
         $clientActivities = ClientActivity::query()->visibleTo($user)->get();
         $tenderProposals = TenderProposal::query()->visibleTo($user)->with('latestAssignment.department')->get();
@@ -61,27 +63,81 @@ class DashboardController extends Controller
             ->when(! ($user->canReviewSubmissions() || $user->canManage()), fn ($query) => $query->where('department_id', $user->department_id))
             ->count();
 
+        // Deadline pressure is a personal list. Scope rules live in
+        // DeadlineService so the reminders page applies exactly the same ones.
+        $companyWideDeadlines = $user->canSeeCompanyDeadlines();
+
+        $upcomingItems = app(DeadlineService::class)->filterAssignments($upcomingItems, $user);
+        // Week Plan entries (tasks) carry due dates but are not Assignment
+        // records, so upcomingItems() never sees them.
+        $taskDeadlines = app(DeadlineService::class)
+            ->taskItems($user, ReminderService::DASHBOARD_WINDOW_DAYS);
+
+        $upcomingItems = $upcomingItems
+            ->concat($taskDeadlines)
+            ->sortBy('days_left')
+            ->values();
+
         $deadlineBands = collect([
             'Overdue' => $upcomingItems->where('days_left', '<', 0)->count(),
             'Today' => $upcomingItems->where('days_left', 0)->count(),
             'Next 5 Days' => $upcomingItems->filter(fn (array $item): bool => $item['days_left'] > 0)->count(),
         ]);
 
-        $departmentWorkload = $assignments
-            ->groupBy(fn (Assignment $assignment): string => $assignment->department?->name ?? 'Unassigned')
-            ->map(fn ($items, string $department): array => [
-                'department' => $department,
-                'count' => $items->count(),
-            ])
-            ->sortByDesc('count')
+        // Workload counts assignment-based work (tenders/quotations) and open
+        // week-plan entries, scoped to the viewer: personal + department, or
+        // the whole company for the company-wide roles.
+        $workloadAssignments = $companyWideDeadlines
+            ? $assignments
+            : $assignments->filter(fn (Assignment $assignment): bool => $assignment->department_id === $user->department_id);
+
+        $workloadTasks = $companyWideDeadlines
+            ? $tasks
+            : $tasks->filter(fn (CrmTask $task): bool => $task->department_id === $user->department_id);
+
+        $departmentWorkload = $workloadAssignments
+            ->map(fn (Assignment $assignment): string => $assignment->department?->name ?? 'Unassigned')
+            ->concat(
+                $workloadTasks
+                    ->reject(fn (CrmTask $task): bool => $task->isClosed())
+                    ->map(fn (CrmTask $task): string => $task->department?->name ?? 'Unassigned')
+            )
+            ->countBy()
+            ->sortDesc()
             ->take(6)
+            ->map(fn (int $count, string $department): array => [
+                'department' => $department,
+                'count' => $count,
+            ])
             ->values();
         $maxDepartmentWorkload = max(1, $departmentWorkload->max('count') ?? 0);
 
+        // Module visibility drives which cards and sections render at all.
+        $showClients = $user->canAccessModule('clients');
+        $showFinance = $user->canAccessModule('finance');
+        $showOperations = $user->canAccessModule('operations');
+        $showCompany = $user->seesAllDepartments();
+
+        // Attendance prompt: shown at most once per local workday, and never
+        // when the employee is on approved leave or has already clocked in.
+        $attendanceReminders = app(AttendanceReminderService::class);
+        $attendancePrompt = false;
+
+        if (! $attendanceReminders->hasArrivalToday($user)
+            && ! $attendanceReminders->onApprovedLeave($user)
+            && ! $attendanceReminders->alreadyPromptedToday($user)) {
+            $attendancePrompt = true;
+            $attendanceReminders->markPrompted($user);
+        }
+
         return view('dashboard', [
+            'showClients' => $showClients,
+            'showFinance' => $showFinance,
+            'showOperations' => $showOperations,
+            'showCompany' => $showCompany,
             'tenderCount' => $tenderProposals->count(),
             'quotationCount' => $quotations->count(),
-            'clientCount' => Client::query()->count(),
+            'clientCount' => $showClients ? Client::query()->count() : 0,
             'salesQuotationCount' => $salesQuotations->count(),
             'salesQuotationPipeline' => $salesQuotations->sum(fn (SalesQuotation $quotation): float => (float) $quotation->total),
             'approvedSalesQuotationPipeline' => $salesQuotations->whereIn('status', [SalesQuotation::STATUS_APPROVED, SalesQuotation::STATUS_SENT, SalesQuotation::STATUS_ACCEPTED, SalesQuotation::STATUS_CONVERTED])->sum(fn (SalesQuotation $quotation): float => (float) $quotation->total),
@@ -98,8 +154,8 @@ class DashboardController extends Controller
             'openTaskCount' => $tasks->whereNotIn('status', [CrmTask::STATUS_DONE, CrmTask::STATUS_CANCELLED])->count(),
             'overdueTaskCount' => $tasks->whereNotIn('status', [CrmTask::STATUS_DONE, CrmTask::STATUS_CANCELLED])->where('due_date', '<', now()->startOfDay())->count(),
             'attendanceHours' => round($attendance->sum('total_minutes') / 60, 1),
-            'supplierCount' => Supplier::query()->count(),
-            'documentCount' => Document::query()->count(),
+            'supplierCount' => $showFinance ? Supplier::query()->count() : 0,
+            'documentCount' => $user->canAccessModule('documents') ? Document::query()->count() : 0,
             'unreadCrmNotifications' => CrmNotification::query()->where('user_id', $user->id)->whereNull('read_at')->count(),
             'openFollowUps' => $clientActivities->where('status', 'Open')->count(),
             'overdueFollowUps' => $clientActivities->where('status', 'Open')->where('next_follow_up_date', '<', now()->startOfDay())->count(),
@@ -119,6 +175,10 @@ class DashboardController extends Controller
             'maxDepartmentWorkload' => $maxDepartmentWorkload,
             'deadlineBands' => $deadlineBands,
             'upcomingItems' => $upcomingItems->take(6),
+
+            // One-time, non-blocking attendance prompt per employee per day
+            // (report 5.3). Dismissing it never blocks the dashboard.
+            'attendancePrompt' => $attendancePrompt,
             'sppraUrl' => $user->canAccessSppra() ? config('services.sppra.url') : null,
         ]);
     }

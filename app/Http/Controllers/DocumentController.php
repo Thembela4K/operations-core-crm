@@ -25,7 +25,10 @@ class DocumentController extends Controller
 {
     public function index(Request $request): View
     {
-        $documents = Document::query()
+        $tab = $request->string('tab')->toString() === 'company' ? 'company' : 'attachments';
+
+        $query = Document::query()
+            ->visibleTo($request->user())
             ->with(['uploader', 'documentable', 'textIndex'])
             ->when($request->filled('search'), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
@@ -36,36 +39,92 @@ class DocumentController extends Controller
                         ->orWhereHas('textIndex', fn ($text) => $text->where('content', 'like', "%{$search}%"));
                 });
             })
-            ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
-            ->when($request->filled('module'), fn ($query) => $this->applyModuleFilter($query, $request->string('module')->toString()))
-            ->when($request->filled('linked_type'), fn ($query) => $this->applyLinkedTypeFilter($query, $request->string('linked_type')->toString()))
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('created_at', '>=', $request->date('date_from')->toDateString()))
-            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('created_at', '<=', $request->date('date_to')->toDateString()))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('created_at', '<=', $request->date('date_to')->toDateString()));
 
-        $documents->getCollection()->transform(function (Document $document) use ($request): ?Document {
-            try {
-                $this->authorizeRecordAccess($request, $document->documentable);
+        if ($tab === 'company') {
+            $documents = $query
+                ->where('is_company_document', true)
+                ->when($request->filled('category'), fn ($inner) => $inner->where('category', $request->string('category')))
+                ->latest()
+                ->paginate(15)
+                ->withQueryString();
+        } else {
+            $documents = $query
+                ->where('is_company_document', false)
+                ->when($request->filled('category'), fn ($inner) => $inner->where('category', $request->string('category')))
+                ->when($request->filled('module'), fn ($inner) => $this->applyModuleFilter($inner, $request->string('module')->toString()))
+                ->when($request->filled('linked_type'), fn ($inner) => $this->applyLinkedTypeFilter($inner, $request->string('linked_type')->toString()))
+                ->latest()
+                ->paginate(15)
+                ->withQueryString();
 
-                return $document;
-            } catch (\Throwable) {
-                return null;
-            }
-        });
+            // Attachments additionally require access to their parent record.
+            $documents->getCollection()->transform(function (Document $document) use ($request): ?Document {
+                try {
+                    $this->authorizeRecordAccess($request, $document->documentable);
 
-        $documents->setCollection($documents->getCollection()->filter()->values());
+                    return $document;
+                } catch (\Throwable) {
+                    return null;
+                }
+            });
+
+            $documents->setCollection($documents->getCollection()->filter()->values());
+        }
 
         return view('documents.index', [
             'documents' => $documents,
-            'categories' => Document::CATEGORIES,
+            'tab' => $tab,
+            'categories' => $tab === 'company' ? Document::COMPANY_CATEGORIES : Document::CATEGORIES,
             'modules' => $this->documentModules(),
             'linkedTypes' => [
                 'tender_proposal' => 'Tender Proposal Submissions',
                 'quotation_request' => 'Quotation Request Submissions',
             ],
+            'canManageCompany' => $request->user()->canManageCompanyDocuments(),
         ]);
+    }
+
+    /**
+     * Company documents (trading licences, registrations, policies) are
+     * uploaded only by the business admin and directors.
+     */
+    public function storeCompany(Request $request, AuditLogService $audit, DocumentTextExtractor $textExtractor): RedirectResponse
+    {
+        if (! $request->user()->canManageCompanyDocuments()) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'category' => ['required', Rule::in(array_keys(Document::COMPANY_CATEGORIES))],
+            'title' => ['nullable', 'string', 'max:255'],
+            'tags' => ['nullable', 'string', 'max:255'],
+            'document' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $file = $request->file('document');
+        $path = $file->store('documents/company');
+
+        $document = Document::query()->create([
+            'category' => $data['category'],
+            'title' => $data['title'] ?? null,
+            'tags' => $data['tags'] ?? null,
+            'is_company_document' => true,
+            'original_name' => $file->getClientOriginalName(),
+            'stored_name' => basename($path),
+            'path' => $path,
+            'mime_type' => $file->getClientMimeType(),
+            'size' => $file->getSize(),
+            'uploaded_by' => $request->user()->id,
+        ]);
+
+        $textExtractor->index($document);
+        $audit->record('document_uploaded', $document, "Company document {$document->original_name} uploaded.");
+
+        return redirect()
+            ->route('documents.index', ['tab' => 'company'])
+            ->with('success', 'Company document uploaded.');
     }
 
     public function store(Request $request, AuditLogService $audit, DocumentTextExtractor $textExtractor): RedirectResponse
@@ -105,7 +164,7 @@ class DocumentController extends Controller
     public function download(Request $request, Document $document): StreamedResponse
     {
         $document->load('documentable');
-        $this->authorizeRecordAccess($request, $document->documentable);
+        $this->authorizeDocumentAccess($request, $document);
 
         return Storage::download($document->path, $document->original_name);
     }
@@ -113,7 +172,7 @@ class DocumentController extends Controller
     public function preview(Request $request, Document $document): StreamedResponse
     {
         $document->load('documentable');
-        $this->authorizeRecordAccess($request, $document->documentable);
+        $this->authorizeDocumentAccess($request, $document);
 
         abort_unless($document->isPreviewable(), 415);
 
@@ -128,13 +187,35 @@ class DocumentController extends Controller
     public function destroy(Request $request, Document $document, AuditLogService $audit): RedirectResponse
     {
         $document->load('documentable');
-        $this->authorizeRecordMutation($request, $document->documentable);
+
+        // Company documents may only be removed by their maintainers; record
+        // attachments follow the parent record's permissions.
+        if ($document->is_company_document) {
+            if (! $request->user()->canManageCompanyDocuments()) {
+                abort(403);
+            }
+        } else {
+            $this->authorizeRecordMutation($request, $document->documentable);
+        }
 
         Storage::delete($document->path);
         $audit->record('document_deleted', $document, "Document {$document->original_name} deleted.");
         $document->delete();
 
         return back()->with('success', 'Document deleted.');
+    }
+
+    /**
+     * Company documents are readable by every signed-in employee; attachments
+     * still require access to the record they belong to.
+     */
+    private function authorizeDocumentAccess(Request $request, Document $document): void
+    {
+        if ($document->is_company_document) {
+            return;
+        }
+
+        $this->authorizeRecordAccess($request, $document->documentable);
     }
 
     private function resolveRecord(string $module, int $id): TenderProposal|Quotation|Submission|Expense|Requisition|CrmTask|SalesQuotation|Invoice|Payment
@@ -301,7 +382,7 @@ class DocumentController extends Controller
         }
 
         if ($record instanceof Requisition) {
-            if ($request->user()->canReleaseRequisitionFunds() || $record->department_id === $request->user()->department_id) {
+            if ($request->user()->canAdministerRequisitions() || $record->department_id === $request->user()->department_id) {
                 return;
             }
 

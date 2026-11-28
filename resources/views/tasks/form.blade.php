@@ -2,6 +2,7 @@
     $relatedValue = old('related_record');
     if (! $relatedValue && $task->taskable_type && $task->taskable_id) {
         $map = [
+            \App\Models\Project::class => 'project',
             \App\Models\Client::class => 'client',
             \App\Models\TenderProposal::class => 'tender',
             \App\Models\Quotation::class => 'quotation',
@@ -36,6 +37,11 @@
         </select>
     </label>
     <label><span class="label">Due Date</span><input class="input" type="date" name="due_date" value="{{ old('due_date', optional($task->due_date)->format('Y-m-d')) }}"></label>
+    <label>
+        <span class="label">Duration (days)</span>
+        <input class="input" type="number" min="1" max="365" name="duration_days" value="{{ old('duration_days', $task->duration_days) }}" placeholder="e.g. 3">
+        <span class="mt-1 block text-xs text-neutral-500">How many days this entry is expected to take.</span>
+    </label>
     <label>
         <span class="label">Status</span>
         <select class="input" name="status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected(old('status', $task->status) === $status)>{{ $status }}</option>@endforeach</select>

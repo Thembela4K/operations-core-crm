@@ -26,11 +26,36 @@ class TenderProposal extends Model
 
     public const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
+    /**
+     * What kind of procurement notice this actually is. ESPPRA is a source, not
+     * a classification (report 3.2).
+     */
+    public const PROCUREMENT_TYPES = [
+        'Open Tender',
+        'Restricted Tender',
+        'Request for Quotation',
+        'Request for Proposal',
+        'Expression of Interest',
+        'Direct Procurement',
+    ];
+
+    /** Where the notice was found. */
+    public const NOTICE_SOURCES = [
+        'ESPPRA',
+        'Newspaper',
+        'Client Invitation',
+        'Referral',
+        'Website',
+        'Other',
+    ];
+
     public const RISKS = ['Low', 'Medium', 'High'];
 
     protected $fillable = [
         'tender_reference',
         'title',
+        'procurement_type',
+        'notice_source',
         'owner',
         'owner_email',
         'status',
