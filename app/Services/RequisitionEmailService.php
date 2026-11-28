@@ -23,7 +23,14 @@ class RequisitionEmailService
     {
         $requisition->load(['department', 'requester', 'items']);
         $subject = "Requisition {$requisition->requisition_number}: {$eventLabel}";
-        $recipients = $this->requesterRecipients($requisition);
+
+        // Decisions go to the requester, their department, and the approvers so
+        // the business admin and directors keep a copy of what was accepted,
+        // rejected or paid out.
+        $recipients = $this->requesterRecipients($requisition)
+            ->merge($this->approverRecipients())
+            ->unique()
+            ->values();
 
         return $this->send($requisition, $recipients, $subject, $eventLabel, $message);
     }

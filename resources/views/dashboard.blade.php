@@ -32,7 +32,6 @@
                  value; the script keeps it ticking without depending on the
                  visitor's own clock or timezone. --}}
             <div class="rounded-md border border-neutral-200 bg-white px-4 py-2 text-right">
-                <div class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Central Africa Time (CAT)</div>
                 <div class="text-lg font-bold text-neutral-900" id="cat-clock">{{ now()->format('H:i:s') }}</div>
                 <div class="text-xs text-neutral-600" id="cat-date">{{ now()->format('l, j F Y') }}</div>
             </div>
