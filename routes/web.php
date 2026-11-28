@@ -76,7 +76,6 @@ Route::middleware('auth')->group(function (): void {
     Route::put('profile/information', [UserProfileController::class, 'updateOwn'])->name('profile.information.update');
     Route::get('user-information', [UserProfileController::class, 'index'])->name('user-information.index');
     Route::get('user-information/{user}', [UserProfileController::class, 'show'])->name('user-information.show');
-    Route::put('user-information/{user}', [UserProfileController::class, 'update'])->name('user-information.update');
 
     Route::get('tasks/report', [TaskController::class, 'report'])->name('tasks.report');
     Route::resource('tasks', TaskController::class);

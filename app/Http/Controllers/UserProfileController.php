@@ -15,8 +15,9 @@ use Illuminate\View\View;
  * User Information: personal details, contact, addresses, emergency contact and
  * banking information.
  *
- * Everyone maintains their own record. The business admin and directors can see
- * and maintain every employee's.
+ * Each employee owns their record and is the only person who can change it. The
+ * business admin and directors may read every record, because they maintain the
+ * accounts, but editing someone else's details is refused.
  */
 class UserProfileController extends Controller
 {
@@ -27,8 +28,8 @@ class UserProfileController extends Controller
         return view('profile.information', [
             'subject' => $user,
             'profile' => $user->profileOrCreate(),
-            'editingSelf' => true,
-            'canManageAll' => $user->canManageUserProfiles(),
+            'canEdit' => true,
+            'canViewAll' => $user->canViewAllUserProfiles(),
         ]);
     }
 
@@ -46,7 +47,7 @@ class UserProfileController extends Controller
 
     public function index(Request $request): View
     {
-        $this->authorizeManager($request);
+        $this->authorizeReader($request);
 
         $users = User::query()
             ->with(['department', 'profile'])
@@ -71,31 +72,24 @@ class UserProfileController extends Controller
 
     public function show(Request $request, User $user): View
     {
-        $this->authorizeView($request, $user);
+        $actor = $request->user();
+
+        if (! $actor->canViewUserProfile($user)) {
+            abort(403);
+        }
 
         return view('profile.information', [
             'subject' => $user,
             'profile' => $user->profileOrCreate(),
-            'editingSelf' => $request->user()->id === $user->id,
-            'canManageAll' => $request->user()->canManageUserProfiles(),
+            // Read-only unless you are looking at your own record.
+            'canEdit' => $actor->canEditUserProfile($user),
+            'canViewAll' => $actor->canViewAllUserProfiles(),
         ]);
-    }
-
-    public function update(Request $request, User $user, AuditLogService $audit): RedirectResponse
-    {
-        $this->authorizeView($request, $user);
-
-        $profile = $user->profileOrCreate();
-        $before = $profile->only(['phone', 'personal_email']);
-        $profile->update($this->validated($request));
-        $audit->record('profile_updated', $profile, "Personal information updated for {$user->name}.", $before, $profile->only(['phone', 'personal_email']));
-
-        return back()->with('success', "Information for {$user->name} saved.");
     }
 
     private function validated(Request $request): array
     {
-        $data = $request->validate([
+        return $request->validate([
             'phone' => ['nullable', 'string', 'max:40'],
             'alternate_phone' => ['nullable', 'string', 'max:40'],
             'personal_email' => ['nullable', 'email', 'max:255'],
@@ -119,24 +113,11 @@ class UserProfileController extends Controller
             'bank_account_type' => ['nullable', Rule::in(UserProfile::BANK_ACCOUNT_TYPES)],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
-
-        // Only managers may write to another employee's record; the guard is in
-        // the route actions, and the user id is never taken from the form.
-        $data['user_id'] = $request->route('user')?->id ?? $request->user()->id;
-
-        return $data;
     }
 
-    private function authorizeView(Request $request, User $user): void
+    private function authorizeReader(Request $request): void
     {
-        if (! $request->user()->canViewUserProfile($user)) {
-            abort(403);
-        }
-    }
-
-    private function authorizeManager(Request $request): void
-    {
-        if (! $request->user()->canManageUserProfiles()) {
+        if (! $request->user()->canViewAllUserProfiles()) {
             abort(403);
         }
     }

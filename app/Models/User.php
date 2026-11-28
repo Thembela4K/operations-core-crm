@@ -192,17 +192,26 @@ class User extends Authenticatable
     }
 
     /**
-     * The business admin and directors maintain everyone's personal details.
-     * An employee may always view and edit their own.
+     * Personal information belongs to the employee: only they may change it.
+     * The business admin and directors may read every record (they maintain the
+     * accounts), but never edit someone else's details.
      */
-    public function canManageUserProfiles(): bool
+    public function canViewAllUserProfiles(): bool
     {
         return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
     }
 
     public function canViewUserProfile(User $target): bool
     {
-        return $this->id === $target->id || $this->canManageUserProfiles();
+        return $this->id === $target->id || $this->canViewAllUserProfiles();
+    }
+
+    /**
+     * Only the owner may edit a profile.
+     */
+    public function canEditUserProfile(User $target): bool
+    {
+        return $this->id === $target->id;
     }
 
     public function invitations(): HasMany

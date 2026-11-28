@@ -248,7 +248,7 @@
                 'profile' => [
                     ['label' => 'My Information', 'route' => route('profile.information'), 'active' => request()->routeIs('profile.information*'), 'visible' => true, 'badge' => null],
                     ['label' => 'Password', 'route' => route('profile.password'), 'active' => request()->routeIs('profile.password*'), 'visible' => true, 'badge' => null],
-                    ['label' => 'Staff Information', 'route' => route('user-information.index'), 'active' => request()->routeIs('user-information.*'), 'visible' => $user->canManageUserProfiles(), 'badge' => null],
+                    ['label' => 'Staff Information', 'route' => route('user-information.index'), 'active' => request()->routeIs('user-information.*'), 'visible' => $user->canViewAllUserProfiles(), 'badge' => null],
                 ],
                 'tickets' => [
                     ['label' => 'Ticket Queue', 'route' => route('tickets.index'), 'active' => request()->routeIs('tickets.index') || request()->routeIs('tickets.show'), 'visible' => true, 'badge' => null],

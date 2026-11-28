@@ -49,13 +49,9 @@ class UserProfileTest extends TestCase
         $this->actingAs($employee)
             ->get(route('user-information.show', $other))
             ->assertForbidden();
-
-        $this->actingAs($employee)
-            ->put(route('user-information.update', $other), ['phone' => '000'])
-            ->assertForbidden();
     }
 
-    public function test_a_business_admin_can_see_and_update_any_employees_information(): void
+    public function test_a_business_admin_can_read_but_not_edit_an_employees_information(): void
     {
         $admin = $this->user('Admin', 'admin.profile@example.com', User::ROLE_BUSINESS_ADMIN);
         $employee = $this->user('Employee', 'employee2@example.com', User::ROLE_DEPARTMENT_USER);
@@ -66,28 +62,33 @@ class UserProfileTest extends TestCase
 
         $this->actingAs($admin)->get(route('user-information.show', $employee))
             ->assertOk()
-            ->assertSee('Employee');
+            ->assertSee('Employee')
+            ->assertSee('only they can change it')
+            ->assertDontSee('Save Information');
 
-        $this->actingAs($admin)->put(route('user-information.update', $employee), [
+        // There is no endpoint for editing someone else's record.
+        $this->actingAs($admin)->put('/user-information/'.$employee->id, [
             'phone' => '(+268) 1111 2222',
-            'notes' => 'Verified against the ID copy.',
-        ])->assertRedirect();
+        ])->assertStatus(405);
 
-        $this->assertSame('(+268) 1111 2222', $employee->fresh()->profile->phone);
+        $this->assertNull($employee->fresh()->profile?->phone);
     }
 
-    public function test_a_director_can_see_and_update_any_employees_information(): void
+    public function test_a_director_can_read_but_not_edit_an_employees_information(): void
     {
         $director = $this->user('Director', 'director.profile@example.com', User::ROLE_DIRECTOR);
         $employee = $this->user('Employee', 'employee3@example.com', User::ROLE_DEPARTMENT_USER);
 
         $this->actingAs($director)->get(route('user-information.index'))->assertOk();
+        $this->actingAs($director)->get(route('user-information.show', $employee))
+            ->assertOk()
+            ->assertDontSee('Save Information');
 
-        $this->actingAs($director)->put(route('user-information.update', $employee), [
+        $this->actingAs($director)->put('/user-information/'.$employee->id, [
             'bank_name' => 'Nedbank',
-        ])->assertRedirect();
+        ])->assertStatus(405);
 
-        $this->assertSame('Nedbank', $employee->fresh()->profile->bank_name);
+        $this->assertNull($employee->fresh()->profile?->bank_name);
     }
 
     public function test_a_regular_employee_cannot_open_the_staff_information_list(): void
