@@ -46,6 +46,8 @@ class Assignment extends Model
     public const KINDS = [self::KIND_WORK, self::KIND_MEETING];
 
     protected $fillable = [
+        'assignable_type',
+        'assignable_id',
         'title',
         'kind',
         'department_id',

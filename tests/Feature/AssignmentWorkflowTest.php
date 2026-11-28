@@ -161,6 +161,43 @@ class AssignmentWorkflowTest extends TestCase
         $this->actingAs($stranger)->get(route('assignments.show', $assignment))->assertForbidden();
     }
 
+    public function test_an_assignment_keeps_the_record_it_was_created_from(): void
+    {
+        $admin = $this->user('Admin', 'admin.link@example.com', User::ROLE_BUSINESS_ADMIN);
+
+        \Illuminate\Support\Facades\DB::table('quotations')->insert([
+            'quotation_code' => 'QTN-LINK-1',
+            'client' => 'Linked Client',
+            'opportunity' => 'Linked opportunity',
+            'owner' => 'Admin',
+            'status' => 'Draft Submitted',
+            'priority' => 'Medium',
+            'rating' => 'Warm',
+            'risk' => 'Low',
+            'win_probability_percent' => 50,
+            'quoted_amount' => 1000,
+            'expected_cost' => 500,
+            'issue_date' => now()->toDateString(),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $quotationId = (int) \Illuminate\Support\Facades\DB::table('quotations')->where('quotation_code', 'QTN-LINK-1')->value('id');
+
+        $this->actingAs($admin)->post(route('assignments.store'), [
+            'kind' => 'work',
+            'title' => 'Prepare the linked quotation',
+            'target' => 'quotation:'.$quotationId,
+            'assigned_user_id' => $admin->id,
+        ])->assertRedirect();
+
+        $assignment = Assignment::query()->firstOrFail();
+
+        $this->assertSame(\App\Models\Quotation::class, $assignment->assignable_type);
+        $this->assertSame($quotationId, $assignment->assignable_id);
+    }
+
     private function assignment(User $user): Assignment
     {
         return Assignment::query()->create([
