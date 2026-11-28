@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\Expense;
 use App\Models\Document;
 use App\Models\Requisition;
 use App\Models\Supplier;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\Assistant\DocumentTextExtractor;
 use App\Services\CrmNotificationService;
@@ -294,8 +296,15 @@ class RequisitionController extends Controller
         return back()->with('success', 'Requisition rejected.');
     }
 
-    public function releaseFunds(Request $request, Requisition $requisition, RequisitionEmailService $emails, CrmNotificationService $notifications, AuditLogService $audit): RedirectResponse
-    {
+    public function releaseFunds(
+        Request $request,
+        Requisition $requisition,
+        RequisitionEmailService $emails,
+        CrmNotificationService $notifications,
+        AuditLogService $audit,
+        FinanceNumberService $numbers,
+        \App\Services\AccountingService $accounting,
+    ): RedirectResponse {
         if (! $request->user()->canReleaseRequisitionFunds()) {
             abort(403);
         }
@@ -305,12 +314,17 @@ class RequisitionController extends Controller
         }
 
         $data = $request->validate(['release_notes' => ['nullable', 'string']]);
-        $requisition->update([
-            'status' => Requisition::STATUS_FUNDS_RELEASED,
-            'released_by' => $request->user()->id,
-            'release_notes' => $data['release_notes'] ?? $requisition->release_notes,
-            'funds_released_at' => now(),
-        ]);
+
+        DB::transaction(function () use ($request, $requisition, $data, $numbers, $accounting): void {
+            $requisition->update([
+                'status' => Requisition::STATUS_FUNDS_RELEASED,
+                'released_by' => $request->user()->id,
+                'release_notes' => $data['release_notes'] ?? $requisition->release_notes,
+                'funds_released_at' => now(),
+            ]);
+
+            $this->recordRequisitionExpense($requisition->fresh(['items', 'supplier']), $request->user(), $numbers, $accounting);
+        });
 
         $emails->notifyDecision($requisition->fresh(['department', 'requester', 'items']), 'Funds Released', 'Your approved requisition has been marked as funds released.');
         if ($requisition->requester) {
@@ -501,5 +515,66 @@ class RequisitionController extends Controller
         }
 
         return Department::query()->where('is_active', true)->orderBy('name')->get();
+    }
+
+    /**
+     * Money leaving for a requisition is an expense: record it, copy the priced
+     * lines across, and post it to the ledger.
+     */
+    private function recordRequisitionExpense(
+        Requisition $requisition,
+        User $actor,
+        FinanceNumberService $numbers,
+        \App\Services\AccountingService $accounting,
+    ): Expense {
+        $total = round((float) ($requisition->estimated_total ?? $requisition->items->sum('estimated_total')), 2);
+
+        $expense = Expense::query()->create([
+            'department_id' => $requisition->department_id,
+            'supplier_id' => $requisition->supplier_id,
+            'requisition_id' => $requisition->id,
+            'recorded_by' => $actor->id,
+            'expense_number' => $numbers->expenseNumber(),
+            'category' => $this->expenseCategoryFor($requisition),
+            'expense_type' => 'Project',
+            'payee' => $requisition->supplier?->name ?: 'Requisition '.$requisition->requisition_number,
+            'expense_date' => now()->toDateString(),
+            'amount' => $total,
+            'vat_amount' => 0,
+            'total_amount' => $total,
+            'status' => 'Recorded',
+            'notes' => 'Funds released for requisition '.$requisition->requisition_number.'.',
+        ]);
+
+        $position = 1;
+
+        foreach ($requisition->items as $item) {
+            $expense->items()->create([
+                'description' => $item->description,
+                'item_type' => 'Material',
+                'quantity' => $item->quantity,
+                'unit_cost' => $item->estimated_unit_cost,
+                'duration_months' => 1,
+                'line_total' => $item->estimated_total,
+                'position' => $position++,
+            ]);
+        }
+
+        $accounting->postExpense($expense, $actor);
+
+        return $expense;
+    }
+
+    private function expenseCategoryFor(Requisition $requisition): string
+    {
+        return match (strtolower((string) $requisition->category)) {
+            'it', 'hardware' => 'Hardware',
+            'software' => 'Software',
+            'travel' => 'Travel',
+            'utilities' => 'Utilities',
+            'rent' => 'Rent',
+            'professional services' => 'Professional Services',
+            default => 'Other',
+        };
     }
 }

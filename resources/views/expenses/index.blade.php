@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="page-title">Expenses</h1>
-            <p class="page-subtitle">Company expenses by category, department, VAT amount, and supplier.</p>
+            <p class="page-subtitle">Operational and project spend — rent, internet, telecom, labour and procurement — recorded as worksheets by category, department and supplier.</p>
         </div>
         @if(auth()->user()->canManageFinance())
             <a class="btn-primary" href="{{ route('expenses.create') }}">New Expense</a>
@@ -23,7 +23,21 @@
                 <tbody>
                     @forelse($expenses as $expense)
                         <tr>
-                            <td><strong>{{ $expense->expense_number }}</strong><br><span class="text-xs text-neutral-500">{{ $expense->category }}</span></td>
+                            <td>
+                                <strong>{{ $expense->expense_number }}</strong><br>
+                                <span class="text-xs text-neutral-500">
+                                    {{ $expense->category }}
+                                    @if($expense->expense_type && $expense->expense_type !== 'Operational')
+                                        | {{ $expense->expense_type }}
+                                    @endif
+                                    @if($expense->duration_months)
+                                        | {{ $expense->duration_months }} month(s)
+                                    @endif
+                                </span>
+                                @if($expense->requisition)
+                                    <span class="block text-xs text-neutral-500">From {{ $expense->requisition->requisition_number }}</span>
+                                @endif
+                            </td>
                             <td>{{ $expense->payee }}</td>
                             <td>{{ $expense->supplier?->name ?: '-' }}</td>
                             <td>{{ $expense->department?->name ?? 'Company-wide' }}</td>
