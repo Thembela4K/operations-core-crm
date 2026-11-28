@@ -1,122 +1,134 @@
 @extends('layouts.app')
 
 @section('content')
-    <div>
-        <h1 class="page-title">Assignment Center</h1>
-        <p class="page-subtitle">Route tender proposals and quotation requests to departments with due dates, instructions, and portal email notices.</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h1 class="page-title">Assignment Center</h1>
+            <p class="page-subtitle">
+                Work and meetings assigned to you or your team. Everything here also appears in your Week Plan.
+                @if($overdueCount > 0)
+                    <span class="ml-2 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-800">{{ $overdueCount }} overdue</span>
+                @endif
+            </p>
+        </div>
+        <a class="btn-primary" href="{{ route('assignments.create') }}">New Assignment</a>
     </div>
 
-    <section class="panel mt-6">
-        <h2 class="section-title">Assign Work</h2>
-        <form method="POST" action="{{ route('assignments.store') }}" class="mt-4 grid gap-4 lg:grid-cols-3">
-            @csrf
-            <label class="lg:col-span-2">
-                <span class="label">Record</span>
-                @php($currentTarget = old('target', $selectedTarget ?? ''))
-                <select class="input" name="target" required>
-                    <optgroup label="Tender Proposals">
-                        @foreach($tenderProposals as $tenderProposal)
-                            @php($targetValue = "tender_proposal:{$tenderProposal->id}")
-                            <option value="{{ $targetValue }}" @selected($currentTarget === $targetValue)>
-                                {{ $tenderProposal->tender_reference }} - {{ $tenderProposal->title }} ({{ $tenderProposal->latestAssignment?->department?->name ?? 'Unassigned' }})
-                            </option>
-                        @endforeach
-                    </optgroup>
-                    <optgroup label="Quotation Requests">
-                        @foreach($quotations as $quotation)
-                            @php($targetValue = "quotation:{$quotation->id}")
-                            <option value="{{ $targetValue }}" @selected($currentTarget === $targetValue)>
-                                {{ $quotation->quotation_code }} - {{ $quotation->opportunity }} ({{ $quotation->latestAssignment?->department?->name ?? 'Unassigned' }})
-                            </option>
-                        @endforeach
-                    </optgroup>
-                </select>
-            </label>
-            <label>
+    @if($canSeeAll)
+        <div class="mt-6 flex gap-2">
+            <a class="btn-secondary {{ $scope === 'mine' ? 'ring-2 ring-[#087aa5]' : '' }}" href="{{ route('assignments.index', ['scope' => 'mine']) }}">My Assignments</a>
+            <a class="btn-secondary {{ $scope === 'all' ? 'ring-2 ring-[#087aa5]' : '' }}" href="{{ route('assignments.index', ['scope' => 'all']) }}">All Assignments</a>
+        </div>
+    @endif
+
+    <form class="panel mt-6 flex flex-wrap items-end gap-3" method="GET">
+        <input type="hidden" name="scope" value="{{ $scope }}">
+        <label class="min-w-48 flex-1">
+            <span class="label">Search</span>
+            <input class="input" name="search" value="{{ request('search') }}" placeholder="Title or assignee">
+        </label>
+        <label class="w-44">
+            <span class="label">Status</span>
+            <select class="input" name="workflow_status">
+                <option value="">Any</option>
+                @foreach($workflowStatuses as $status)
+                    <option value="{{ $status }}" @selected(request('workflow_status') === $status)>{{ $status }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label class="w-36">
+            <span class="label">Kind</span>
+            <select class="input" name="kind">
+                <option value="">Any</option>
+                @foreach($kinds as $kind)
+                    <option value="{{ $kind }}" @selected(request('kind') === $kind)>{{ ucfirst($kind) }}</option>
+                @endforeach
+            </select>
+        </label>
+        @if($canSeeAll)
+            <label class="w-48">
                 <span class="label">Department</span>
-                <select class="input" name="department_id" required data-department-select>
+                <select class="input" name="department_id">
+                    <option value="">Any</option>
                     @foreach($departments as $department)
-                        <option value="{{ $department->id }}" data-email="{{ $department->email }}">{{ $department->name }}{{ $department->email ? " - {$department->email}" : '' }}</option>
+                        <option value="{{ $department->id }}" @selected((int) request('department_id') === $department->id)>{{ $department->name }}</option>
                     @endforeach
                 </select>
             </label>
-            <label>
-                <span class="label">Staff Member</span>
-                <select class="input" name="staff_member_id" data-assignee-select>
-                    <option value="" data-department-id="" data-notification-email="">Use department mailbox</option>
-                    @foreach($staffMembers as $staffMember)
-                        <option
-                            value="{{ $staffMember->id }}"
-                            data-department-id="{{ $staffMember->department_id }}"
-                            data-notification-email="{{ $staffMember->email ?: $staffMember->department?->email }}"
-                        >
-                            {{ $staffMember->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </label>
-            <label>
-                <span class="label">Assignee Name</span>
-                <input class="input" name="assignee_name" value="{{ old('assignee_name', auth()->user()->name) }}">
-            </label>
-            <label>
-                <span class="label">Notification Email</span>
-                <input class="input" type="email" name="assignee_email" value="{{ old('assignee_email') }}" readonly data-assignee-email>
-            </label>
-            <label>
-                <span class="label">Assignment Due Date</span>
-                <input class="input" type="date" name="due_date" value="{{ old('due_date') }}">
-            </label>
-            <label class="lg:col-span-2">
-                <span class="label">Instructions</span>
-                <textarea class="input min-h-24" name="instructions">{{ old('instructions') }}</textarea>
-            </label>
-            <label class="mt-7 flex items-center gap-2 text-sm text-zinc-700">
-                <input class="rounded border-zinc-300" type="checkbox" name="send_email" value="1" checked>
-                Send assignment email
-            </label>
-            <div class="lg:col-span-3">
-                <button class="btn-primary" type="submit">Assign</button>
-            </div>
-        </form>
-    </section>
+        @endif
+        <label class="flex items-center gap-2 pb-2 text-sm">
+            <input type="checkbox" name="overdue" value="1" @checked(request()->boolean('overdue'))> Overdue only
+        </label>
+        <button class="btn-secondary" type="submit">Filter</button>
+    </form>
 
     <section class="panel mt-6 overflow-x-auto">
-        <h2 class="section-title">Recent Assignments</h2>
-        <table class="data-table mt-4">
-            <thead><tr><th>Record</th><th>Department</th><th>Assignee</th><th>Workflow</th><th>Due</th><th>Email</th><th>Assigned</th></tr></thead>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Assignment</th>
+                    <th>Kind</th>
+                    @if($scope === 'all')
+                        <th>Assignee</th>
+                        <th>Department</th>
+                    @endif
+                    <th>Due / Meeting</th>
+                    <th>Status</th>
+                    <th class="text-right">Action</th>
+                </tr>
+            </thead>
             <tbody>
                 @forelse($assignments as $assignment)
-                    @php($record = $assignment->assignable)
-                    <tr>
-                        <td>{{ $record->tender_reference ?? $record->quotation_code }} - {{ $record->title ?? $record->opportunity }}</td>
-                        <td>{{ $assignment->department->name }}</td>
-                        <td>{{ $assignment->assignee_name }}<div class="text-xs text-zinc-500">{{ $assignment->assignee_email }}</div></td>
-                        <td>{{ $assignment->workflow_status }}</td>
-                        <td>{{ $assignment->due_date?->toDateString() ?? '-' }}</td>
-                        <td>{{ $assignment->status }}</td>
-                        <td>{{ $assignment->assigned_at?->toDayDateTimeString() }}</td>
+                    <tr class="{{ $assignment->isOverdue() ? 'bg-red-50/40' : '' }}">
+                        <td>
+                            <a class="link" href="{{ route('assignments.show', $assignment) }}">{{ $assignment->label() }}</a>
+                            @if($assignment->assignable)
+                                <span class="block text-xs text-neutral-500">{{ class_basename($assignment->assignable_type) }}</span>
+                            @endif
+                        </td>
+                        <td>{{ ucfirst($assignment->kind) }}</td>
+                        @if($scope === 'all')
+                            <td>{{ $assignment->assignedUser?->name ?? $assignment->assignee_name }}</td>
+                            <td>{{ $assignment->department?->name ?? '—' }}</td>
+                        @endif
+                        <td>
+                            @if($assignment->isMeeting() && $assignment->starts_at)
+                                {{ $assignment->starts_at->format('D d M, H:i') }}
+                            @elseif($assignment->due_date)
+                                {{ $assignment->due_date->toFormattedDateString() }}
+                                @if($assignment->isOverdue())
+                                    <span class="block text-xs font-semibold text-red-700">Overdue</span>
+                                @endif
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td><strong>{{ $assignment->workflow_status }}</strong></td>
+                        <td class="text-right">
+                            <div class="flex flex-wrap justify-end gap-1">
+                                <a class="btn-secondary px-2 py-1 text-xs" href="{{ route('assignments.show', $assignment) }}">Open</a>
+                                @if($assignment->workflow_status === 'Assigned')
+                                    <form method="POST" action="{{ route('assignments.transition', $assignment) }}">
+                                        @csrf
+                                        <input type="hidden" name="action" value="accept">
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit">Accept</button>
+                                    </form>
+                                @endif
+                                @if($assignment->workflow_status === 'In Progress')
+                                    <form method="POST" action="{{ route('assignments.transition', $assignment) }}">
+                                        @csrf
+                                        <input type="hidden" name="action" value="complete">
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit">Complete</button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="empty">No assignments yet.</td></tr>
+                    <tr><td colspan="{{ $scope === 'all' ? 7 : 5 }}"><p class="empty">No assignments.</p></td></tr>
                 @endforelse
             </tbody>
         </table>
-        <div class="mt-4">{{ $assignments->links() }}</div>
-    </section>
-
-    <section class="panel mt-6">
-        <h2 class="section-title">Assignment Email Log</h2>
-        <div class="mt-4 space-y-3">
-            @forelse($emailLogs as $log)
-                <div class="rounded-md border border-zinc-200 p-3 text-sm">
-                    <div class="font-medium">{{ $log->subject }} | {{ $log->status }}</div>
-                    <div class="text-zinc-500">{{ $log->recipient }} | {{ $log->created_at->toDayDateTimeString() }}</div>
-                    @if($log->message)<div class="mt-1 text-rose-700">{{ $log->message }}</div>@endif
-                </div>
-            @empty
-                <p class="empty">No assignment email activity.</p>
-            @endforelse
-        </div>
+        <div class="p-4">{{ $assignments->links() }}</div>
     </section>
 @endsection

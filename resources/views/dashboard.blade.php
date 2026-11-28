@@ -209,6 +209,30 @@
         @endif
     </div>
 
+    @if(isset($todayMeetings) && $todayMeetings->isNotEmpty())
+        <section class="panel mt-6">
+            <div class="panel-heading">
+                <h2 class="section-title">Today's Meetings</h2>
+                <span>{{ $todayMeetings->count() }} scheduled</span>
+            </div>
+            <ul class="mt-3 space-y-2">
+                @foreach($todayMeetings as $meeting)
+                    <li class="flex flex-wrap items-center justify-between gap-2 rounded border border-neutral-200 px-3 py-2 text-sm">
+                        <span>
+                            <strong>{{ $meeting->starts_at?->format('H:i') }}</strong>
+                            @if($meeting->ends_at) &ndash; {{ $meeting->ends_at?->format('H:i') }} @endif
+                            {{ $meeting->label() }}
+                            @if($meeting->location)
+                                <span class="text-neutral-500">| {{ $meeting->location }}</span>
+                            @endif
+                        </span>
+                        <a class="link" href="{{ route('assignments.show', $meeting) }}">Open</a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     <div class="mt-6 grid gap-6 xl:grid-cols-3">
         <section class="panel chart-panel">
             <div class="panel-heading">
@@ -279,13 +303,17 @@
             <div class="mt-4 divide-y divide-neutral-100">
                 @forelse($unreadAssignmentList as $assignment)
                     @php($record = $assignment->assignable)
-                    @php($route = $record instanceof \App\Models\TenderProposal ? route('tender-proposals.show', $record) : route('quotations.show', $record))
+                    @php($route = match (true) {
+                        $record instanceof \App\Models\TenderProposal => route('tender-proposals.show', $record),
+                        $record instanceof \App\Models\Quotation => route('quotations.show', $record),
+                        default => route('assignments.show', $assignment),
+                    })
                     <a class="list-row" href="{{ $route }}">
                         <span>
-                            <strong>{{ $record->tender_reference ?? $record->quotation_code }}</strong>
-                            <small>{{ $record->title ?? $record->opportunity }}</small>
+                            <strong>{{ $record->tender_reference ?? $record->quotation_code ?? $assignment->label() }}</strong>
+                            <small>{{ $record->title ?? $record->opportunity ?? $assignment->assignee_name }}</small>
                         </span>
-                        <em>{{ $assignment->department->name }}</em>
+                        <em>{{ $assignment->department?->name ?? 'No department' }}</em>
                     </a>
                 @empty
                     <p class="empty">No unread assignments.</p>

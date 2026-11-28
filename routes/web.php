@@ -278,9 +278,28 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
 
         Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
         Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+        Route::get('assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
+        Route::post('assignments/{assignment}/transition', [AssignmentController::class, 'transition'])->name('assignments.transition');
+        Route::post('assignments/{assignment}/reassign', [AssignmentController::class, 'reassign'])->name('assignments.reassign');
 
         Route::post('reminders/send-due', [ReminderController::class, 'sendDue'])->name('reminders.send-due');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Assignments — every operations user works their own queue, including
+    | assigning work and meetings to themselves.
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('module:operations')->group(function (): void {
+        Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
+        Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+        Route::get('assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
+        Route::post('assignments/{assignment}/transition', [AssignmentController::class, 'transition'])->name('assignments.transition');
+        Route::post('assignments/{assignment}/reassign', [AssignmentController::class, 'reassign'])->name('assignments.reassign');
     });
 
     /*

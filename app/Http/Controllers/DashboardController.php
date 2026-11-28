@@ -131,6 +131,13 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', [
+            // Meetings scheduled for today: the reminder to walk into the room.
+            'todayMeetings' => \App\Models\Assignment::query()
+                ->visibleTo($user)
+                ->meetingsToday()
+                ->with(['assignedUser'])
+                ->orderBy('starts_at')
+                ->get(),
             'showClients' => $showClients,
             'showFinance' => $showFinance,
             'showOperations' => $showOperations,
