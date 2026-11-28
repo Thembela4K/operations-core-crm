@@ -4,15 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Document;
+use App\Models\Requisition;
+use App\Models\Supplier;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\TicketComment;
+use App\Models\TicketQuotation;
 use App\Models\TicketStatusHistory;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CrmNotificationService;
 use App\Services\FinanceNumberService;
+use App\Services\RequisitionEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -102,7 +108,11 @@ class TicketController extends Controller
                 'requester', 'department', 'category', 'assignee', 'creator',
                 'requisitions', 'statusHistory.actor',
                 'comments.user', 'documents',
+                'quotations.items', 'quotations.supplier', 'quotations.requisition',
             ]),
+            'suppliers' => $canTriage
+                ? Supplier::query()->where('is_active', true)->orderBy('name')->get()
+                : collect(),
             'canTriage' => $canTriage,
             'statuses' => Ticket::STATUSES,
             'staff' => $canTriage
@@ -227,6 +237,159 @@ class TicketController extends Controller
         $audit->record('document_uploaded', $document, "Attachment {$document->original_name} added to IT ticket {$ticket->ticket_number}.");
 
         return back()->with('success', 'Attachment uploaded.');
+    }
+
+    /**
+     * The IT Officer prices the ticket: supplier, reference and line items.
+     */
+    public function storeQuotation(Request $request, Ticket $ticket, AuditLogService $audit): RedirectResponse
+    {
+        $this->authorizeTriage($request);
+
+        $data = $request->validate([
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'supplier_name' => ['nullable', 'string', 'max:120'],
+            'reference' => ['nullable', 'string', 'max:80'],
+            'valid_until' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $quotation = DB::transaction(function () use ($ticket, $data, $request): TicketQuotation {
+            $quotation = $ticket->quotations()->create([
+                'supplier_id' => $data['supplier_id'] ?? null,
+                'supplier_name' => $data['supplier_name'] ?? null,
+                'reference' => $data['reference'] ?? null,
+                'valid_until' => $data['valid_until'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'prepared_by' => $request->user()->id,
+            ]);
+
+            $subtotal = 0.0;
+            $position = 1;
+
+            foreach ($data['items'] as $row) {
+                $quantity = round((float) $row['quantity'], 2);
+                $unitPrice = round((float) $row['unit_price'], 2);
+                $lineTotal = round($quantity * $unitPrice, 2);
+                $subtotal += $lineTotal;
+
+                $quotation->items()->create([
+                    'description' => $row['description'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                    'position' => $position++,
+                ]);
+            }
+
+            $quotation->update(['subtotal' => $subtotal, 'total' => $subtotal]);
+
+            return $quotation;
+        });
+
+        $audit->record('quotation_added', $quotation, "Quotation added to IT ticket {$ticket->ticket_number}.");
+
+        return back()->with('success', 'Quotation saved. Send it to the directors when it is ready.');
+    }
+
+    public function destroyQuotation(Request $request, Ticket $ticket, TicketQuotation $quotation, AuditLogService $audit): RedirectResponse
+    {
+        $this->authorizeTriage($request);
+
+        if ($quotation->ticket_id !== $ticket->id) {
+            abort(404);
+        }
+
+        if ($quotation->isSent()) {
+            return back()->with('warning', 'That quotation has already gone to the directors and cannot be removed.');
+        }
+
+        $audit->record('quotation_removed', $quotation, "Quotation removed from IT ticket {$ticket->ticket_number}.");
+        $quotation->delete();
+
+        return back()->with('success', 'Quotation removed.');
+    }
+
+    /**
+     * Send the priced quotation to the directors as a requisition.
+     */
+    public function sendQuotation(
+        Request $request,
+        Ticket $ticket,
+        TicketQuotation $quotation,
+        FinanceNumberService $numbers,
+        RequisitionEmailService $emails,
+        CrmNotificationService $notifications,
+        AuditLogService $audit,
+    ): RedirectResponse {
+        $this->authorizeTriage($request);
+
+        if ($quotation->ticket_id !== $ticket->id) {
+            abort(404);
+        }
+
+        if ($quotation->isSent()) {
+            return back()->with('warning', 'That quotation has already been sent to the directors.');
+        }
+
+        $requisition = DB::transaction(function () use ($ticket, $quotation, $request, $numbers): Requisition {
+            $requisition = Requisition::query()->create([
+                'source_ticket_id' => $ticket->id,
+                'department_id' => $ticket->department_id,
+                'supplier_id' => $quotation->supplier_id,
+                'requested_by' => $request->user()->id,
+                'requisition_number' => $numbers->requisitionNumber(),
+                'addressed_to' => 'Directors',
+                'title' => 'IT procurement: '.$ticket->title,
+                'category' => 'Operational',
+                'priority' => 'Medium',
+                'status' => Requisition::STATUS_SUBMITTED,
+                'needed_by' => $quotation->valid_until?->toDateString(),
+                'estimated_total' => $quotation->total,
+                'bank_total' => $quotation->total,
+                'cash_total' => 0,
+                'other_total' => 0,
+                'purpose' => 'Raised from IT ticket '.$ticket->ticket_number.' ('.$ticket->title.'). Requested by '.($ticket->requester?->name ?? 'an employee').'.',
+                'submitted_at' => now(),
+            ]);
+
+            $position = 1;
+
+            foreach ($quotation->items as $item) {
+                $requisition->items()->create([
+                    'position' => $position++,
+                    'description' => $item->description,
+                    'payment_type' => 'Bank',
+                    'quantity' => $item->quantity,
+                    'estimated_unit_cost' => $item->unit_price,
+                    'estimated_total' => $item->line_total,
+                    'source' => $quotation->supplierLabel(),
+                ]);
+            }
+
+            $quotation->update(['requisition_id' => $requisition->id, 'sent_at' => now()]);
+
+            $from = $ticket->status;
+            $ticket->update(['status' => Ticket::STATUS_AWAITING_APPROVAL]);
+            $this->recordStatus($ticket, $from, Ticket::STATUS_AWAITING_APPROVAL, $request->user(), 'Quotation sent to directors');
+
+            return $requisition;
+        });
+
+        $emails->notifySubmitted($requisition->fresh(['department', 'requester', 'items']));
+        $notifications->notifyApprovers(
+            'requisition_submitted',
+            "Requisition {$requisition->requisition_number} submitted",
+            $requisition->title,
+            route('requisitions.show', $requisition),
+        );
+        $audit->record('quotation_sent', $quotation, "Quotation sent to directors for ticket {$ticket->ticket_number}.");
+
+        return back()->with('success', "Sent to the directors as requisition {$requisition->requisition_number}.");
     }
 
     private function recordStatus(Ticket $ticket, ?string $from, string $to, ?User $actor, ?string $reason): void

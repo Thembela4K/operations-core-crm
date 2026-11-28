@@ -52,6 +52,128 @@
                 </form>
             </section>
 
+            @if($canTriage)
+                <section class="panel mt-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="section-title">Quotation &amp; Send to Directors</h2>
+                        <span class="text-xs text-neutral-500">Price the fix, then send it to the directors for approval.</span>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        @forelse($ticket->quotations as $quotation)
+                            <div class="rounded border border-neutral-200 px-4 py-3 text-sm">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <strong>{{ $quotation->supplierLabel() }}</strong>
+                                    <span class="font-semibold">E{{ number_format((float) $quotation->total, 2) }}</span>
+                                </div>
+                                <p class="mt-1 text-xs text-neutral-600">
+                                    @if($quotation->reference) Ref {{ $quotation->reference }} | @endif
+                                    @if($quotation->valid_until) Valid until {{ $quotation->valid_until->toFormattedDateString() }} | @endif
+                                    {{ $quotation->items->count() }} line(s)
+                                </p>
+                                @if($quotation->notes)
+                                    <p class="mt-1 text-xs italic text-neutral-600">{{ $quotation->notes }}</p>
+                                @endif
+
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
+                                    @if($quotation->isSent())
+                                        <span class="rounded bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
+                                            Sent to directors
+                                            @if($quotation->requisition)
+                                                — {{ $quotation->requisition->requisition_number }}
+                                            @endif
+                                        </span>
+                                    @else
+                                        <form method="POST" action="{{ route('tickets.quotations.send', [$ticket, $quotation]) }}">
+                                            @csrf
+                                            <button class="btn-primary" type="submit">Send to Directors</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('tickets.quotations.destroy', [$ticket, $quotation]) }}" onsubmit="return confirm('Remove this quotation?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn-secondary" type="submit">Remove</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="empty">No quotation captured yet.</p>
+                        @endforelse
+                    </div>
+
+                    <form class="mt-5 border-t border-neutral-200 pt-4" method="POST" action="{{ route('tickets.quotations.store', $ticket) }}">
+                        @csrf
+                        <div class="grid gap-3 md:grid-cols-4">
+                            <label>
+                                <span class="label">Supplier</span>
+                                <select class="input" name="supplier_id">
+                                    <option value="">Not listed</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label><span class="label">Supplier name (if not listed)</span><input class="input" name="supplier_name" placeholder="e.g. Cable Co"></label>
+                            <label><span class="label">Reference</span><input class="input" name="reference" placeholder="Supplier quote number"></label>
+                            <label><span class="label">Valid until</span><input class="input" type="date" name="valid_until"></label>
+                        </div>
+
+                        <div class="mt-3 overflow-x-auto">
+                            <table class="data-table" data-quote-rows>
+                                <thead><tr><th>Description</th><th class="w-24">Qty</th><th class="w-32">Unit Price</th><th class="w-20"></th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td><input class="input" name="items[0][description]" placeholder="What is being bought" required></td>
+                                        <td><input class="input" type="number" step="0.01" min="0.01" name="items[0][quantity]" value="1" required></td>
+                                        <td><input class="input" type="number" step="0.01" min="0" name="items[0][unit_price]" value="0" required></td>
+                                        <td><button class="btn-secondary px-2 py-1" type="button" data-remove-quote-row>Remove</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn-secondary mt-3" type="button" data-add-quote-row>Add Line</button>
+
+                        <label class="mt-3 block">
+                            <span class="label">Notes for the directors</span>
+                            <textarea class="input min-h-16" name="notes" placeholder="Anything they should know before approving"></textarea>
+                        </label>
+
+                        <div class="mt-3 flex justify-end">
+                            <button class="btn-primary" type="submit">Save Quotation</button>
+                        </div>
+                    </form>
+                </section>
+
+                <script>
+                    (function () {
+                        var next = 1;
+                        var addButton = document.querySelector('[data-add-quote-row]');
+                        if (addButton) {
+                            addButton.addEventListener('click', function () {
+                                var body = document.querySelector('[data-quote-rows] tbody');
+                                var row = document.createElement('tr');
+                                row.innerHTML =
+                                    '<td><input class="input" name="items[' + next + '][description]" placeholder="What is being bought" required></td>' +
+                                    '<td><input class="input" type="number" step="0.01" min="0.01" name="items[' + next + '][quantity]" value="1" required></td>' +
+                                    '<td><input class="input" type="number" step="0.01" min="0" name="items[' + next + '][unit_price]" value="0" required></td>' +
+                                    '<td><button class="btn-secondary px-2 py-1" type="button" data-remove-quote-row>Remove</button></td>';
+                                body.appendChild(row);
+                                next++;
+                            });
+                        }
+
+                        document.addEventListener('click', function (event) {
+                            var remove = event.target.closest('[data-remove-quote-row]');
+                            if (!remove) return;
+                            var rows = document.querySelectorAll('[data-quote-rows] tbody tr');
+                            if (rows.length > 1) {
+                                remove.closest('tr').remove();
+                            }
+                        });
+                    })();
+                </script>
+            @endif
+
             <section class="panel mt-6">
                 <h2 class="section-title">Conversation</h2>
                 <div class="mt-4 space-y-3">

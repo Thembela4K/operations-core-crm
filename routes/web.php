@@ -105,6 +105,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('tickets/{ticket}/status', [TicketController::class, 'status'])->name('tickets.status');
     Route::post('tickets/{ticket}/requisition', [TicketController::class, 'createRequisition'])->name('tickets.requisition');
     Route::post('tickets/{ticket}/attachments', [TicketController::class, 'attach'])->name('tickets.attachments.store');
+    Route::post('tickets/{ticket}/quotations', [TicketController::class, 'storeQuotation'])->name('tickets.quotations.store');
+    Route::delete('tickets/{ticket}/quotations/{quotation}', [TicketController::class, 'destroyQuotation'])->name('tickets.quotations.destroy');
+    Route::post('tickets/{ticket}/quotations/{quotation}/send', [TicketController::class, 'sendQuotation'])->name('tickets.quotations.send');
 
     Route::resource('projects', ProjectController::class);
 

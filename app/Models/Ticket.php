@@ -30,6 +30,10 @@ class Ticket extends Model
 
     public const STATUS_AWAITING_PROCUREMENT = 'Awaiting Procurement';
 
+    public const STATUS_DELAYED = 'Delayed';
+
+    public const STATUS_REJECTED = 'Rejected';
+
     public const STATUS_RESOLVED = 'Resolved';
 
     public const STATUS_CLOSED = 'Closed';
@@ -46,6 +50,8 @@ class Ticket extends Model
         self::STATUS_AWAITING_REQUESTER,
         self::STATUS_AWAITING_APPROVAL,
         self::STATUS_AWAITING_PROCUREMENT,
+        self::STATUS_DELAYED,
+        self::STATUS_REJECTED,
         self::STATUS_RESOLVED,
         self::STATUS_CLOSED,
         self::STATUS_REOPENED,
@@ -61,6 +67,7 @@ class Ticket extends Model
         self::STATUS_AWAITING_REQUESTER,
         self::STATUS_AWAITING_APPROVAL,
         self::STATUS_AWAITING_PROCUREMENT,
+        self::STATUS_DELAYED,
         self::STATUS_REOPENED,
     ];
 
@@ -141,6 +148,11 @@ class Ticket extends Model
     public function requisitions(): HasMany
     {
         return $this->hasMany(Requisition::class, 'source_ticket_id');
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(TicketQuotation::class)->latest();
     }
 
     public function documents(): MorphMany
