@@ -385,9 +385,18 @@ class User extends Authenticatable
      *
      * @return array<int, string>
      */
+    /**
+     * Levels this actor may assign to a new team member.
+     *
+     * Anyone who manages staff accounts (business admin, directors) may assign
+     * any level. Departmental officers and heads, who only add their own juniors,
+     * are limited to Trainee and Intern.
+     *
+     * @return array<int, string>
+     */
     public function assignableLevels(): array
     {
-        return $this->isBusinessAdmin() ? self::LEVELS : self::JUNIOR_LEVELS;
+        return $this->canManageUsers() ? self::LEVELS : self::JUNIOR_LEVELS;
     }
 
     /**

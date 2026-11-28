@@ -99,6 +99,33 @@ class TeamAndLevelTest extends TestCase
         $this->actingAs($head)->get(route('team.create'))->assertOk();
     }
 
+    public function test_a_director_can_assign_any_level(): void
+    {
+        $director = User::query()->create([
+            'name' => 'Director',
+            'email' => 'director.levels@example.com',
+            'password' => 'password',
+            'role' => User::ROLE_DIRECTOR,
+            'is_active' => true,
+        ]);
+
+        $this->assertSame(User::LEVELS, $director->assignableLevels());
+        $this->assertContains(User::LEVEL_OFFICER, $director->assignableLevels());
+
+        $this->actingAs($director)->get(route('users.create'))
+            ->assertOk()
+            ->assertSee('Officer')
+            ->assertSee('Head');
+    }
+
+    public function test_an_officer_is_still_limited_to_juniors(): void
+    {
+        $department = $this->department('MIS Department');
+        $officer = $this->user('Officer Person', 'officer.levels@example.com', $department, User::LEVEL_OFFICER);
+
+        $this->assertSame(User::JUNIOR_LEVELS, $officer->assignableLevels());
+    }
+
     public function test_the_reminders_page_lists_week_plan_deadlines(): void
     {
         $department = $this->department('MIS Department');
