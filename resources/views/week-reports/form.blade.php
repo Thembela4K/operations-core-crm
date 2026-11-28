@@ -62,17 +62,19 @@
 
         <section class="panel">
             <h2 class="section-title">This Week — What I Am Doing</h2>
-            <p class="page-subtitle">Unfinished work from last week is carried over automatically.</p>
+            <p class="page-subtitle">A forecast, not a scorecard: give each item the dates it is expected to take. Unfinished work from last week is carried over automatically.</p>
 
             <div class="mt-4 overflow-x-auto">
                 <table class="data-table" data-rows="this_week">
-                    <thead><tr><th>Task</th><th class="w-28">Progress %</th><th class="w-28">Carried over</th><th>Notes</th><th class="w-16"></th></tr></thead>
+                    <thead><tr><th>Task</th><th class="w-36">Expected start</th><th class="w-36">Expected finish</th><th class="w-24">Est. days</th><th class="w-24">Carried over</th><th>Notes</th><th class="w-16"></th></tr></thead>
                     <tbody>
                         @foreach($thisWeekRows as $index => $row)
                             <tr>
                                 <td><input class="input" name="this_week[{{ $index }}][title]" value="{{ $row['title'] }}" required>
                                     <input type="hidden" name="this_week[{{ $index }}][task_id]" value="{{ $row['task_id'] }}"></td>
-                                <td><input class="input" type="number" min="0" max="100" name="this_week[{{ $index }}][progress_percent]" value="{{ $row['progress_percent'] }}"></td>
+                                <td><input class="input" type="date" name="this_week[{{ $index }}][planned_start]" value="{{ $row['planned_start'] ?? '' }}" data-plan-start></td>
+                                <td><input class="input" type="date" name="this_week[{{ $index }}][planned_end]" value="{{ $row['planned_end'] ?? '' }}" data-plan-end></td>
+                                <td class="text-xs text-neutral-600"><span data-plan-days>—</span></td>
                                 <td class="text-center"><input type="hidden" name="this_week[{{ $index }}][carried_over]" value="0"><input type="checkbox" name="this_week[{{ $index }}][carried_over]" value="1" @checked($row['carried_over'])></td>
                                 <td><input class="input" name="this_week[{{ $index }}][notes]" value="{{ $row['notes'] }}"></td>
                                 <td><button class="btn-secondary px-2 py-1" type="button" data-remove-row>Remove</button></td>
@@ -151,22 +153,47 @@
             }
 
             function buildRow(section, index, values) {
-                var carried = section === 'this_week'
-                    ? '<td class="text-center"><input type="hidden" name="' + section + '[' + index + '][carried_over]" value="0">' +
+                var middle = section === 'this_week'
+                    ? '<td><input class="input" type="date" name="' + section + '[' + index + '][planned_start]" data-plan-start></td>' +
+                      '<td><input class="input" type="date" name="' + section + '[' + index + '][planned_end]" data-plan-end></td>' +
+                      '<td class="text-xs text-neutral-600"><span data-plan-days>—</span></td>' +
+                      '<td class="text-center"><input type="hidden" name="' + section + '[' + index + '][carried_over]" value="0">' +
                       '<input type="checkbox" name="' + section + '[' + index + '][carried_over]" value="1"' + (values.carried ? ' checked' : '') + '></td>'
-                    : '';
+                    : '<td><input class="input" type="number" min="0" max="100" name="' + section + '[' + index + '][progress_percent]" value="' + (values.progress || 0) + '"></td>';
 
                 var row = document.createElement('tr');
                 row.innerHTML =
                     '<td><input class="input" name="' + section + '[' + index + '][title]" value="' + escapeHtml(values.title) + '">' +
                     '<input type="hidden" name="' + section + '[' + index + '][task_id]" value="' + escapeHtml(values.id) + '"></td>' +
-                    '<td><input class="input" type="number" min="0" max="100" name="' + section + '[' + index + '][progress_percent]" value="' + (values.progress || 0) + '"></td>' +
-                    carried +
+                    middle +
                     '<td><input class="input" name="' + section + '[' + index + '][notes]"></td>' +
                     '<td><button class="btn-secondary px-2 py-1" type="button" data-remove-row>Remove</button></td>';
 
                 return row;
             }
+
+            function updatePlanDays() {
+                document.querySelectorAll('[data-rows="this_week"] tbody tr').forEach(function (row) {
+                    var start = row.querySelector('[data-plan-start]');
+                    var end = row.querySelector('[data-plan-end]');
+                    var out = row.querySelector('[data-plan-days]');
+                    if (!start || !end || !out) return;
+
+                    if (!start.value || !end.value) {
+                        out.textContent = '—';
+                        return;
+                    }
+
+                    var days = Math.round((new Date(end.value) - new Date(start.value)) / 86400000) + 1;
+                    out.textContent = days > 0 ? days + ' day' + (days === 1 ? '' : 's') : '—';
+                });
+            }
+
+            document.addEventListener('input', function (event) {
+                if (event.target.matches('[data-plan-start], [data-plan-end]')) {
+                    updatePlanDays();
+                }
+            });
 
             function alreadyListed(section, taskId) {
                 if (!taskId) return false;
@@ -239,6 +266,8 @@
                 var row = remove.closest('tr') || remove.closest('div.grid');
                 if (row) row.remove();
             });
+
+            updatePlanDays();
         })();
     </script>
 @endsection

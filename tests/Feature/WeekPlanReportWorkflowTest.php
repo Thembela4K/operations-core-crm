@@ -133,6 +133,45 @@ class WeekPlanReportWorkflowTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_the_plan_half_records_expected_dates_instead_of_progress(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-25 10:00:00'));
+
+        $user = $this->user('Report Owner', 'owner6@example.com', User::ROLE_DEPARTMENT_USER);
+
+        $this->actingAs($user)->post(route('week-reports.save'), [
+            'week_start' => '2026-11-30',
+            'status' => 'Submitted',
+            'last_week_progress' => 'Done what I could.',
+            'this_week_plan' => 'Forecast for the week.',
+            'last_week' => [
+                ['title' => 'Gather specifications', 'progress_percent' => 100],
+            ],
+            'this_week' => [
+                [
+                    'title' => 'Build the CRM features',
+                    'planned_start' => '2026-11-30',
+                    'planned_end' => '2026-12-02',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $row = WeekPlanReportTask::query()
+            ->where('section', 'this_week')
+            ->where('title', 'Build the CRM features')
+            ->firstOrFail();
+
+        $this->assertSame('2026-11-30', $row->planned_start->toDateString());
+        $this->assertSame('2026-12-02', $row->planned_end->toDateString());
+        $this->assertSame(3, $row->estimatedDays());
+
+        // The report half still records progress.
+        $done = WeekPlanReportTask::query()->where('section', 'last_week')->firstOrFail();
+        $this->assertSame(100, $done->progress_percent);
+
+        Carbon::setTestNow();
+    }
+
     private function report(User $owner): WeekPlanReport
     {
         return WeekPlanReport::query()->create([

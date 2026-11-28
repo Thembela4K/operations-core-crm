@@ -52,23 +52,32 @@
 
     <section class="panel mt-6 overflow-x-auto">
         <h2 class="section-title">This Week — What They Are Doing</h2>
+        <p class="page-subtitle">A forecast with expected dates, not a progress score.</p>
         <table class="data-table mt-4">
-            <thead><tr><th>Task</th><th class="w-24">Carried over</th><th class="w-40">Progress</th><th>Notes</th></tr></thead>
+            <thead><tr><th>Task</th><th class="w-40">Expected dates</th><th class="w-28">Est. duration</th><th class="w-24">Carried over</th><th>Notes</th></tr></thead>
             <tbody>
                 @forelse($thisWeek as $row)
                     <tr>
                         <td>{{ $row->title }}</td>
-                        <td>{{ $row->carried_over ? 'Yes' : 'No' }}</td>
                         <td>
-                            <div class="flex items-center gap-2">
-                                <div class="h-2 w-24 overflow-hidden rounded bg-neutral-200"><div class="h-2 bg-[#087aa5]" style="width: {{ $row->progress_percent }}%"></div></div>
-                                <span class="text-xs text-neutral-600">{{ $row->progress_percent }}%</span>
-                            </div>
+                            @if($row->planned_start || $row->planned_end)
+                                {{ $row->planned_start?->format('d M') ?? '?' }} – {{ $row->planned_end?->format('d M') ?? '?' }}
+                            @else
+                                —
+                            @endif
                         </td>
+                        <td>
+                            @if($row->estimatedDays())
+                                {{ $row->estimatedDays() }} day{{ $row->estimatedDays() === 1 ? '' : 's' }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td>{{ $row->carried_over ? 'Yes' : 'No' }}</td>
                         <td>{{ $row->notes ?: '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="4"><p class="empty">No plan recorded for this week.</p></td></tr>
+                    <tr><td colspan="5"><p class="empty">No plan recorded for this week.</p></td></tr>
                 @endforelse
             </tbody>
         </table>
