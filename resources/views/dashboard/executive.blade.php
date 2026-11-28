@@ -3,7 +3,7 @@
 @section('content')
     @php
         $awaitingQuotationApproval = (int) ($salesQuotationStatusCounts['Submitted for Approval'] ?? 0);
-        $awaitingTotal = $pendingRequisitionApprovals + $awaitingQuotationApproval + $ticketsAwaitingApproval;
+        $awaitingTotal = $pendingRequisitionApprovals + $awaitingQuotationApproval;
         $deadlineMax = max(1, $deadlineBands->max() ?? 0);
         $deadlineColors = ['Overdue' => 'bg-rose-700', 'Today' => 'bg-amber-600', 'Next 5 Days' => 'bg-[#087aa5]'];
         $departmentRows = $departmentWorkload->take(5);
@@ -41,15 +41,15 @@
                     <strong class="mt-1 block text-2xl text-neutral-900">{{ $pendingRequisitionApprovals }}</strong>
                     <span class="text-xs text-neutral-500">submitted, awaiting approval</span>
                 </a>
+                <a class="rounded border border-neutral-200 px-4 py-3 text-sm hover:border-[#087aa5]" href="{{ route('approvals.index') }}">
+                    <span class="block text-xs uppercase tracking-wide text-neutral-500">From the IT desk</span>
+                    <strong class="mt-1 block text-2xl text-neutral-900">{{ $itRequisitionsAwaiting }}</strong>
+                    <span class="text-xs text-neutral-500">IT needs money approved</span>
+                </a>
                 <a class="rounded border border-neutral-200 px-4 py-3 text-sm hover:border-[#087aa5]" href="{{ route('sales-quotations.index') }}">
                     <span class="block text-xs uppercase tracking-wide text-neutral-500">Sales quotations</span>
                     <strong class="mt-1 block text-2xl text-neutral-900">{{ $awaitingQuotationApproval }}</strong>
                     <span class="text-xs text-neutral-500">submitted for approval</span>
-                </a>
-                <a class="rounded border border-neutral-200 px-4 py-3 text-sm hover:border-[#087aa5]" href="{{ route('tickets.index') }}">
-                    <span class="block text-xs uppercase tracking-wide text-neutral-500">IT tickets</span>
-                    <strong class="mt-1 block text-2xl text-neutral-900">{{ $ticketsAwaitingApproval }}</strong>
-                    <span class="text-xs text-neutral-500">sent to directors</span>
                 </a>
             </div>
         @endif
@@ -144,22 +144,25 @@
         <section class="panel">
             <div class="panel-heading">
                 <h2 class="section-title">Service Desk</h2>
-                <span>IT requests</span>
+                <span>Your requests to IT</span>
             </div>
             <dl class="mt-4 grid grid-cols-2 gap-4">
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-neutral-500">Open tickets</dt>
-                    <dd class="text-xl font-semibold">{{ $openTicketCount }}</dd>
+                    <dt class="text-xs uppercase tracking-wide text-neutral-500">Your open tickets</dt>
+                    <dd class="text-xl font-semibold">{{ $myOpenTickets }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-neutral-500">With directors</dt>
-                    <dd class="text-xl font-semibold">{{ $ticketsAwaitingApproval }}</dd>
+                    <dt class="text-xs uppercase tracking-wide text-neutral-500">IT awaiting your approval</dt>
+                    <dd class="text-xl font-semibold">{{ $itRequisitionsAwaiting }}</dd>
                 </div>
             </dl>
+            <p class="mt-3 text-xs text-neutral-500">
+                Tickets go to the IT Officer. Money for a fix reaches you as a requisition.
+            </p>
             <div class="mt-3 flex flex-wrap gap-2">
-                <a class="btn-secondary" href="{{ route('tickets.index') }}">Ticket queue</a>
+                <a class="btn-secondary" href="{{ route('tickets.create') }}">Raise a ticket</a>
+                <a class="btn-secondary" href="{{ route('tickets.index') }}">My tickets</a>
                 <a class="btn-secondary" href="{{ route('assignments.index', ['scope' => 'all']) }}">Assignments</a>
-                <a class="btn-secondary" href="{{ route('user-information.index') }}">Staff information</a>
             </div>
         </section>
     </div>

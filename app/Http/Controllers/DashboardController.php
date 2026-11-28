@@ -134,6 +134,16 @@ class DashboardController extends Controller
             // Service desk summary.
             'openTicketCount' => \App\Models\Ticket::query()->whereIn('status', \App\Models\Ticket::OPEN_STATUSES)->count(),
             'ticketsAwaitingApproval' => \App\Models\Ticket::query()->where('status', \App\Models\Ticket::STATUS_AWAITING_APPROVAL)->count(),
+            // IT reaches directors only as a requisition for money, never as a ticket.
+            'itRequisitionsAwaiting' => $requisitions
+                ->whereNotNull('source_ticket_id')
+                ->whereIn('status', [Requisition::STATUS_SUBMITTED, Requisition::STATUS_IN_REVIEW])
+                ->count(),
+            // Tickets the director raised themselves.
+            'myOpenTickets' => \App\Models\Ticket::query()
+                ->visibleTo($user)
+                ->whereIn('status', \App\Models\Ticket::OPEN_STATUSES)
+                ->count(),
             // Assignments summary.
             'openAssignments' => $assignments->whereIn('workflow_status', Assignment::OPEN_STATUSES)->count(),
             'overdueAssignments' => $assignments->filter(fn (Assignment $assignment): bool => $assignment->isOverdue())->count(),
