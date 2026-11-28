@@ -54,6 +54,9 @@
                     <th>Priority</th>
                     <th>Status</th>
                     <th>Assignee</th>
+                    @if($canTriage)
+                        <th class="text-right">Action</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -64,11 +67,39 @@
                         <td>{{ $ticket->category?->name ?? '-' }}</td>
                         <td>{{ $ticket->requester?->name ?? '-' }}</td>
                         <td>{{ $ticket->priority }}</td>
-                        <td>{{ $ticket->status }}</td>
+                        <td>
+                            <strong>{{ $ticket->status }}</strong>
+                            <span class="block text-xs text-neutral-500">Updated {{ $ticket->updated_at?->diffForHumans() }}</span>
+                        </td>
                         <td>{{ $ticket->assignee?->name ?? 'Unassigned' }}</td>
+                        @if($canTriage)
+                            <td class="text-right">
+                                <div class="flex flex-wrap justify-end gap-1">
+                                    <form method="POST" action="{{ route('tickets.requisition', $ticket) }}">
+                                        @csrf
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit" title="Raise a requisition for the directors">Requisition</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('tickets.status', $ticket) }}">
+                                        @csrf
+                                        <input type="hidden" name="status" value="Resolved">
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit" title="Mark this ticket resolved">Resolve</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('tickets.status', $ticket) }}">
+                                        @csrf
+                                        <input type="hidden" name="status" value="Delayed">
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit" title="Mark as delayed">Delay</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('tickets.status', $ticket) }}">
+                                        @csrf
+                                        <input type="hidden" name="status" value="Rejected">
+                                        <button class="btn-secondary px-2 py-1 text-xs" type="submit" title="Reject this ticket">Rejected</button>
+                                    </form>
+                                </div>
+                            </td>
+                        @endif
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="empty">No tickets yet.</td></tr>
+                    <tr><td colspan="{{ $canTriage ? 8 : 7 }}" class="empty">No tickets yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

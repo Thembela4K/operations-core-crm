@@ -52,6 +52,30 @@
                 </form>
             </section>
 
+            <section class="panel mt-6">
+                <h2 class="section-title">Progress</h2>
+                <p class="mt-3 text-sm text-neutral-800">
+                    Current status: <strong>{{ $ticket->status }}</strong>
+                    @if($ticket->updated_at)
+                        <span class="text-xs text-neutral-500">(updated {{ $ticket->updated_at->diffForHumans() }})</span>
+                    @endif
+                </p>
+                @if($ticket->requisitions->isNotEmpty())
+                    <p class="mt-2 text-sm text-neutral-700">Sent to the directors for approval:</p>
+                    <ul class="mt-1 space-y-1 text-sm text-neutral-700">
+                        @foreach($ticket->requisitions as $requisition)
+                            <li>
+                                {{ $requisition->requisition_number }} —
+                                <strong>{{ $requisition->status }}</strong>
+                                @if($requisition->estimated_total)
+                                    (E{{ number_format((float) $requisition->estimated_total, 2) }})
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
+
             @if($canTriage)
                 <section class="panel mt-6">
                     <div class="flex flex-wrap items-center justify-between gap-2">
