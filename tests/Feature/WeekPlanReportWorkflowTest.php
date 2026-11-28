@@ -113,6 +113,26 @@ class WeekPlanReportWorkflowTest extends TestCase
             ->assertSee('Owner');
     }
 
+    public function test_last_weeks_tasks_are_offered_in_a_picker(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-25 10:00:00'));
+
+        $user = $this->user('Report Owner', 'owner5@example.com', User::ROLE_DEPARTMENT_USER);
+        $lastWeekTask = $this->task($user, 'Survey site', CrmTask::STATUS_IN_PROGRESS, '2026-11-18');
+
+        $page = $this->actingAs($user)->get(route('week-reports.edit'));
+        $page->assertOk();
+
+        $options = $page->viewData('lastWeekOptions');
+
+        $this->assertTrue(
+            $options->contains(fn (array $option): bool => $option['id'] === $lastWeekTask->id),
+            'Last week tasks should be selectable in the picker.',
+        );
+
+        Carbon::setTestNow();
+    }
+
     private function report(User $owner): WeekPlanReport
     {
         return WeekPlanReport::query()->create([

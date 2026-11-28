@@ -82,10 +82,29 @@ class WeekPlanReportController extends Controller
             'lastWeekEnd' => $lastWeekEnd,
             'lastWeekRows' => $this->lastWeekRows($report, $user, $lastWeekStart, $lastWeekEnd),
             'thisWeekRows' => $this->thisWeekRows($report, $user, $start, $end),
+            'lastWeekOptions' => $this->taskOptions($user, $lastWeekStart, $lastWeekEnd),
+            'thisWeekOptions' => $this->taskOptions($user, $start, $end),
             'staff' => User::query()->where('is_active', true)->whereKeyNot($user->id)->orderBy('name')->get(),
             'previousWeek' => $start->copy()->subWeek()->toDateString(),
             'nextWeek' => $start->copy()->addWeek()->toDateString(),
         ]);
+    }
+
+    /**
+     * Tasks the employee can pick from when building a section of the report.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function taskOptions(User $user, Carbon $start, Carbon $end): Collection
+    {
+        return $this->tasksBetween($user, $start, $end)
+            ->map(fn (CrmTask $task): array => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'status' => $task->status,
+                'progress' => $this->defaultProgress($task),
+            ])
+            ->values();
     }
 
     public function save(Request $request, AuditLogService $audit): RedirectResponse

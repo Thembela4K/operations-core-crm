@@ -38,7 +38,21 @@
                 </table>
             </div>
 
-            <button class="btn-secondary mt-3" type="button" data-add-row="last_week">Add Task</button>
+            <div class="mt-4 flex flex-wrap items-end gap-2">
+                <label class="min-w-64 flex-1">
+                    <span class="label">Pick a task from last week</span>
+                    <select class="input" data-picker="last_week">
+                        <option value="">Select a task…</option>
+                        @foreach($lastWeekOptions as $option)
+                            <option value="{{ $option['id'] }}" data-title="{{ $option['title'] }}" data-progress="{{ $option['progress'] }}" data-status="{{ $option['status'] }}">
+                                {{ $option['title'] }} ({{ $option['status'] }})
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <button class="btn-secondary" type="button" data-add-selected="last_week">Add Selected</button>
+                <button class="btn-secondary" type="button" data-add-row="last_week">Add Blank Task</button>
+            </div>
 
             <label class="mt-4 block">
                 <span class="label">Summary of last week</span>
@@ -68,7 +82,21 @@
                 </table>
             </div>
 
-            <button class="btn-secondary mt-3" type="button" data-add-row="this_week">Add Task</button>
+            <div class="mt-4 flex flex-wrap items-end gap-2">
+                <label class="min-w-64 flex-1">
+                    <span class="label">Pick a task for this week</span>
+                    <select class="input" data-picker="this_week">
+                        <option value="">Select a task…</option>
+                        @foreach($thisWeekOptions as $option)
+                            <option value="{{ $option['id'] }}" data-title="{{ $option['title'] }}" data-progress="0" data-status="{{ $option['status'] }}">
+                                {{ $option['title'] }} ({{ $option['status'] }})
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <button class="btn-secondary" type="button" data-add-selected="this_week">Add Selected</button>
+                <button class="btn-secondary" type="button" data-add-row="this_week">Add Blank Task</button>
+            </div>
 
             <label class="mt-4 block">
                 <span class="label">Plan for this week</span>
@@ -116,27 +144,72 @@
                 contributors: {{ $report->exists ? $report->contributors->count() : 0 }}
             };
 
-            function addTaskRow(section) {
-                var table = document.querySelector('[data-rows="' + section + '"] tbody');
-                if (!table) return;
-                var index = counters[section]++;
+            function escapeHtml(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            }
+
+            function buildRow(section, index, values) {
                 var carried = section === 'this_week'
-                    ? '<td class="text-center"><input type="hidden" name="' + section + '[' + index + '][carried_over]" value="0"><input type="checkbox" name="' + section + '[' + index + '][carried_over]" value="1"></td>'
+                    ? '<td class="text-center"><input type="hidden" name="' + section + '[' + index + '][carried_over]" value="0">' +
+                      '<input type="checkbox" name="' + section + '[' + index + '][carried_over]" value="1"' + (values.carried ? ' checked' : '') + '></td>'
                     : '';
 
                 var row = document.createElement('tr');
                 row.innerHTML =
-                    '<td><input class="input" name="' + section + '[' + index + '][title]" placeholder="Task"><input type="hidden" name="' + section + '[' + index + '][task_id]" value=""></td>' +
-                    '<td><input class="input" type="number" min="0" max="100" name="' + section + '[' + index + '][progress_percent]" value="0"></td>' +
+                    '<td><input class="input" name="' + section + '[' + index + '][title]" value="' + escapeHtml(values.title) + '">' +
+                    '<input type="hidden" name="' + section + '[' + index + '][task_id]" value="' + escapeHtml(values.id) + '"></td>' +
+                    '<td><input class="input" type="number" min="0" max="100" name="' + section + '[' + index + '][progress_percent]" value="' + (values.progress || 0) + '"></td>' +
                     carried +
                     '<td><input class="input" name="' + section + '[' + index + '][notes]"></td>' +
                     '<td><button class="btn-secondary px-2 py-1" type="button" data-remove-row>Remove</button></td>';
-                table.appendChild(row);
+
+                return row;
+            }
+
+            function alreadyListed(section, taskId) {
+                if (!taskId) return false;
+                var table = document.querySelector('[data-rows="' + section + '"] tbody');
+                if (!table) return false;
+                return Array.prototype.some.call(table.querySelectorAll('input[name$="[task_id]"]'), function (input) {
+                    return input.value === String(taskId);
+                });
+            }
+
+            function appendRow(section, values) {
+                var table = document.querySelector('[data-rows="' + section + '"] tbody');
+                if (!table) return;
+                table.appendChild(buildRow(section, counters[section]++, values));
             }
 
             document.querySelectorAll('[data-add-row]').forEach(function (button) {
                 button.addEventListener('click', function () {
-                    addTaskRow(button.getAttribute('data-add-row'));
+                    appendRow(button.getAttribute('data-add-row'), { title: '', id: '', progress: 0 });
+                });
+            });
+
+            document.querySelectorAll('[data-add-selected]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var section = button.getAttribute('data-add-selected');
+                    var picker = document.querySelector('[data-picker="' + section + '"]');
+                    if (!picker || !picker.value) return;
+
+                    var option = picker.options[picker.selectedIndex];
+
+                    if (alreadyListed(section, picker.value)) {
+                        picker.value = '';
+                        return;
+                    }
+
+                    appendRow(section, {
+                        title: option.getAttribute('data-title') || option.textContent.trim(),
+                        id: picker.value,
+                        progress: option.getAttribute('data-progress') || 0,
+                        carried: section === 'this_week' && (option.getAttribute('data-progress') || 0) < 100
+                    });
+
+                    picker.value = '';
                 });
             });
 
@@ -147,7 +220,7 @@
                     var index = counters.contributors++;
                     var options = @json($staff->map(fn ($employee) => ['id' => $employee->id, 'name' => $employee->name])->values());
                     var select = '<select class="input" name="contributors[' + index + '][user_id]"><option value="">Outsourced / not listed</option>' +
-                        options.map(function (o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('') + '</select>';
+                        options.map(function (o) { return '<option value="' + o.id + '">' + escapeHtml(o.name) + '</option>'; }).join('') + '</select>';
 
                     var row = document.createElement('div');
                     row.className = 'grid gap-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto]';
