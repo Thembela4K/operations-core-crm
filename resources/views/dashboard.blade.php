@@ -31,9 +31,9 @@
             {{-- Central Africa Time (CAT, GMT+2). Server renders the authoritative
                  value; the script keeps it ticking without depending on the
                  visitor's own clock or timezone. --}}
-            <div class="rounded-md border border-neutral-200 bg-white px-4 py-2 text-right">
-                <div class="text-lg font-bold text-neutral-900" id="cat-clock">{{ now()->format('H:i:s') }}</div>
-                <div class="text-xs text-neutral-600" id="cat-date">{{ now()->format('l, j F Y') }}</div>
+            <div class="cat-clock">
+                <span class="cat-clock__time" id="cat-clock">{{ now()->format('H:i:s') }}</span>
+                <span class="cat-clock__date" id="cat-date">{{ now()->format('l, j F Y') }}</span>
             </div>
             @if($sppraUrl)
                 <a class="btn-primary" href="{{ $sppraUrl }}" target="_blank" rel="noopener noreferrer">Open SPPRA Tender Site</a>
