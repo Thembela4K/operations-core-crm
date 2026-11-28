@@ -130,7 +130,13 @@ class DashboardController extends Controller
             $attendanceReminders->markPrompted($user);
         }
 
-        return view('dashboard', [
+        return view($this->dashboardViewFor($user), [
+            // Service desk summary.
+            'openTicketCount' => \App\Models\Ticket::query()->whereIn('status', \App\Models\Ticket::OPEN_STATUSES)->count(),
+            'ticketsAwaitingApproval' => \App\Models\Ticket::query()->where('status', \App\Models\Ticket::STATUS_AWAITING_APPROVAL)->count(),
+            // Assignments summary.
+            'openAssignments' => $assignments->whereIn('workflow_status', Assignment::OPEN_STATUSES)->count(),
+            'overdueAssignments' => $assignments->filter(fn (Assignment $assignment): bool => $assignment->isOverdue())->count(),
             // Meetings scheduled for today: the reminder to walk into the room.
             'todayMeetings' => \App\Models\Assignment::query()
                 ->visibleTo($user)
@@ -188,5 +194,16 @@ class DashboardController extends Controller
             'attendancePrompt' => $attendancePrompt,
             'sppraUrl' => $user->canAccessSppra() ? config('services.sppra.url') : null,
         ]);
+    }
+
+    /**
+     * Directors and the business admin get a grouped executive summary; everyone
+     * else keeps the working dashboard.
+     */
+    private function dashboardViewFor(\App\Models\User $user): string
+    {
+        return $user->hasRole(\App\Models\User::ROLE_DIRECTOR, \App\Models\User::ROLE_BUSINESS_ADMIN)
+            ? 'dashboard.executive'
+            : 'dashboard';
     }
 }

@@ -228,8 +228,10 @@ class AccessControlTest extends TestCase
         $director = $this->user(User::ROLE_DIRECTOR);
         $directorResponse = $this->actingAs($director)->get('/');
         $directorResponse->assertOk();
-        $directorResponse->assertSee('Finance Workflow');
-        $directorResponse->assertSee('Sales Pipeline');
+        // Directors get the grouped executive summary rather than the working view.
+        $directorResponse->assertSee('Director Overview');
+        $directorResponse->assertSee('Waiting On You');
+        $directorResponse->assertSee('Money');
     }
 
     public function test_client_financials_are_masked_from_department_users(): void
