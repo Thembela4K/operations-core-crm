@@ -182,6 +182,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('sales-quotations/{sales_quotation}/pdf', [OfficialDocumentController::class, 'salesQuotation'])->name('sales-quotations.pdf');
 
         Route::resource('job-cards', JobCardController::class);
+        Route::get('job-cards/{job_card}/print', [JobCardController::class, 'print'])->name('job-cards.print');
         Route::post('job-cards/{job_card}/in-progress', [JobCardController::class, 'markInProgress'])->name('job-cards.in-progress');
         Route::post('job-cards/{job_card}/complete', [JobCardController::class, 'markCompleted'])->name('job-cards.complete');
         Route::post('job-cards/{job_card}/ready-for-invoice', [JobCardController::class, 'markReadyForInvoice'])->name('job-cards.ready-for-invoice');

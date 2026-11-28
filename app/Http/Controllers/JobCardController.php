@@ -196,6 +196,74 @@ class JobCardController extends Controller
         ]);
     }
 
+    /**
+     * The printable job card, laid out like the company's existing document:
+     * customer and bank details, diagnosis, parts used, work done, totals,
+     * signatures and the administrative footer.
+     */
+    public function print(Request $request, JobCard $jobCard): View
+    {
+        $this->authorizeView($request, $jobCard);
+
+        $jobCard->load(['salesQuotation.items', 'client.contacts', 'client', 'department', 'creator', 'assignee', 'invoice']);
+
+        $quotation = $jobCard->salesQuotation;
+        $invoice = $jobCard->invoice;
+
+        // Work done comes from the quotation lines, at net value: the print shows
+        // Unit Price and Total before VAT, with VAT added underneath.
+        $lines = $quotation?->items?->map(fn ($item): array => [
+            'description' => $item->description,
+            'quantity' => (float) $item->quantity,
+            'unit_price' => (float) $item->unit_price,
+            'line_total' => (float) ($item->line_subtotal ?? $item->line_total),
+        ])->values()->all() ?? [];
+
+        if ($lines === []) {
+            $lines = [[
+                'description' => $jobCard->title,
+                'quantity' => 1,
+                'unit_price' => (float) ($quotation?->subtotal ?? 0),
+                'line_total' => (float) ($quotation?->subtotal ?? 0),
+            ]];
+        }
+
+        $linesTotal = round(array_sum(array_column($lines, 'line_total')), 2);
+
+        // The quotation is authoritative when it exists; otherwise compute.
+        $subtotal = $quotation && $quotation->subtotal !== null
+            ? round((float) $quotation->subtotal, 2)
+            : $linesTotal;
+
+        $vatPercent = app(FinanceCalculatorService::class)->vatRatePercent();
+
+        $vat = $quotation && $quotation->vat_total !== null
+            ? round((float) $quotation->vat_total, 2)
+            : round($subtotal * $vatPercent / 100, 2);
+
+        $total = $quotation && $quotation->total !== null
+            ? round((float) $quotation->total, 2)
+            : round($subtotal + $vat, 2);
+
+        return view('job_cards.print', [
+            'jobCard' => $jobCard,
+            'client' => $jobCard->client,
+            'contact' => $jobCard->client?->contacts?->first(),
+            'bank' => config('company.bank'),
+            'footer' => config('company.footer'),
+            'partsDefault' => config('company.job_card_parts_default'),
+            'lines' => $lines,
+            'subtotal' => $subtotal,
+            'vat' => $vat,
+            'total' => round($subtotal + $vat, 2),
+            'vatRate' => $vatPercent,
+            'invoice' => $invoice,
+            'quotation' => $quotation,
+            'preparedBy' => $jobCard->creator?->name ?? $request->user()->name,
+            'technician' => $jobCard->assignee?->name ?? $jobCard->creator?->name,
+        ]);
+    }
+
     public function edit(Request $request, JobCard $jobCard): View
     {
         $this->authorizeMutation($request, $jobCard);

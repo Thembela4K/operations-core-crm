@@ -12,6 +12,7 @@
             <p class="page-subtitle">{{ $jobCard->title }} | {{ $jobCard->client->name }} | {{ $jobCard->status }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a class="btn-secondary" href="{{ route('job-cards.print', $jobCard) }}" target="_blank" rel="noopener">Print Job Card</a>
             <a class="btn-secondary" href="{{ route('sales-quotations.show', $jobCard->salesQuotation) }}">Quotation</a>
             @if($canWork && ! in_array($jobCard->status, [\App\Models\JobCard::STATUS_INVOICED, \App\Models\JobCard::STATUS_CANCELLED], true))
                 <a class="btn-secondary" href="{{ route('job-cards.edit', $jobCard) }}">Edit</a>
