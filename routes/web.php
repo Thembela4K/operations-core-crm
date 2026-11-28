@@ -38,6 +38,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TenderProposalController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserProfileController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +67,16 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('profile/password', [ProfileController::class, 'password'])->name('profile.password');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+    /*
+    | User Information — everyone maintains their own personal details; the
+    | business admin and directors can see and maintain everyone's.
+    */
+    Route::get('profile/information', [UserProfileController::class, 'own'])->name('profile.information');
+    Route::put('profile/information', [UserProfileController::class, 'updateOwn'])->name('profile.information.update');
+    Route::get('user-information', [UserProfileController::class, 'index'])->name('user-information.index');
+    Route::get('user-information/{user}', [UserProfileController::class, 'show'])->name('user-information.show');
+    Route::put('user-information/{user}', [UserProfileController::class, 'update'])->name('user-information.update');
 
     Route::get('tasks/report', [TaskController::class, 'report'])->name('tasks.report');
     Route::resource('tasks', TaskController::class);

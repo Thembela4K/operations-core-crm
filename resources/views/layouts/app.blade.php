@@ -46,6 +46,8 @@
                 $activeModule = 'reports';
             } elseif (request()->routeIs('tickets.*')) {
                 $activeModule = 'tickets';
+            } elseif (request()->routeIs('profile.*') || request()->routeIs('user-information.*')) {
+                $activeModule = 'profile';
             } elseif (request()->routeIs('users.*') || request()->routeIs('departments.*') || request()->routeIs('settings.*') || request()->routeIs('team.*')) {
                 $activeModule = 'admin';
             }
@@ -160,6 +162,15 @@
                     'badge' => null,
                 ],
                 [
+                    'key' => 'profile',
+                    'label' => 'My Information',
+                    'meta' => 'Personal, contact and banking details',
+                    'route' => route('profile.information'),
+                    'visible' => true,
+                    'icon' => 'admin',
+                    'badge' => null,
+                ],
+                [
                     'key' => 'admin',
                     'label' => 'Admin',
                     'meta' => 'Users, departments, settings',
@@ -233,6 +244,11 @@
                 ],
                 'team' => [
                     ['label' => 'Add Team Member', 'route' => route('team.create'), 'active' => request()->routeIs('team.*'), 'visible' => true, 'badge' => null],
+                ],
+                'profile' => [
+                    ['label' => 'My Information', 'route' => route('profile.information'), 'active' => request()->routeIs('profile.information*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Password', 'route' => route('profile.password'), 'active' => request()->routeIs('profile.password*'), 'visible' => true, 'badge' => null],
+                    ['label' => 'Staff Information', 'route' => route('user-information.index'), 'active' => request()->routeIs('user-information.*'), 'visible' => $user->canManageUserProfiles(), 'badge' => null],
                 ],
                 'tickets' => [
                     ['label' => 'Ticket Queue', 'route' => route('tickets.index'), 'active' => request()->routeIs('tickets.index') || request()->routeIs('tickets.show'), 'visible' => true, 'badge' => null],

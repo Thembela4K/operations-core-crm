@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -172,6 +173,36 @@ class User extends Authenticatable
     public function crmNotifications(): HasMany
     {
         return $this->hasMany(CrmNotification::class);
+    }
+
+    /**
+     * Personal information (contact, addresses, emergency contact, banking).
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * Get the profile, creating an empty one on first access.
+     */
+    public function profileOrCreate(): UserProfile
+    {
+        return $this->profile()->firstOrCreate([]);
+    }
+
+    /**
+     * The business admin and directors maintain everyone's personal details.
+     * An employee may always view and edit their own.
+     */
+    public function canManageUserProfiles(): bool
+    {
+        return $this->hasRole(self::ROLE_BUSINESS_ADMIN, self::ROLE_DIRECTOR);
+    }
+
+    public function canViewUserProfile(User $target): bool
+    {
+        return $this->id === $target->id || $this->canManageUserProfiles();
     }
 
     public function invitations(): HasMany
